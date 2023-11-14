@@ -90,6 +90,7 @@ export class GameRoom extends Room<RoomState> {
         this.state.song = message[1];
         this.state.diff = message[2];
         this.chartHash = message[3];
+        this.state.modDir = message[4];
 
         this.state.player1.hasSong = this.isOwner(client);
         if (this.state.player2 != null) {
