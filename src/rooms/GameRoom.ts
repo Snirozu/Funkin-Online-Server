@@ -188,7 +188,9 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
-    console.log("room", this.roomId, "created...");
+    this.onMessage("chat", (client, message) => {
+      this.broadcast("log", "<" + (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + ">: " + message);
+    });
   }
 
   onAuth(client: Client, options: any, request?: IncomingMessage) {
@@ -199,8 +201,6 @@ export class GameRoom extends Room<RoomState> {
   }
 
   onJoin (client: Client, options: any) {
-    console.log(client.sessionId, "joined!");
-
     if (this.clients.length == 1) {
       this.state.player1 = new Player();
       this.state.player1.name = options.name;
@@ -208,14 +208,19 @@ export class GameRoom extends Room<RoomState> {
     }
     else {
       this.state.player2 = new Player();
+      if (this.state.player1.name == options.name) {
+        options.name += "(2)";
+      }
       this.state.player2.name = options.name;
     }
+
+    this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has joined the room!");
 
     client.send("checkChart");
   }
 
   onLeave (client: Client, consented: boolean) {
-    console.log(client.sessionId, "left!");
+    this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has left the room!");
 
     if (this.isOwner(client)) {
       this.disconnect(4000);
@@ -227,8 +232,6 @@ export class GameRoom extends Room<RoomState> {
 
   onDispose() {
     this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
-
-    console.log("room", this.roomId, "disposing...");
   }
 
   isOwner(client: Client) {
