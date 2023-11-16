@@ -40,6 +40,10 @@ export default config({
             })
         });
 
+        app.get("*", (req, res) => {
+            res.redirect("https://github.com/Snirozu/Funkin-Online-Server");
+        });
+
         /**
          * Use @colyseus/playground
          * (It is not recommended to expose this route in a production environment)
