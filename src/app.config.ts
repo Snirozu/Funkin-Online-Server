@@ -25,17 +25,28 @@ export default config({
          * Read more: https://expressjs.com/en/starter/basic-routing.html
          */
         app.get("/rooms", (req, res) => {
-            var rooms = matchMaker.query({private: false, clients: 1});
+            var rooms = matchMaker.query(/*{private: false, clients: 1}*/);
             rooms.then((v) => {
                 let page = Assets.HTML_THEME + "<b>Available Public Rooms:</b><br>";
+                let hasPublicRoom = false;
+                let playerCount = 0;
+
                 if (v.length >= 1) {
                     v.forEach((room) => {
-                        page += "Code: " + room.roomId + " Player: " + room.metadata.name + "<br>";
+                        playerCount += room.clients;
+                        if (!room.private && room.clients == 1) {
+                            page += "Code: " + room.roomId + " Player: " + room.metadata.name + "<br>";
+                            hasPublicRoom = true;
+                        }
                     });
                 }
-                else {
-                    page += 'None public.<br><iframe src="https://www.youtube.com/embed/v4YHIYXao9I?autoplay=1" width="560" height="315" frameborder="0" allowfullscreen></iframe>';
+
+                if (!hasPublicRoom) {
+                    page += 'None public.<br><br><iframe src="https://www.youtube.com/embed/v4YHIYXao9I?autoplay=1" width="560" height="315" frameborder="0" allowfullscreen></iframe>';
                 }
+
+                page += "<br><br>Players Online: " + playerCount;
+
                 res.send(page);
             })
         });
