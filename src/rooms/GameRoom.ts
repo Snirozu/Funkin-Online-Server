@@ -189,6 +189,9 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("chat", (client, message) => {
+      if (message.length >= 300) {
+        client.send("log", "The message is too long!");
+      }
       this.broadcast("log", "<" + (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + ">: " + message);
     });
   }
@@ -196,6 +199,9 @@ export class GameRoom extends Room<RoomState> {
   onAuth(client: Client, options: any, request?: IncomingMessage) {
     if (options == null || options.name == null || (options.name + "").trim().length < 3) {
       throw new ServerError(5000, "Too short name!"); // too short name error
+    }
+    else if (options.name.length >= 20) {
+      throw new ServerError(5001, "Too long name!"); 
     }
     return true;
   }
