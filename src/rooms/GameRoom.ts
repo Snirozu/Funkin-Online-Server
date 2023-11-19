@@ -3,14 +3,17 @@ import { RoomState } from "./schema/RoomState";
 import { Player } from "./schema/Player";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
+import { Assets } from "../Assets";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export class GameRoom extends Room<RoomState> {
   maxClients = 2;
   LOBBY_CHANNEL = "$lobbiesChannel"
+  IPS_CHANNEL = "$IPSChannel"
   roomOwner:string = null;
   chartHash:string = null;
+  ownerIP:string = null;
 
   async onCreate (options: any) {
     this.roomId = await this.generateRoomId();
@@ -21,14 +24,14 @@ export class GameRoom extends Room<RoomState> {
     this.setMetadata({name: options.name});
 
     this.onMessage("togglePrivate", (client, message) => {
-      if (this.isOwner(client)) {
+      if (this.hasPerms(client)) {
         this.state.isPrivate = !this.state.isPrivate;
         this.setPrivate(this.state.isPrivate);
       }
     });
 
     this.onMessage("startGame", (client, message) => {
-      if (this.clients.length >= 2 && this.isOwner(client) && this.state.player1.hasSong && this.state.player2.hasSong) {
+      if (this.clients.length >= 2 && this.hasPerms(client) && this.state.player1.hasSong && this.state.player2.hasSong) {
         this.state.isStarted = true;
         
         this.state.player1.score = 0;
@@ -49,7 +52,7 @@ export class GameRoom extends Room<RoomState> {
         this.state.player2.hasLoaded = false;
         this.state.player2.hasEnded = false;
 
-        this.broadcast("gameStarted");
+        this.broadcast("gameStarted", "", { afterNextPatch: true });
       }
     });
 
@@ -85,7 +88,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("setFSD", (client, message) => {
-      if (this.isOwner(client)) {
+      if (this.hasPerms(client)) {
         this.state.folder = message[0];
         this.state.song = message[1];
         this.state.diff = message[2];
@@ -194,11 +197,34 @@ export class GameRoom extends Room<RoomState> {
       }
       this.broadcast("log", "<" + (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + ">: " + message);
     });
+
+    this.onMessage("swapSides", (client, message) => {
+      if (this.hasPerms(client) || this.state.anarchyMode) {
+        this.state.swagSides = !this.state.swagSides;
+      }
+    });
+
+    this.onMessage("anarchyMode", (client, message) => {
+      if (this.hasPerms(client)) {
+        this.state.anarchyMode = !this.state.anarchyMode;
+      }
+    });
   }
 
-  onAuth(client: Client, options: any, request?: IncomingMessage) {
+  async onAuth(client: Client, options: any, request?: IncomingMessage) {
+    if (this.clients.length == 0) {
+      if (await this.canClientCreate(request)) {
+        this.ownerIP = request.socket.remoteAddress;
+      }
+      else {
+        throw new ServerError(5002, "Can't create 3 servers on the same IP! Try again in a moment."); 
+      }
+    }
     if (options == null || options.name == null || (options.name + "").trim().length < 3) {
       throw new ServerError(5000, "Too short name!"); // too short name error
+    }
+    else if (options.version != Assets.VERSION) {
+      throw new ServerError(5003, "Outdated client, please update!"); 
     }
     else if (options.name.length >= 20) {
       throw new ServerError(5001, "Too long name!"); 
@@ -220,13 +246,20 @@ export class GameRoom extends Room<RoomState> {
       this.state.player2.name = options.name;
     }
 
-    this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has joined the room!");
+    this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has joined the room!", { afterNextPatch: true });
 
-    client.send("checkChart");
+    client.send("checkChart", "", { afterNextPatch: true });
+
+    setTimeout(() => {
+      if (client != null)
+        client.send("checkChart", "", { afterNextPatch: true });
+    }, 1000);
   }
 
   onLeave (client: Client, consented: boolean) {
     this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has left the room!");
+
+    this.broadcast("endSong");
 
     if (this.isOwner(client)) {
       this.disconnect(4000);
@@ -234,10 +267,26 @@ export class GameRoom extends Room<RoomState> {
     else {
       this.state.player2 = new Player();
     }
+
+    // try {
+    //   if (consented) {
+    //     throw new Error("consented");
+    //   }
+    //   await this.allowReconnection(client, 3); 
+    //   this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has reconnected to the room!");
+    // }
+    // catch (err) {
+    //   //player actually lefts
+    // }
   }
 
-  onDispose() {
+  async onDispose() {
     this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
+    this.presence.hset(this.IPS_CHANNEL, this.ownerIP, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.ownerIP)) - 1) + ""));
+  }
+
+  hasPerms(client: Client) {
+    return this.isOwner(client) || this.state.anarchyMode;
   }
 
   isOwner(client: Client) {
@@ -265,5 +314,18 @@ export class GameRoom extends Room<RoomState> {
 
     await this.presence.sadd(this.LOBBY_CHANNEL, id);
     return id;
+  }
+
+  async canClientCreate(request: IncomingMessage): Promise<Boolean> {
+    if (this.clients.length > 0) {
+      return true;
+    }
+    const currentIps = await this.presence.hget(this.IPS_CHANNEL, request.socket.remoteAddress);
+    var ipOccurs = currentIps == null ? 0 : Number.parseInt(currentIps);
+    if (ipOccurs < 2) {
+      await this.presence.hset(this.IPS_CHANNEL, request.socket.remoteAddress, (ipOccurs + 1) + "");
+      return true;
+    }
+    return false;
   }
 }

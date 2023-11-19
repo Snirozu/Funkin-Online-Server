@@ -10,4 +10,6 @@ export class RoomState extends Schema {
   @type(Player) player2:Player;
   @type("boolean") isPrivate: boolean = true;
   @type("boolean") isStarted: boolean = false;
+  @type("boolean") swagSides: boolean = false;
+  @type("boolean") anarchyMode: boolean = false;
 }
