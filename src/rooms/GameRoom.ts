@@ -282,7 +282,7 @@ export class GameRoom extends Room<RoomState> {
 
   async onDispose() {
     this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
-    this.presence.hset(this.IPS_CHANNEL, this.ownerIP, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.ownerIP)) - 1) + ""));
+    //this.presence.hset(this.IPS_CHANNEL, this.ownerIP, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.ownerIP)) - 1) + ""));
   }
 
   hasPerms(client: Client) {
@@ -317,15 +317,16 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async canClientCreate(request: IncomingMessage): Promise<Boolean> {
-    if (this.clients.length > 0) {
-      return true;
-    }
-    const currentIps = await this.presence.hget(this.IPS_CHANNEL, request.socket.remoteAddress);
-    var ipOccurs = currentIps == null ? 0 : Number.parseInt(currentIps);
-    if (ipOccurs < 2) {
-      await this.presence.hset(this.IPS_CHANNEL, request.socket.remoteAddress, (ipOccurs + 1) + "");
-      return true;
-    }
-    return false;
+    return true;
+    // if (this.clients.length > 0) {
+    //   return true;
+    // }
+    // const currentIps = await this.presence.hget(this.IPS_CHANNEL, request.socket.remoteAddress);
+    // var ipOccurs = currentIps == null ? 0 : Number.parseInt(currentIps);
+    // if (ipOccurs < 2) {
+    //   await this.presence.hset(this.IPS_CHANNEL, request.socket.remoteAddress, (ipOccurs + 1) + "");
+    //   return true;
+    // }
+    // return false;
   }
 }
