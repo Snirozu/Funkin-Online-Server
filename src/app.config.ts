@@ -35,7 +35,7 @@ export default config({
                     v.forEach((room) => {
                         playerCount += room.clients;
                         if (!room.private && room.clients == 1) {
-                            page += "Code: " + room.roomId + " Player: " + room.metadata.name + "<br>";
+                            page += "Code: " + room.roomId + " Player: " + room.metadata.name + " Ping: " + room.metadata.ping + "ms" + "<br>";
                             hasPublicRoom = true;
                         }
                     });

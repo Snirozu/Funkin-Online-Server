@@ -14,6 +14,7 @@ export class GameRoom extends Room<RoomState> {
   roomOwner:string = null;
   chartHash:string = null;
   ownerIP:string = null;
+  lastPingTime:number = null;
 
   async onCreate (options: any) {
     this.roomId = await this.generateRoomId();
@@ -209,6 +210,32 @@ export class GameRoom extends Room<RoomState> {
         this.state.anarchyMode = !this.state.anarchyMode;
       }
     });
+
+    this.onMessage("pong", (client, message:number) => {
+      const daPing = Date.now() - this.lastPingTime;
+
+      if (this.isOwner(client)) {
+        this.metadata.ping = daPing;
+        this.state.player1.ping = daPing;
+      }
+      else {
+        this.state.player2.ping = daPing;
+      }
+    });
+
+    this.onMessage("requestEndSong", (client, message) => {
+      if (this.hasPerms(client)) {
+        this.broadcast("endSong", "", { afterNextPatch: true });
+      }
+      else {
+        this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " wants to end the song!\n(ESC to approve)");
+      }
+    });
+
+    this.clock.setInterval(() => {
+      this.lastPingTime = Date.now();
+      this.broadcast("ping");
+    }, 3000);
   }
 
   async onAuth(client: Client, options: any, request?: IncomingMessage) {
@@ -257,7 +284,7 @@ export class GameRoom extends Room<RoomState> {
 
     client.send("checkChart", "", { afterNextPatch: true });
 
-    setTimeout(() => {
+    this.clock.setTimeout(() => {
       if (client != null)
         client.send("checkChart", "", { afterNextPatch: true });
     }, 1000);

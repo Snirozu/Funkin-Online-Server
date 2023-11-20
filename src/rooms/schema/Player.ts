@@ -11,4 +11,5 @@ export class Player extends Schema {
     @type("boolean") hasSong: boolean = false;
     @type("boolean") hasLoaded: boolean = false;
     @type("boolean") hasEnded: boolean = false;
+    @type("number") ping: number = 0;
 }
