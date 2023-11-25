@@ -53,6 +53,8 @@ export class GameRoom extends Room<RoomState> {
         this.state.player2.hasLoaded = false;
         this.state.player2.hasEnded = false;
 
+        this.state.health = 1;
+
         this.broadcast("gameStarted", "", { afterNextPatch: true });
       }
     });
@@ -177,6 +179,18 @@ export class GameRoom extends Room<RoomState> {
       else {
         this.clients[0].send("noteHit", message);
       }
+
+      if (this.playerSide(client)) {
+        this.state.health -= 0.023;
+      }
+      else {
+        this.state.health += 0.023;
+      }
+      
+      if (this.state.health > 2)
+        this.state.health = 2;
+      else if (this.state.health < 0)
+        this.state.health = 0;
     });
 
     this.onMessage("noteMiss", (client, message) => {
@@ -190,6 +204,18 @@ export class GameRoom extends Room<RoomState> {
       else {
         this.clients[0].send("noteMiss", message);
       }
+
+      if (this.playerSide(client)) {
+        this.state.health += 0.0475;
+      }
+      else {
+        this.state.health -= 0.0475;
+      }
+
+      if (this.state.health > 2)
+        this.state.health = 2;
+      else if (this.state.health < 0)
+        this.state.health = 0;
     });
 
     this.onMessage("chat", (client, message) => {
@@ -325,6 +351,10 @@ export class GameRoom extends Room<RoomState> {
 
   isOwner(client: Client) {
     return client.sessionId == this.roomOwner;
+  }
+
+  playerSide(client: Client) {
+    return this.state.swagSides ? !this.isOwner(client) : this.isOwner(client);
   }
 
   // Generate a single 4 capital letter room ID.

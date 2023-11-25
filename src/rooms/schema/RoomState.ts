@@ -12,4 +12,5 @@ export class RoomState extends Schema {
   @type("boolean") isStarted: boolean = false;
   @type("boolean") swagSides: boolean = false;
   @type("boolean") anarchyMode: boolean = false;
+  @type("number") health: number = 0.0;
 }
