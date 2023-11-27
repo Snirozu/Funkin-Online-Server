@@ -1,9 +1,8 @@
-import { Room, Client, ClientArray } from "@colyseus/core";
+import { Room, Client } from "@colyseus/core";
 import { RoomState } from "./schema/RoomState";
 import { Player } from "./schema/Player";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
-import { Assets } from "../Assets";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -11,7 +10,6 @@ export class GameRoom extends Room<RoomState> {
   maxClients = 2;
   LOBBY_CHANNEL = "$lobbiesChannel"
   IPS_CHANNEL = "$IPSChannel"
-  roomOwner:string = null;
   chartHash:string = null;
   ownerIP:string = null;
   lastPingTime:number = null;
@@ -61,13 +59,13 @@ export class GameRoom extends Room<RoomState> {
 
     this.onMessage("addScore", (client, message) => {
       if (this.state.isStarted) {
-        (this.isOwner(client) ? this.state.player1 : this.state.player2).score += message;
+        this.getStatePlayer(client).score += message;
       }
     });
 
     this.onMessage("addMiss", (client, message) => {
       if (this.state.isStarted) {
-        (this.isOwner(client) ? this.state.player1 : this.state.player2).misses += 1;
+        this.getStatePlayer(client).misses += 1;
       }
     });
 
@@ -75,16 +73,16 @@ export class GameRoom extends Room<RoomState> {
       if (this.state.isStarted) {
         switch (message) {
           case "sick":
-            (this.isOwner(client) ? this.state.player1 : this.state.player2).sicks += 1;
+            this.getStatePlayer(client).sicks += 1;
             break; // java war flashbacks
           case "good":
-            (this.isOwner(client) ? this.state.player1 : this.state.player2).goods += 1;
+            this.getStatePlayer(client).goods += 1;
             break;
           case "bad":
-            (this.isOwner(client) ? this.state.player1 : this.state.player2).bads += 1;
+            this.getStatePlayer(client).bads += 1;
             break;
           case "shit":
-            (this.isOwner(client) ? this.state.player1 : this.state.player2).shits += 1;
+            this.getStatePlayer(client).shits += 1;
             break;
         }
       }
@@ -121,12 +119,7 @@ export class GameRoom extends Room<RoomState> {
         return;
       }
 
-      if (this.isOwner(client)) {
-        this.clients[1].send("strumPlay", message);
-      }
-      else {
-        this.clients[0].send("strumPlay", message);
-      }
+      this.broadcast("strumPlay", message, { except: client });
     });
 
     this.onMessage("charPlay", (client, message) => {
@@ -134,12 +127,7 @@ export class GameRoom extends Room<RoomState> {
         return;
       }
 
-      if (this.isOwner(client)) {
-        this.clients[1].send("charPlay", message);
-      }
-      else {
-        this.clients[0].send("charPlay", message);
-      }
+      this.broadcast("charPlay", message, { except: client });
     });
 
     this.onMessage("playerReady", (client, message) => {
@@ -173,12 +161,7 @@ export class GameRoom extends Room<RoomState> {
         return;
       }
 
-      if (this.isOwner(client)) {
-        this.clients[1].send("noteHit", message);
-      }
-      else {
-        this.clients[0].send("noteHit", message);
-      }
+      this.broadcast("noteHit", message, { except: client });
 
       if (this.playerSide(client)) {
         this.state.health -= 0.023;
@@ -198,12 +181,7 @@ export class GameRoom extends Room<RoomState> {
         return;
       }
 
-      if (this.isOwner(client)) {
-        this.clients[1].send("noteMiss", message);
-      }
-      else {
-        this.clients[0].send("noteMiss", message);
-      }
+      this.broadcast("noteMiss", message, { except: client });
 
       if (this.playerSide(client)) {
         this.state.health += 0.0475;
@@ -222,7 +200,7 @@ export class GameRoom extends Room<RoomState> {
       if (message.length >= 300) {
         client.send("log", "The message is too long!");
       }
-      this.broadcast("log", "<" + (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + ">: " + message);
+      this.broadcast("log", "<" + this.getStatePlayer(client).name + ">: " + message);
     });
 
     this.onMessage("swapSides", (client, message) => {
@@ -249,12 +227,16 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
+    this.onMessage("hey", (client, message) => {
+      
+    });
+
     this.onMessage("requestEndSong", (client, message) => {
       if (this.hasPerms(client)) {
         this.broadcast("endSong", "", { afterNextPatch: true });
       }
       else {
-        this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " wants to end the song!\n(ESC to approve)");
+        this.broadcast("log", this.getStatePlayer(client).name + " wants to end the song! (ESC)");
       }
     });
 
@@ -296,17 +278,23 @@ export class GameRoom extends Room<RoomState> {
     if (this.clients.length == 1) {
       this.state.player1 = new Player();
       this.state.player1.name = options.name;
-      this.roomOwner = client.sessionId;
     }
-    else {
+    else if (this.clients.length == 2) {
       this.state.player2 = new Player();
       if (this.state.player1.name == options.name) {
         options.name += "(2)";
       }
       this.state.player2.name = options.name;
     }
+    // else if (this.clients.length == 3) {
+    //   this.state.player3 = new Player();
+    //   if (this.state.player2.name == options.name || this.state.player1.name == options.name) {
+    //     options.name += "(2)";
+    //   }
+    //   this.state.player3.name = options.name;
+    // }
 
-    this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has joined the room!", { afterNextPatch: true });
+    this.broadcast("log", this.getStatePlayer(client).name + " has joined the room!", { afterNextPatch: true });
 
     client.send("checkChart", "", { afterNextPatch: true });
 
@@ -317,7 +305,7 @@ export class GameRoom extends Room<RoomState> {
   }
 
   onLeave (client: Client, consented: boolean) {
-    this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has left the room!");
+    this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
 
     this.broadcast("endSong");
 
@@ -350,11 +338,24 @@ export class GameRoom extends Room<RoomState> {
   }
 
   isOwner(client: Client) {
-    return client.sessionId == this.roomOwner;
+    return this.clients.indexOf(client) == 0;
   }
 
   playerSide(client: Client) {
     return this.state.swagSides ? !this.isOwner(client) : this.isOwner(client);
+  }
+
+  isGf(client:Client) {
+    return this.clients.indexOf(client) >= 2;
+  }
+
+  getStatePlayer(client:Client):Player {
+    if (this.isGf(client)) {
+      return null;
+      //return this.state.player3;
+    }
+
+    return (this.isOwner(client) ? this.state.player1 : this.state.player2);
   }
 
   // Generate a single 4 capital letter room ID.

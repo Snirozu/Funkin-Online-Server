@@ -15,7 +15,7 @@
     "test": "mocha -r tsx test/**_test.ts --exit --timeout 15000",
     "haxify" : "npx schema-codegen src/rooms/schema/* --haxe --output src/rooms/schema/"
   },
-  "author": "",
+  "author": "Snirozu",
   "license": "Apache-2.0-NON-AI",
   "bugs": {
     "url": "https://github.com/Snirozu/Funkin-Online-Server/issues"
