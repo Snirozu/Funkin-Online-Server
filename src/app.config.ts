@@ -27,7 +27,7 @@ export default config({
         app.get("/rooms", (req, res) => {
             var rooms = matchMaker.query(/*{private: false, clients: 1}*/);
             rooms.then((v) => {
-                let page = Assets.HTML_THEME + "<b>Available Public Rooms:</b><br>";
+                let page = Assets.HTML_THEME + "<div id='content'><b>Available Public Rooms:</b><br>";
                 let hasPublicRoom = false;
                 let playerCount = 0;
 
@@ -46,8 +46,21 @@ export default config({
                 }
 
                 page += "<br><br>Players Online: " + playerCount;
-
+                page += "</div>";
                 res.send(page);
+            })
+        });
+
+        app.get("/online", (req, res) => {
+            var rooms = matchMaker.query();
+            rooms.then((v) => {
+                let playerCount = 0;
+                if (v.length >= 1) {
+                    v.forEach((room) => {
+                        playerCount += room.clients;
+                    });
+                }
+                res.send(playerCount + "");
             })
         });
 

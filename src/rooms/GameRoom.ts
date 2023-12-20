@@ -3,6 +3,7 @@ import { RoomState } from "./schema/RoomState";
 import { Player } from "./schema/Player";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
+import { Assets } from "../Assets";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -12,6 +13,7 @@ export class GameRoom extends Room<RoomState> {
   IPS_CHANNEL = "$IPSChannel"
   chartHash:string = null;
   ownerIP:string = null;
+  ownerUUID:string = null;
   lastPingTime:number = null;
 
   async onCreate (options: any) {
@@ -30,7 +32,15 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("startGame", (client, message) => {
-      if (this.clients.length >= 2 && this.hasPerms(client) && this.state.player1.hasSong && this.state.player2.hasSong) {
+      if (this.isOwner(client) && this.state.player1.hasSong) {
+        this.state.player1.isReady = !this.state.player1.isReady;
+      }
+      else if (!this.isOwner(client) && this.state.player2.hasSong) {
+        this.state.player2.isReady = !this.state.player2.isReady;
+      }
+      
+      //if (this.clients.length >= 2 && this.hasPerms(client) && this.state.player1.hasSong && this.state.player2.hasSong) {
+      if (this.state.player1.isReady && this.state.player2.isReady && this.state.player1.hasSong && this.state.player2.hasSong) {
         this.state.isStarted = true;
         
         this.state.player1.score = 0;
@@ -41,6 +51,7 @@ export class GameRoom extends Room<RoomState> {
         this.state.player1.shits = 0;
         this.state.player1.hasLoaded = false;
         this.state.player1.hasEnded = false;
+        this.state.player1.isReady = false;
 
         this.state.player2.score = 0;
         this.state.player2.misses = 0;
@@ -50,6 +61,7 @@ export class GameRoom extends Room<RoomState> {
         this.state.player2.shits = 0;
         this.state.player2.hasLoaded = false;
         this.state.player2.hasEnded = false;
+        this.state.player2.isReady = false;
 
         this.state.health = 1;
 
@@ -95,11 +107,18 @@ export class GameRoom extends Room<RoomState> {
         this.state.diff = message[2];
         this.chartHash = message[3];
         this.state.modDir = message[4];
+        if (message.length > 5 && (message[5] + "").trim() != "") {
+          this.state.modURL = message[5];
+        }
+        else {
+          this.state.modURL = null;
+        }
+
+        this.state.player1.isReady = false;
+        this.state.player2.isReady = false;
 
         this.state.player1.hasSong = this.isOwner(client);
-        if (this.state.player2 != null) {
-          this.state.player2.hasSong = !this.isOwner(client);
-        }
+        this.state.player2.hasSong = !this.isOwner(client);
 
         this.broadcast("checkChart", "", {afterNextPatch: true});
       }
@@ -139,6 +158,8 @@ export class GameRoom extends Room<RoomState> {
       }
 
       if (this.state.player1.hasLoaded && this.state.player2.hasLoaded) {
+        this.state.player1.isReady = false;
+        this.state.player2.isReady = false;
         this.broadcast("startSong", "", { afterNextPatch: true });
       }
     });
@@ -152,6 +173,8 @@ export class GameRoom extends Room<RoomState> {
       }
 
       if (this.state.player1.hasEnded && this.state.player2.hasEnded) {
+        this.state.player1.isReady = false;
+        this.state.player2.isReady = false;
         this.broadcast("endSong", "", { afterNextPatch: true });
       }
     });
@@ -227,18 +250,22 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
-    this.onMessage("hey", (client, message) => {
-      
-    });
-
     this.onMessage("requestEndSong", (client, message) => {
       if (this.hasPerms(client)) {
+        this.state.player1.isReady = false;
+        this.state.player2.isReady = false;
         this.broadcast("endSong", "", { afterNextPatch: true });
       }
       else {
         this.broadcast("log", this.getStatePlayer(client).name + " wants to end the song! (ESC)");
       }
     });
+
+    this.onMessage("custom", (client, message) => {
+      this.broadcast("custom", message, { except: client });
+    });
+
+    //this.state.player1.isReady = false;
 
     this.clock.setInterval(() => {
       this.lastPingTime = Date.now();
@@ -269,13 +296,15 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async latestVersion():Promise<String> {
-    let res = await fetch('https://raw.githubusercontent.com/Snirozu/Funkin-Psych-Online/main/gitVersion.txt');
-    let data = await res.text();
-    return (data + "").split('\n')[0].trim(); 
+    // let res = await fetch('https://raw.githubusercontent.com/Snirozu/Funkin-Psych-Online/main/gitVersion.txt');
+    // let data = await res.text();
+    // return (data + "").split('\n')[0].trim(); 
+    return Assets.VERSION;
   }
 
   onJoin (client: Client, options: any) {
     if (this.clients.length == 1) {
+      this.ownerUUID = client.sessionId;
       this.state.player1 = new Player();
       this.state.player1.name = options.name;
     }
@@ -307,6 +336,8 @@ export class GameRoom extends Room<RoomState> {
   onLeave (client: Client, consented: boolean) {
     this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
 
+    this.state.player1.isReady = false;
+    this.state.player2.isReady = false;
     this.broadcast("endSong");
 
     if (this.isOwner(client)) {
@@ -338,7 +369,7 @@ export class GameRoom extends Room<RoomState> {
   }
 
   isOwner(client: Client) {
-    return this.clients.indexOf(client) == 0;
+    return client.sessionId == this.ownerUUID;
   }
 
   playerSide(client: Client) {
@@ -346,7 +377,7 @@ export class GameRoom extends Room<RoomState> {
   }
 
   isGf(client:Client) {
-    return this.clients.indexOf(client) >= 2;
+    return this.clients.indexOf(client) == 2;
   }
 
   getStatePlayer(client:Client):Player {
