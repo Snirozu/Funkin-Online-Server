@@ -274,6 +274,7 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onAuth(client: Client, options: any, request?: IncomingMessage) {
+    console.log(request.headers['x-forwarded-for'] || request.socket.remoteAddress);
     if (this.clients.length == 0) {
       if (await this.canClientCreate(request)) {
         this.ownerIP = request.socket.remoteAddress;
