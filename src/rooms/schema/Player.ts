@@ -13,4 +13,7 @@ export class Player extends Schema {
     @type("boolean") hasEnded: boolean = false;
     @type("number") ping: number = 0;
     @type("boolean") isReady: boolean = false;
+    @type("string") skinMod: string = null;
+    @type("string") skinName: string = null;
+    @type("string") skinURL: string = null;
 }

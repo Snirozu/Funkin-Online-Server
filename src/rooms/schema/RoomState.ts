@@ -7,6 +7,7 @@ export class RoomState extends Schema {
   @type("number") diff: number = 1;
   @type("string") modDir: string = "";
   @type("string") modURL: string = "";
+  //TODO change to 'players:Array'
   @type(Player) player1:Player = new Player();
   @type(Player) player2:Player = new Player();
   //@type(Player) player3:Player;

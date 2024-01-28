@@ -12,7 +12,7 @@ export class GameRoom extends Room<RoomState> {
   LOBBY_CHANNEL = "$lobbiesChannel"
   IPS_CHANNEL = "$IPSChannel"
   chartHash:string = null;
-  ownerIP:string = null;
+  clientsIP: Map<Client, string> = new Map<Client, string>();
   ownerUUID:string = null;
   lastPingTime:number = null;
 
@@ -222,6 +222,10 @@ export class GameRoom extends Room<RoomState> {
     this.onMessage("chat", (client, message) => {
       if (message.length >= 300) {
         client.send("log", "The message is too long!");
+        return;
+      }
+      if ((message as String).trim() == "") {
+        return;
       }
       this.broadcast("log", "<" + this.getStatePlayer(client).name + ">: " + message);
     });
@@ -261,6 +265,37 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
+    this.onMessage("setSkin", (client, message) => {
+      if (message == null || message.length < 3) {
+        this.getStatePlayer(client).skinMod = null;
+        this.getStatePlayer(client).skinName = null;
+        this.getStatePlayer(client).skinURL = null;
+        return;
+      }
+
+      this.getStatePlayer(client).skinMod = message[0];
+      this.getStatePlayer(client).skinName = message[1];
+      this.getStatePlayer(client).skinURL = message[2];
+    });
+
+    this.onMessage("command", (client, message) => {
+      if (message == null || message.length < 1) {
+        return;
+      }
+
+      switch (message[0]) {
+        case "roll":
+          this.broadcast("log", "> " + this.getStatePlayer(client).name + " has rolled " + Math.floor(Math.random() * (6 - 1 + 1) + 1));
+          break;
+        case "kick":
+          if (!this.isOwner(client) || !this.clients.at(1) || this.clients.at(1) == client) {
+            return;
+          }
+          this.clients.at(1).leave(4100);
+          break;
+      }
+    });
+
     this.onMessage("custom", (client, message) => {
       this.broadcast("custom", message, { except: client });
     });
@@ -274,13 +309,8 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onAuth(client: Client, options: any, request?: IncomingMessage) {
-    if (this.clients.length == 0) {
-      if (await this.canClientCreate(request)) {
-        this.ownerIP = request.socket.remoteAddress;
-      }
-      else {
-        throw new ServerError(5002, "Can't create 3 servers on the same IP! Try again in a moment."); 
-      }
+    if (!await this.isClientAllowed(client, request)) {
+      throw new ServerError(5002, "Can't join/create 4 servers on the same IP!"); 
     }
     const latestVersion = await this.latestVersion();
     if (options == null || options.name == null || (options.name + "").trim().length < 3) {
@@ -307,6 +337,9 @@ export class GameRoom extends Room<RoomState> {
       this.ownerUUID = client.sessionId;
       this.state.player1 = new Player();
       this.state.player1.name = options.name;
+      this.state.player1.skinMod = options.skinMod;
+      this.state.player1.skinName = options.skinName;
+      this.state.player1.skinURL = options.skinURL;
     }
     else if (this.clients.length == 2) {
       this.state.player2 = new Player();
@@ -314,6 +347,9 @@ export class GameRoom extends Room<RoomState> {
         options.name += "(2)";
       }
       this.state.player2.name = options.name;
+      this.state.player2.skinMod = options.skinMod;
+      this.state.player2.skinName = options.skinName;
+      this.state.player2.skinURL = options.skinURL;
     }
     // else if (this.clients.length == 3) {
     //   this.state.player3 = new Player();
@@ -333,12 +369,17 @@ export class GameRoom extends Room<RoomState> {
     }, 1000);
   }
 
-  onLeave (client: Client, consented: boolean) {
+  async onLeave (client: Client, consented: boolean) {
     this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
+
+    this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client))) - 1) + ""));
+    this.clientsIP.delete(client);
 
     this.state.player1.isReady = false;
     this.state.player2.isReady = false;
-    this.broadcast("endSong");
+    if (this.state.isStarted) {
+      this.broadcast("endSong");
+    }
 
     if (this.isOwner(client)) {
       this.disconnect(4000);
@@ -361,7 +402,10 @@ export class GameRoom extends Room<RoomState> {
 
   async onDispose() {
     this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
-    //this.presence.hset(this.IPS_CHANNEL, this.ownerIP, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.ownerIP)) - 1) + ""));
+    for (var ip in this.clientsIP) {
+      this.presence.hset(this.IPS_CHANNEL, ip, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, ip)) - 1) + ""));
+    }
+    this.clientsIP = null;
   }
 
   hasPerms(client: Client) {
@@ -412,17 +456,22 @@ export class GameRoom extends Room<RoomState> {
     return id;
   }
 
-  async canClientCreate(request: IncomingMessage): Promise<Boolean> {
-    return true;
-    // if (this.clients.length > 0) {
-    //   return true;
-    // }
-    // const currentIps = await this.presence.hget(this.IPS_CHANNEL, request.socket.remoteAddress);
-    // var ipOccurs = currentIps == null ? 0 : Number.parseInt(currentIps);
-    // if (ipOccurs < 2) {
-    //   await this.presence.hset(this.IPS_CHANNEL, request.socket.remoteAddress, (ipOccurs + 1) + "");
-    //   return true;
-    // }
-    // return false;
+  async isClientAllowed(client: Client, request: IncomingMessage): Promise<Boolean> {
+    var requesterIP = null;
+    if (request.headers['x-forwarded-for']) {
+      requesterIP = (request.headers['x-forwarded-for'] as String).split(",")[0].trim();
+    }
+    else {
+      requesterIP = request.socket.remoteAddress;
+    }
+
+    const currentIps = await this.presence.hget(this.IPS_CHANNEL, requesterIP);
+    var ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);
+    if (ipOccurs < 4) {
+      await this.presence.hset(this.IPS_CHANNEL, requesterIP, (ipOccurs + 1) + "");
+      this.clientsIP.set(client, requesterIP);
+      return true;
+    }
+    return false;
   }
 }
