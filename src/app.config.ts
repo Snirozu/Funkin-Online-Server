@@ -51,7 +51,7 @@ export default config({
             })
         });
 
-        app.get("/online", (req, res) => {
+        app.get("/api/online", (req, res) => {
             var rooms = matchMaker.query();
             rooms.then((v) => {
                 let playerCount = 0;
@@ -62,6 +62,37 @@ export default config({
                 }
                 res.send(playerCount + "");
             })
+        });
+
+        app.get("/api/google/token/auth", async (req, _res) => {
+            if (!process.env.GAPI_CLIENT_ID || !process.env.GAPI_CLIENT_SECRET || !req.query.code)
+                return;
+
+            let res = await fetch('https://oauth2.googleapis.com/token?' +
+                "client_id=" + process.env.GAPI_CLIENT_ID +
+                "&client_secret=" + process.env.GAPI_CLIENT_SECRET +
+                "&code=" + req.query.code +
+                "&redirect_uri=http://localhost:8080" +
+                "&grant_type=authorization_code", {
+                method: "POST",
+                headers: { 'Accept': 'application/json' }
+            });
+            _res.send(await res.text());
+        });
+
+        app.get("/api/google/token/refresh", async (req, _res) => {
+            if (!process.env.GAPI_CLIENT_ID || !process.env.GAPI_CLIENT_SECRET || !req.query.refresh_token)
+                return;
+
+            let res = await fetch('https://oauth2.googleapis.com/token?' +
+                "client_id=" + process.env.GAPI_CLIENT_ID +
+                "&client_secret=" + process.env.GAPI_CLIENT_SECRET +
+                "&refresh_token=" + req.query.refresh_token +
+                "&grant_type=refresh_token", {
+                method: "POST",
+                headers: { 'Accept': 'application/json' }
+            });
+            _res.send(await res.text());
         });
 
         app.get("*", (req, res) => {
