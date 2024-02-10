@@ -370,35 +370,37 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onLeave (client: Client, consented: boolean) {
-    this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
-
-    this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client))) - 1) + ""));
-    this.clientsIP.delete(client);
-
-    this.state.player1.isReady = false;
-    this.state.player2.isReady = false;
-    if (this.state.isStarted) {
-      this.broadcast("endSong");
+    if (consented) {
+        return this.removePlayer(client);
     }
 
-    if (this.isOwner(client)) {
-      this.disconnect(4000);
+    try {
+        await this.allowReconnection(client, 5);
+        this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has reconnected to the room!");
     }
-    else {
-      this.state.player2 = new Player();
+    catch (err) {
+        return this.removePlayer(client);
     }
-
-    // try {
-    //   if (consented) {
-    //     throw new Error("consented");
-    //   }
-    //   await this.allowReconnection(client, 3); 
-    //   this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has reconnected to the room!");
-    // }
-    // catch (err) {
-    //   //player actually lefts
-    // }
   }
+
+    async removePlayer(client:Client) {
+        if (this.state.isStarted) {
+            this.broadcast("endSong");
+        }
+        
+        this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
+
+        this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client))) - 1) + ""));
+        this.clientsIP.delete(client);
+
+        this.state.player1.isReady = false;
+        this.state.player2.isReady = false;
+
+        if (this.isOwner(client))
+            this.disconnect(4000);
+        else
+            this.state.player2 = new Player();
+    }
 
   async onDispose() {
     this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
