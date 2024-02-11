@@ -371,8 +371,7 @@ export class GameRoom extends Room<RoomState> {
 
   async onLeave (client: Client, consented: boolean) {
     if (consented) {
-      this.removePlayer(client);
-      throw new Error("Consented Leave");
+      return this.removePlayer(client);
     }
 
     try {
