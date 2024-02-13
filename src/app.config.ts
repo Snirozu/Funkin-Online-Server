@@ -95,6 +95,11 @@ export default config({
             _res.send(await res.text());
         });
 
+        // oauth verification shit idfk?
+        app.get("/googleedc467409fad1d08.html", async (req, res) => {
+            res.send("google-site-verification: googleedc467409fad1d08.html");
+        });
+
         app.get("*", (req, res) => {
             res.redirect("https://github.com/Snirozu/Funkin-Online-Server");
         });
