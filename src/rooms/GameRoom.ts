@@ -4,6 +4,7 @@ import { Player } from "./schema/Player";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
 import { Assets } from "../Assets";
+import { MapSchema } from "@colyseus/schema";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -21,6 +22,14 @@ export class GameRoom extends Room<RoomState> {
     this.setPrivate();
     this.setState(new RoomState());
     this.autoDispose = true;
+
+    var daGameplaySettings = options.gameplaySettings;
+    if (daGameplaySettings) {
+      for (const key in daGameplaySettings) {
+        const value = daGameplaySettings[key].toString();
+        this.state.gameplaySettings.set(key, value);
+      }
+    }
 
     this.setMetadata({name: options.name});
 
@@ -231,7 +240,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("swapSides", (client, message) => {
-      if (this.hasPerms(client) || this.state.anarchyMode) {
+      if (this.hasPerms(client)) {
         this.state.swagSides = !this.state.swagSides;
       }
     });
@@ -262,6 +271,27 @@ export class GameRoom extends Room<RoomState> {
       }
       else {
         this.broadcast("log", this.getStatePlayer(client).name + " wants to end the song! (ESC)");
+      }
+    });
+
+    this.onMessage("setGameplaySetting", (client, message) => {
+      if (this.hasPerms(client) && message.length >= 2) {
+        this.state.gameplaySettings.set(message[0], message[1].toString());
+      }
+    });
+
+    this.onMessage("toggleLocalModifiers", (client, message) => {
+      if (this.hasPerms(client)) {
+        this.state.permitModifiers = !this.state.permitModifiers;
+        if (this.state.permitModifiers) {
+          this.state.gameplaySettings = new MapSchema<any, any>();
+        }
+        else if (message && message[0]) {
+          for (const key in message[0]) {
+            const value = message[0][key].toString();
+            this.state.gameplaySettings.set(key, value);
+          }
+        }
       }
     });
 
@@ -309,9 +339,6 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onAuth(client: Client, options: any, request?: IncomingMessage) {
-    if (!await this.isClientAllowed(client, request)) {
-      throw new ServerError(5002, "Can't join/create 4 servers on the same IP!"); 
-    }
     const latestVersion = await this.latestVersion();
     if (options == null || options.name == null || (options.name + "").trim().length < 3) {
       throw new ServerError(5000, "Too short name!"); // too short name error
@@ -321,6 +348,9 @@ export class GameRoom extends Room<RoomState> {
     }
     else if (options.name.length >= 20) {
       throw new ServerError(5001, "Too long name!"); 
+    }
+    if (!await this.isClientAllowed(client, request)) {
+      throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
     }
     return true;
   }

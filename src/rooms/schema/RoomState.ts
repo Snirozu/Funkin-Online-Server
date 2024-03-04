@@ -1,4 +1,4 @@
-import { Schema, type } from "@colyseus/schema";
+import { Schema, MapSchema, type } from "@colyseus/schema";
 import { Player } from "./Player";
 
 export class RoomState extends Schema {
@@ -16,4 +16,6 @@ export class RoomState extends Schema {
   @type("boolean") swagSides: boolean = false;
   @type("boolean") anarchyMode: boolean = false;
   @type("number") health: number = 0.0;
+  @type({ map: "string" }) gameplaySettings = new MapSchema<string>();
+  @type("boolean") permitModifiers: boolean = false;
 }
