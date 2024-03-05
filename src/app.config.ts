@@ -64,42 +64,6 @@ export default config({
             })
         });
 
-        app.get("/api/google/token/auth", async (req, _res) => {
-            if (!process.env.GAPI_CLIENT_ID || !process.env.GAPI_CLIENT_SECRET || !req.query.code)
-                return;
-
-            let res = await fetch('https://oauth2.googleapis.com/token?' +
-                "client_id=" + process.env.GAPI_CLIENT_ID +
-                "&client_secret=" + process.env.GAPI_CLIENT_SECRET +
-                "&code=" + req.query.code +
-                "&redirect_uri=http://localhost:8080" +
-                "&grant_type=authorization_code", {
-                method: "POST",
-                headers: { 'Accept': 'application/json' }
-            });
-            _res.send(await res.text());
-        });
-
-        app.get("/api/google/token/refresh", async (req, _res) => {
-            if (!process.env.GAPI_CLIENT_ID || !process.env.GAPI_CLIENT_SECRET || !req.query.refresh_token)
-                return;
-
-            let res = await fetch('https://oauth2.googleapis.com/token?' +
-                "client_id=" + process.env.GAPI_CLIENT_ID +
-                "&client_secret=" + process.env.GAPI_CLIENT_SECRET +
-                "&refresh_token=" + req.query.refresh_token +
-                "&grant_type=refresh_token", {
-                method: "POST",
-                headers: { 'Accept': 'application/json' }
-            });
-            _res.send(await res.text());
-        });
-
-        // oauth verification shit idfk?
-        app.get("/googleedc467409fad1d08.html", async (req, res) => {
-            res.send("google-site-verification: googleedc467409fad1d08.html");
-        });
-
         app.get("*", (req, res) => {
             res.redirect("https://github.com/Snirozu/Funkin-Online-Server");
         });
