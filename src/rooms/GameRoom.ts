@@ -31,7 +31,7 @@ export class GameRoom extends Room<RoomState> {
       }
     }
 
-    this.setMetadata({name: options.name});
+    this.setMetadata({name: options.name, points: options.points});
 
     this.onMessage("togglePrivate", (client, message) => {
       if (this.hasPerms(client)) {
@@ -308,6 +308,33 @@ export class GameRoom extends Room<RoomState> {
       this.getStatePlayer(client).skinURL = message[2];
     });
 
+    this.onMessage("updateFP", (client, message) => {
+      if (message == null) {
+        return;
+      }
+      
+      if (this.isOwner(client)) {
+        this.state.player1.points = message;
+        this.metadata.points = this.state.player1.points;
+      }
+      else {
+        this.state.player2.points = message;
+      }
+    });
+
+    this.onMessage("status", (client, message) => {
+      if (message == null || message.length >= 30) {
+        return;
+      }
+
+      if (this.isOwner(client)) {
+        this.state.player1.status = message;
+      }
+      else {
+        this.state.player2.status = message;
+      }
+    });
+
     this.onMessage("command", (client, message) => {
       if (message == null || message.length < 1) {
         return;
@@ -370,6 +397,7 @@ export class GameRoom extends Room<RoomState> {
       this.state.player1.skinMod = options.skinMod;
       this.state.player1.skinName = options.skinName;
       this.state.player1.skinURL = options.skinURL;
+      this.state.player1.points = options.points;
     }
     else if (this.clients.length == 2) {
       this.state.player2 = new Player();
@@ -380,6 +408,7 @@ export class GameRoom extends Room<RoomState> {
       this.state.player2.skinMod = options.skinMod;
       this.state.player2.skinName = options.skinName;
       this.state.player2.skinURL = options.skinURL;
+      this.state.player2.points = options.points;
     }
     // else if (this.clients.length == 3) {
     //   this.state.player3 = new Player();

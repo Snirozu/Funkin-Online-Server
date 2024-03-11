@@ -16,4 +16,6 @@ export class Player extends Schema {
     @type("string") skinMod: string = null;
     @type("string") skinName: string = null;
     @type("string") skinURL: string = null;
+    @type("number") points: number = 0;
+    @type("string") status: string = "";
 }
