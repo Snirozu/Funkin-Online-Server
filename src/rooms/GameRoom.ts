@@ -264,14 +264,14 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("requestEndSong", (client, message) => {
-      if (this.hasPerms(client)) {
-        this.state.player1.isReady = false;
-        this.state.player2.isReady = false;
-        this.broadcast("endSong", "", { afterNextPatch: true });
-      }
-      else {
-        this.broadcast("log", this.getStatePlayer(client).name + " wants to end the song! (ESC)");
-      }
+      //if (this.hasPerms(client)) {
+      this.state.player1.isReady = false;
+      this.state.player2.isReady = false;
+      this.broadcast("endSong", "", { afterNextPatch: true });
+      // }
+      // else {
+      //   this.broadcast("log", this.getStatePlayer(client).name + " wants to end the song! (ESC)");
+      // }
     });
 
     this.onMessage("setGameplaySetting", (client, message) => {
