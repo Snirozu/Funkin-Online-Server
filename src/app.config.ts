@@ -65,19 +65,18 @@ export default config({
         });
 
         app.get("*", (req, res) => {
-            // var rooms = matchMaker.query();
-            // let playerCount = 0;
-            // rooms.then((v) => {
-            //     let playerCount = 0;
-            //     if (v.length >= 1) {
-            //         v.forEach((room) => {
-            //             playerCount += room.clients;
-            //         });
-            //     }
-            // })
+            var rooms = matchMaker.query();
+            let playerCount = 0;
+            rooms.then((v) => {
+                let playerCount = 0;
+                if (v.length >= 1) {
+                    v.forEach((room) => {
+                        playerCount += room.clients;
+                    });
+                }
+            })
 
-            // res.send(Assets.HTML_HOME.replace("$PLAYERS_ONLINE$", playerCount + ""));
-            res.redirect("https://psych-online.neocities.org/");
+            res.send(Assets.HTML_HOME.replace("$PLAYERS_ONLINE$", playerCount + ""));
         });
 
         /**
