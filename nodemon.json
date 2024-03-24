@@ -1,0 +1,8 @@
+{
+    "watch": [
+        "src/",
+        "assets/",
+        "nodemon.json"
+    ],
+    "ext": "ts, html, css, json"
+}

@@ -27,7 +27,7 @@ export default config({
         app.get("/rooms", (req, res) => {
             var rooms = matchMaker.query(/*{private: false, clients: 1}*/);
             rooms.then((v) => {
-                let page = Assets.HTML_THEME + "<div id='content'><b>Available Public Rooms:</b><br>";
+                let page = Assets.HTML_ROOMS + "<div id='filter'><div id='content'><h3><b>Available Public Rooms:</b></h3>";
                 let hasPublicRoom = false;
                 let playerCount = 0;
 
@@ -35,17 +35,17 @@ export default config({
                     v.forEach((room) => {
                         playerCount += room.clients;
                         if (!room.private && room.clients == 1) {
-                            page += "Code: " + room.roomId + " Player: " + room.metadata.name + " Ping: " + room.metadata.ping + "ms" + "<br>";
+                            page += "<div class='room'> Code: " + room.roomId + "<br>Player: " + room.metadata.name + "<br>Ping: " + room.metadata.ping + "ms" + "</div>";
                             hasPublicRoom = true;
                         }
                     });
                 }
 
                 if (!hasPublicRoom) {
-                    page += 'None public.<br><br><iframe src="https://www.youtube.com/embed/v4YHIYXao9I?autoplay=1" width="560" height="315" frameborder="0" allowfullscreen></iframe>';
+                    page += 'None public.<br><br><iframe src="https://www.youtube.com/embed/v4YHIYXao9I?autoplay=1" width="560" height="315" frameborder="0" allowfullscreen></iframe> <br>';
                 }
 
-                page += "<br><br>Players Online: " + playerCount;
+                page += "<br style='clear: left'>Players Online: " + playerCount;
                 page += "</div>";
                 res.send(page);
             })
@@ -65,7 +65,18 @@ export default config({
         });
 
         app.get("*", (req, res) => {
-            res.redirect("https://github.com/Snirozu/Funkin-Online-Server");
+            var rooms = matchMaker.query();
+            let playerCount = 0;
+            rooms.then((v) => {
+                let playerCount = 0;
+                if (v.length >= 1) {
+                    v.forEach((room) => {
+                        playerCount += room.clients;
+                    });
+                }
+            })
+
+            res.send(Assets.HTML_HOME.replace("$PLAYERS_ONLINE$", playerCount + ""));
         });
 
         /**

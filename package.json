@@ -8,11 +8,11 @@
     "node": ">= 21.6.2"
   },
   "scripts": {
-    "start": "tsx watch src/index.ts",
+    "start": "nodemon src/index.ts",
     "build": "npm run clean && tsc",
     "clean": "rimraf build",
     "test": "mocha -r tsx test/**_test.ts --exit --timeout 15000",
-    "haxify" : "npx schema-codegen src/rooms/schema/* --haxe --output src/rooms/schema/"
+    "haxify": "npx schema-codegen src/rooms/schema/* --haxe --output src/rooms/schema/"
   },
   "author": "Snirozu",
   "license": "Apache-2.0-NON-AI",
@@ -24,7 +24,9 @@
     "@types/express": "^4.17.21",
     "@types/mocha": "^10.0.6",
     "mocha": "^10.3.0",
+    "nodemon": "^3.1.0",
     "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
     "tsx": "^4.7.1",
     "typescript": "^5.4.2"
   },

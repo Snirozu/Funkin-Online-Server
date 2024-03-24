@@ -1,0 +1,104 @@
+<head>
+    <title> Psych Online! </title>
+    <link rel="icon" href="https://raw.githubusercontent.com/Snirozu/Funkin-Psych-Online/main/art/icon16.png" type="image/x-icon" />
+</head>
+
+<body>
+    <div id="filter"></div>
+    <img id="gf" src="https://static.wikia.nocookie.net/fridaynightfunkin/images/e/e9/Gfboombox.gif" />
+    <div id="nav">
+        <a href="rooms">ONLINE: $PLAYERS_ONLINE$</a> 
+        <a href="https://github.com/Snirozu/Funkin-Psych-Online/wiki">WIKI</a>
+        <a href="https://discord.gg/juHypjWuNc">DISCORD</a>
+        <a href="https://github.com/Snirozu/Funkin-Psych-Online">SOURCE</a>
+    </div>
+    <div id="content">
+        <img style="width: auto; height: auto;max-width: auto;max-height: 200px" src="https://raw.githubusercontent.com/Snirozu/Funkin-Online-Server/main/assets/transwag.png"/>
+        <br>
+        <p style="bottom: 50px"> 
+            Do you want to play Friday Night Funkin' with your friends, but you don't want to reveal your IP by using port forwarding?
+            Well, then this mod should be exactly what you want!
+        </p>
+        <br>
+        <img src="https://raw.githubusercontent.com/Snirozu/Funkin-Online-Server/main/assets/onlinePreview.gif" />
+        <br>
+        <img style="width: 90%" src="https://raw.githubusercontent.com/Snirozu/Funkin-Online-Server/main/assets/swagmade.png" />
+        <br>
+    </div>
+</body>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+    @font-face {
+        font-family: "PhantomMuff";
+        src: url('https://raw.githubusercontent.com/Snirozu/Funkin-Online-Server/main/assets/PhantomMuff_Full_Letters_1.1.5.ttf');
+    }
+
+    html {
+        width: 100%;
+        height: 100%;
+        background-color: #271f33;
+        background-image: url("https://raw.githubusercontent.com/Snirozu/Funkin-Online-Server/main/assets/bg.png");
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+
+    body {
+        width: 100%;
+        height: fit-content;
+        color: aliceblue;
+        font-size: 25px;
+        margin: 0px;
+        font-family: 'PhantomMuff', 'Roboto', sans-serif;
+        text-align: center;
+        text-shadow: 0px 0px 0px black, 0 3px black, 0 0 3px black;
+        display: inline;
+    }
+    
+    #filter {
+        height: 100%;
+        width: 100%;
+        backdrop-filter: brightness(40%) blur(10px);
+        position: fixed;
+        z-index: -1;
+    }
+
+    #nav {
+        margin: 20px;
+    }
+
+    #nav a {
+        color: aliceblue;
+        padding: 10px;
+        font-size: 30px;
+    }
+
+    #content {
+        height: fit-content;
+        max-width: 800px;
+        width: 80%;
+        background-color: #1f1f1f;
+        left: 50%;
+        padding: 20px;
+        margin: auto;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+
+    #content img {
+        width: 80%;
+    }
+
+    br {
+        display: block;
+        margin: 20px 0;
+    }
+
+    #gf {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        width: 200px;
+        height: auto;
+    }
+</style>
