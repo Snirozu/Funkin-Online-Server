@@ -229,6 +229,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("chat", (client, message) => {
+	  if (message == null) return; // Fix crash issue from a null value.
       if (message.length >= 300) {
         client.send("log", "The message is too long!");
         return;
