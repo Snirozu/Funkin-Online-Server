@@ -66,7 +66,6 @@ export default config({
 
         app.get("*", (req, res) => {
             var rooms = matchMaker.query();
-            let playerCount = 0;
             rooms.then((v) => {
                 let playerCount = 0;
                 if (v.length >= 1) {
@@ -74,9 +73,8 @@ export default config({
                         playerCount += room.clients;
                     });
                 }
+                res.send(Assets.HTML_HOME.replace("$PLAYERS_ONLINE$", playerCount + ""));
             })
-
-            res.send(Assets.HTML_HOME.replace("$PLAYERS_ONLINE$", playerCount + ""));
         });
 
         /**

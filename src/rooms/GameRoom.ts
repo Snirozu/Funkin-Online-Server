@@ -79,18 +79,21 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("addScore", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
       if (this.state.isStarted) {
         this.getStatePlayer(client).score += message;
       }
     });
 
     this.onMessage("addMiss", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
       if (this.state.isStarted) {
         this.getStatePlayer(client).misses += 1;
       }
     });
 
     this.onMessage("addHitJudge", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.STRING)) return;
       if (this.state.isStarted) {
         switch (message) {
           case "sick":
@@ -110,6 +113,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("setFSD", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 4)) return;
       if (this.hasPerms(client)) {
         this.state.folder = message[0];
         this.state.song = message[1];
@@ -134,6 +138,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("verifyChart", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.STRING)) return;
       if (!this.isOwner(client)) {
         this.state.player2.hasSong = this.chartHash == message;
       }
@@ -143,6 +148,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("strumPlay", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
       if (this.clients[0] == null || this.clients[1] == null) {
         return;
       }
@@ -151,6 +157,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("charPlay", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
       if (this.clients[0] == null || this.clients[1] == null) {
         return;
       }
@@ -189,6 +196,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("noteHit", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
       if (this.clients[0] == null || this.clients[1] == null) {
         return;
       }
@@ -209,6 +217,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("noteMiss", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
       if (this.clients[0] == null || this.clients[1] == null) {
         return;
       }
@@ -229,7 +238,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("chat", (client, message) => {
-      if (message == null) return; // Fix crash issue from a null value.
+      if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
       if (message.length >= 300) {
         client.send("log", "The message is too long!");
         return;
@@ -276,7 +285,8 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("setGameplaySetting", (client, message) => {
-      if (this.hasPerms(client) && message.length >= 2) {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
+      if (this.hasPerms(client)) {
         this.state.gameplaySettings.set(message[0], message[1].toString());
       }
     });
@@ -297,7 +307,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("setSkin", (client, message) => {
-      if (message == null || message.length < 3) {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) {
         this.getStatePlayer(client).skinMod = null;
         this.getStatePlayer(client).skinName = null;
         this.getStatePlayer(client).skinURL = null;
@@ -310,9 +320,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("updateFP", (client, message) => {
-      if (message == null) {
-        return;
-      }
+      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
       
       if (this.isOwner(client)) {
         this.state.player1.points = message;
@@ -324,9 +332,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("status", (client, message) => {
-      if (message == null || message.length >= 30) {
-        return;
-      }
+      if (this.checkInvalid(message, VerifyTypes.STRING) || message.length >= 30) return;
 
       if (this.isOwner(client)) {
         this.state.player1.status = message;
@@ -337,9 +343,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("command", (client, message) => {
-      if (message == null || message.length < 1) {
-        return;
-      }
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
 
       switch (message[0]) {
         case "roll":
@@ -355,6 +359,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("custom", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
       this.broadcast("custom", message, { except: client });
     });
 
@@ -495,6 +500,20 @@ export class GameRoom extends Room<RoomState> {
     return (this.isOwner(client) ? this.state.player1 : this.state.player2);
   }
 
+  checkInvalid(v:any, type: VerifyTypes, indexes?:number) {
+    if (v == null) return true;
+    switch (type) {
+      case VerifyTypes.NUMBER:
+        return !Number.isFinite(v);
+      case VerifyTypes.STRING:
+        return typeof v !== 'string';
+      case VerifyTypes.ARRAY:
+        if (!indexes) indexes = 0;
+        return !Array.isArray(v) || v.length < indexes + 1;
+    }
+    return false;
+  }
+
   // Generate a single 4 capital letter room ID.
   generateRoomIdSingle(): string {
     let result = '';
@@ -536,4 +555,10 @@ export class GameRoom extends Room<RoomState> {
     }
     return false;
   }
+}
+
+enum VerifyTypes {
+  NUMBER,
+  STRING,
+  ARRAY,
 }
