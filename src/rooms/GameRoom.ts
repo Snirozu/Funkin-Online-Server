@@ -237,6 +237,15 @@ export class GameRoom extends Room<RoomState> {
         this.state.health = 0;
     });
 
+    this.onMessage("noteHold", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
+      if (this.clients[0] == null) {
+        return;
+      }
+
+      this.broadcast("noteHold", message, { except: client });
+    });
+
     this.onMessage("chat", (client, message) => {
       if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
       if (message.length >= 300) {
