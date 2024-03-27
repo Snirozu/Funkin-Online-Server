@@ -86,7 +86,6 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("addMiss", (client, message) => {
-      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
       if (this.state.isStarted) {
         this.getStatePlayer(client).misses += 1;
       }
@@ -297,7 +296,7 @@ export class GameRoom extends Room<RoomState> {
         if (this.state.permitModifiers) {
           this.state.gameplaySettings = new MapSchema<any, any>();
         }
-        else if (message && message[0]) {
+        else if (!this.checkInvalid(message, VerifyTypes.ARRAY, 0)) {
           for (const key in message[0]) {
             const value = message[0][key].toString();
             this.state.gameplaySettings.set(key, value);
