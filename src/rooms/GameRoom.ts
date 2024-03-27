@@ -237,6 +237,19 @@ export class GameRoom extends Room<RoomState> {
         this.state.health = 0;
     });
 
+    this.onMessage("toggleBot", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
+      if (this.clients[0] == null || this.clients[1] == null) {
+        return;
+      }
+
+      if (this.isOwner(client)) {
+        this.state.canBotP2 = message[0];
+      } else {
+        this.state.canBotP1 = message[0];
+      }
+    });
+
     this.onMessage("chat", (client, message) => {
       if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
       if (message.length >= 300) {
@@ -300,7 +313,9 @@ export class GameRoom extends Room<RoomState> {
         else if (message && message[0]) {
           for (const key in message[0]) {
             const value = message[0][key].toString();
-            this.state.gameplaySettings.set(key, value);
+            if (value !== 'botplay') {
+              this.state.gameplaySettings.set(key, value);
+            }
           }
         }
       }
