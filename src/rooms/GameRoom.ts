@@ -237,7 +237,7 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("noteHold", (client, message) => {
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
+      if (message != true && message != false) return;
       if (this.clients[0] == null) {
         return;
       }
