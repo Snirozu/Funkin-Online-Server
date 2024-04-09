@@ -188,9 +188,7 @@ export class GameRoom extends Room<RoomState> {
       }
 
       if (this.state.player1.hasEnded && this.state.player2.hasEnded) {
-        this.state.player1.isReady = false;
-        this.state.player2.isReady = false;
-        this.broadcast("endSong", "", { afterNextPatch: true });
+        this.endSong();
       }
     });
 
@@ -283,9 +281,7 @@ export class GameRoom extends Room<RoomState> {
 
     this.onMessage("requestEndSong", (client, message) => {
       //if (this.hasPerms(client)) {
-      this.state.player1.isReady = false;
-      this.state.player2.isReady = false;
-      this.broadcast("endSong", "", { afterNextPatch: true });
+      this.endSong();
       // }
       // else {
       //   this.broadcast("log", this.getStatePlayer(client).name + " wants to end the song! (ESC)");
@@ -350,6 +346,15 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
+    this.onMessage("botplay", (client, _) => {
+      if (this.isOwner(client)) {
+        this.state.player1.botplay = true;
+      }
+      else {
+        this.state.player2.botplay = true;
+      }
+    });
+
     this.onMessage("command", (client, message) => {
       if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
 
@@ -371,12 +376,21 @@ export class GameRoom extends Room<RoomState> {
       this.broadcast("custom", message, { except: client });
     });
 
-    //this.state.player1.isReady = false;
-
     this.clock.setInterval(() => {
       this.lastPingTime = Date.now();
       this.broadcast("ping");
     }, 3000);
+  }
+
+  endSong() {
+    this.state.player1.isReady = false;
+    this.state.player1.botplay = false;
+    this.state.player2.isReady = false;
+    this.state.player2.botplay = false;
+
+    this.state.isStarted = false;
+
+    this.broadcast("endSong", "", { afterNextPatch: true });
   }
 
   async onAuth(client: Client, options: any, request?: IncomingMessage) {
@@ -458,16 +472,17 @@ export class GameRoom extends Room<RoomState> {
 
     async removePlayer(client:Client) {
         if (this.state.isStarted) {
-            this.broadcast("endSong");
+          this.endSong();
+        }
+        else {
+          this.state.player1.isReady = false;
+          this.state.player2.isReady = false;
         }
         
         this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
 
         this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client))) - 1) + ""));
         this.clientsIP.delete(client);
-
-        this.state.player1.isReady = false;
-        this.state.player2.isReady = false;
 
         if (this.isOwner(client))
             this.disconnect(4000);

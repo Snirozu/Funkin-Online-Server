@@ -18,4 +18,5 @@ export class Player extends Schema {
     @type("string") skinURL: string = null;
     @type("number") points: number = 0;
     @type("string") status: string = "";
+    @type("boolean") botplay: boolean = false;
 }
