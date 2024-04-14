@@ -394,12 +394,12 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onAuth(client: Client, options: any, request?: IncomingMessage) {
-    const latestVersion = await this.latestVersion();
+    const latestVersion = Assets.PROTOCOL_VERSION;
     if (options == null || options.name == null || (options.name + "").trim().length < 3) {
       throw new ServerError(5000, "Too short name!"); // too short name error
     }
-    else if (latestVersion != options.version) {
-      throw new ServerError(5003, "Outdated client, please update!\nYour version: " + options.version + " latest: " + latestVersion);
+    else if (latestVersion != options.protocol) {
+      throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: " + options.protocol + " latest: " + latestVersion);
     }
     else if (options.name.length >= 20) {
       throw new ServerError(5001, "Too long name!"); 
@@ -408,13 +408,6 @@ export class GameRoom extends Room<RoomState> {
       throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
     }
     return true;
-  }
-
-  async latestVersion():Promise<String> {
-    // let res = await fetch('https://raw.githubusercontent.com/Snirozu/Funkin-Psych-Online/main/gitVersion.txt');
-    // let data = await res.text();
-    // return (data + "").split('\n')[0].trim(); 
-    return Assets.VERSION;
   }
 
   onJoin (client: Client, options: any) {
