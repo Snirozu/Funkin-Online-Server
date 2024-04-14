@@ -399,7 +399,7 @@ export class GameRoom extends Room<RoomState> {
       throw new ServerError(5000, "Too short name!"); // too short name error
     }
     else if (latestVersion != options.protocol) {
-      throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: " + options.protocol + " latest: " + latestVersion);
+      throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
     }
     else if (options.name.length >= 20) {
       throw new ServerError(5001, "Too long name!"); 
