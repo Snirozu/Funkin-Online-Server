@@ -2,10 +2,10 @@ if (process.platform !== "linux") {
     throw "only linux services.";
 }
 
-cp.execSync("npm i");
-
 const fs = require('fs');
 const cp = require('child_process');
+
+cp.execSync("npm i");
 
 let service = "" +
 "[Unit]\n" +
