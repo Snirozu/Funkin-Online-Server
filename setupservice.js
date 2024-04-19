@@ -23,5 +23,8 @@ let service = "" +
 fs.writeFileSync('/etc/systemd/system/funkin-online.service', service, function (err) {
     if (err) throw err;
     console.log('Service created!');
-    cp.execSync("systemctl restart funkin-online.service");
+    try {
+        cp.execSync("systemctl stop funkin-online.service");
+    } catch (exc) {}
+    cp.execSync("systemctl start funkin-online.service");
 });

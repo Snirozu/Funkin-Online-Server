@@ -14,7 +14,8 @@
     "test": "mocha -r tsx test/**_test.ts --exit --timeout 15000",
     "haxify": "npx schema-codegen src/rooms/schema/* --haxe --output src/rooms/schema/",
     "servsetup": "node setupservice.js",
-    "servrestart": "systemctl restart funkin-online.service"
+    "servrestart": "systemctl restart funkin-online.service",
+    "servlogs": "journalctl -u funkin-online.service"
   },
   "author": "Snirozu",
   "license": "Apache-2.0-NON-AI",
