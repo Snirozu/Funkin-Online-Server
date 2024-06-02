@@ -138,6 +138,10 @@ export default config({
             if (Assets.DAY_PLAYERS.length > 300)
                 Assets.DAY_PLAYERS.shift();
 
+            if (!fs.existsSync("database/")) {
+                fs.mkdirSync("database/");
+            }
+
             fs.writeFileSync("database/day_players.json", JSON.stringify(Assets.DAY_PLAYERS));
         }, 1000 * 60 * 10);
     },
