@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@colyseus/tools": "^0.15.35",
+    "chart.js": "^4.4.3",
     "colyseus": "^0.15.15",
     "express": "^4.18.3"
   }

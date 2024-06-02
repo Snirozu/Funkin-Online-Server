@@ -7,6 +7,9 @@ import dotenv from 'dotenv';
 // load files to memory
 Assets.HTML_ROOMS = fs.readFileSync('assets/rooms.html', 'utf8');
 Assets.HTML_HOME = fs.readFileSync('assets/index.html', 'utf8');
+Assets.HTML_STATS = fs.readFileSync('assets/stats.html', 'utf8');
+if (fs.existsSync("database/day_players.json"))
+    Assets.DAY_PLAYERS = JSON.parse(fs.readFileSync("database/day_players.json", 'utf8'));
 dotenv.config();
 
 // Create and listen on 2567 (or PORT environment variable.)

@@ -1,3 +1,4 @@
 src/rooms/schema/*.hx
 node_modules/
 .env
+database/

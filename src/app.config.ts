@@ -8,6 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import { Assets } from "./Assets";
+import * as fs from 'fs';
 
 export default config({
 
@@ -49,6 +50,17 @@ export default config({
             res.send(page);
         });
 
+        app.get("/stats", async (req, res) => {
+            var rooms = await matchMaker.query();
+            let playerCount = 0;
+            if (rooms.length >= 1) {
+                rooms.forEach((room) => {
+                    playerCount += room.clients;
+                });
+            }
+            res.send(Assets.HTML_STATS.replace("$PLAYERS_ONLINE$", playerCount + ""));
+        });
+
         app.get("/api/online", async (req, res) => {
             var rooms = await matchMaker.query();
             let playerCount = 0;
@@ -59,6 +71,29 @@ export default config({
             }
             res.send(playerCount + "");
         });
+
+        app.get("/api/day_players", (req, res) => {
+            res.send(Assets.DAY_PLAYERS);
+        });
+
+        // app.get("/rankings*", async (req, res) => {
+        //     const params = (req.params as Array<string>)[0].split("/");
+        //     switch (params[1]) {
+        //         case undefined:
+        //         case "":
+        //             res.send("home");
+        //             break;
+        //         case "submit":
+        //             res.send("post");
+        //             break;
+        //         case "song":
+        //             res.send("viewing: " + params[2]);
+        //             break;
+        //         default:
+        //             res.send("unknown page");
+        //             break;
+        //     }
+        // });
 
         app.get("*", async (req, res) => {
             var rooms = await matchMaker.query();
@@ -85,6 +120,26 @@ export default config({
          * Read more: https://docs.colyseus.io/tools/monitor/#restrict-access-to-the-panel-using-a-password
          */
         //app.use("/colyseus", monitor());
+
+        setInterval(async function () {
+            var rooms = await matchMaker.query();
+            let playerCount = 0;
+            if (rooms.length >= 1) {
+                rooms.forEach((room) => {
+                    playerCount += room.clients;
+                });
+            }
+
+            Assets.DAY_PLAYERS.push([
+                playerCount,
+                Date.now()
+            ]);
+
+            if (Assets.DAY_PLAYERS.length > 300)
+                Assets.DAY_PLAYERS.shift();
+
+            fs.writeFileSync("database/day_players.json", JSON.stringify(Assets.DAY_PLAYERS));
+        }, 1000 * 60 * 10);
     },
 
 
