@@ -81,9 +81,11 @@ export default config({
 
         app.get("/api/country_players", (req, res) => {
             let returnMap: Map<string, number> = new Map<string, number>();
-            Assets.COUNTRY_PLAYERS.forEach((v, k) => {
-                returnMap.set(k, v.length);
-            });
+            for (var key in Assets.COUNTRY_PLAYERS) {
+                if (Assets.COUNTRY_PLAYERS.hasOwnProperty(key)) {
+                    returnMap.set(key, Assets.COUNTRY_PLAYERS[key].length);
+                }
+            }
             res.send(Object.fromEntries(returnMap));
         });
 
@@ -162,7 +164,7 @@ export default config({
             if (!fs.existsSync("database/")) {
                 fs.mkdirSync("database/");
             }
-            
+
             fs.writeFileSync("database/country_players.json", JSON.stringify(Assets.COUNTRY_PLAYERS));
         }, 1000 * 60);
     },
