@@ -15,13 +15,17 @@
         <a href="https://github.com/Snirozu/Funkin-Psych-Online">SOURCE</a>
     </div>
     <div id="content">
-        <canvas id="playerChart"></canvas>
+        <p> Online Players statistics in the last 2~ days </p>
+        <canvas id="onlineChart"></canvas>
+        <hr>
+        <p> Unique Players by country </p>
+        <canvas id="countryChart"></canvas>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
 
     <script>
-        const playerChart = document.getElementById('playerChart');
+        const onlineChart = document.getElementById('onlineChart');
 
         fetch('https://psychic.chickenkiller.com/api/day_players').then(async function (response) {
             let counts = [];
@@ -34,7 +38,7 @@
                 timestamps.push((date.getMonth() + 1) + "/" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes());
             });
 
-            new Chart(playerChart, {
+            new Chart(onlineChart, {
                 type: "line",
                 data: {
                     labels: timestamps,
@@ -52,7 +56,40 @@
             const p = document.createElement("p");
             p.textContent = "Failed to fetch data: " + err;
             document.getElementById('content').appendChild(p)
-            document.getElementById('content').removeChild(playerChart)
+            document.getElementById('content').removeChild(onlineChart)
+        });
+
+        const countryChart = document.getElementById('countryChart');
+
+        fetch('https://psychic.chickenkiller.com/api/country_players').then(async function (response) {
+            let counts = [];
+            let countries = [];
+
+            const data = new Map(await response.json());
+            data.forEach((value, key) => {
+                countries.push(key);
+                counts.push(value);
+            });
+
+            new Chart(countryChart, {
+                type: "doughnut",
+                data: {
+                    labels: countries,
+                    datasets: [{
+                        label: 'Countries',
+                        data: counts,
+                        fill: false,
+                        borderColor: 'rgb(100, 200, 100)',
+                        tension: 0.1
+                    }]
+                }
+            });
+        }).catch(function (err) {
+            // There was an error
+            const p = document.createElement("p");
+            p.textContent = "Failed to fetch data: " + err;
+            document.getElementById('content').appendChild(p)
+            document.getElementById('content').removeChild(countryChart)
         });
     </script>
 </body>

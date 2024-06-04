@@ -4,4 +4,5 @@ export class Assets {
     public static HTML_HOME = "";
     public static HTML_STATS = "";
     public static DAY_PLAYERS:any[] = [];
+    public static COUNTRY_PLAYERS:Map<string, Array<string>> = new Map<string, Array<string>>();
 }

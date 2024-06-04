@@ -393,7 +393,7 @@ export class GameRoom extends Room<RoomState> {
     this.broadcast("endSong", "", { afterNextPatch: true });
   }
 
-  async onAuth(client: Client, options: any, request?: IncomingMessage) {
+  async onAuth(client: Client, options: any, request: IncomingMessage) {
     const latestVersion = Assets.PROTOCOL_VERSION;
     if (options == null || options.name == null || (options.name + "").trim().length < 3) {
       throw new ServerError(5000, "Too short name!"); // too short name error
@@ -407,6 +407,13 @@ export class GameRoom extends Room<RoomState> {
     if (!await this.isClientAllowed(client, request)) {
       throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
     }
+
+    const playerIp = this.getRequestIP(request);
+    const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
+    if (ipInfo.country && !Assets.COUNTRY_PLAYERS.get(ipInfo.country).includes(playerIp)) {
+      Assets.COUNTRY_PLAYERS.get(ipInfo.country).push(playerIp);
+    }
+
     return true;
   }
 
@@ -554,13 +561,7 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async isClientAllowed(client: Client, request: IncomingMessage): Promise<Boolean> {
-    var requesterIP = null;
-    if (request.headers['x-forwarded-for']) {
-      requesterIP = (request.headers['x-forwarded-for'] as String).split(",")[0].trim();
-    }
-    else {
-      requesterIP = request.socket.remoteAddress;
-    }
+    var requesterIP = this.getRequestIP(request);
 
     const currentIps = await this.presence.hget(this.IPS_CHANNEL, requesterIP);
     var ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);
@@ -570,6 +571,15 @@ export class GameRoom extends Room<RoomState> {
       return true;
     }
     return false;
+  }
+
+  getRequestIP(req: IncomingMessage) {
+    if (req.headers['x-forwarded-for']) {
+      return (req.headers['x-forwarded-for'] as String).split(",")[0].trim();
+    }
+    else {
+      return req.socket.remoteAddress;
+    }
   }
 }
 

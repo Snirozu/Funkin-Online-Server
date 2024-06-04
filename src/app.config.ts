@@ -9,6 +9,7 @@ import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import { Assets } from "./Assets";
 import * as fs from 'fs';
+import bodyParser from "body-parser";
 
 export default config({
 
@@ -21,6 +22,8 @@ export default config({
     },
 
     initializeExpress: (app) => {
+        app.use(bodyParser.raw({ limit: '5mb' }));
+
         /**
          * Bind your custom express routes here:
          * Read more: https://expressjs.com/en/starter/basic-routing.html
@@ -74,6 +77,14 @@ export default config({
 
         app.get("/api/day_players", (req, res) => {
             res.send(Assets.DAY_PLAYERS);
+        });
+
+        app.get("/api/country_players", (req, res) => {
+            let returnMap: Map<string, number> = new Map<string, number>();
+            Assets.COUNTRY_PLAYERS.forEach((v, k) => {
+                returnMap.set(k, v.length);
+            });
+            res.send(returnMap);
         });
 
         // app.get("/rankings*", async (req, res) => {
