@@ -84,7 +84,7 @@ export default config({
             Assets.COUNTRY_PLAYERS.forEach((v, k) => {
                 returnMap.set(k, v.length);
             });
-            res.send(returnMap);
+            res.send(Object.fromEntries(returnMap));
         });
 
         // app.get("/rankings*", async (req, res) => {
@@ -132,6 +132,7 @@ export default config({
          */
         //app.use("/colyseus", monitor());
 
+        // every 10 minutes
         setInterval(async function () {
             var rooms = await matchMaker.query();
             let playerCount = 0;
@@ -155,6 +156,15 @@ export default config({
 
             fs.writeFileSync("database/day_players.json", JSON.stringify(Assets.DAY_PLAYERS));
         }, 1000 * 60 * 10);
+
+        // every minute
+        setInterval(async function () {
+            if (!fs.existsSync("database/")) {
+                fs.mkdirSync("database/");
+            }
+            
+            fs.writeFileSync("database/country_players.json", JSON.stringify(Assets.COUNTRY_PLAYERS));
+        }, 1000 * 60);
     },
 
 
