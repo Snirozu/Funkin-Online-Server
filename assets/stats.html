@@ -65,7 +65,7 @@
             let counts = [];
             let countries = [];
 
-            const data = new Map(await response.json());
+            const data = await response.json();
             for (var key in data) {
                 if (data.hasOwnProperty(key)) {
                     countries.push(key);
@@ -78,11 +78,9 @@
                 data: {
                     labels: countries,
                     datasets: [{
-                        label: 'Countries',
+                        label: 'Players',
                         data: counts,
-                        fill: false,
-                        borderColor: 'rgb(100, 200, 100)',
-                        tension: 0.1
+                        fill: true
                     }]
                 }
             });
