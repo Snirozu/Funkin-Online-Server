@@ -66,10 +66,12 @@
             let countries = [];
 
             const data = new Map(await response.json());
-            data.forEach((value, key) => {
-                countries.push(key);
-                counts.push(value);
-            });
+            for (var key in data) {
+                if (data.hasOwnProperty(key)) {
+                    countries.push(key);
+                    counts.push(data[key]);
+                }
+            }
 
             new Chart(countryChart, {
                 type: "doughnut",
