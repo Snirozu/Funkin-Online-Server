@@ -19,7 +19,7 @@
         <canvas id="onlineChart"></canvas>
         <hr>
         <p> Unique Players by country </p>
-        <canvas id="countryChart"></canvas>
+        <canvas id="countryChart" style="width: 900px; height: 900px; margin: 0 auto;"></canvas>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
@@ -62,24 +62,26 @@
         const countryChart = document.getElementById('countryChart');
 
         fetch('https://psychic.chickenkiller.com/api/country_players').then(async function (response) {
-            let counts = [];
-            let countries = [];
-
+            const unsortedData = [];
             const data = await response.json();
             for (var key in data) {
                 if (data.hasOwnProperty(key)) {
-                    countries.push(key);
-                    counts.push(data[key]);
+                    unsortedData.push({
+                        label: key,
+                        count: data[key]
+                    });
                 }
             }
+
+            unsortedData.sort((from, to) => from.count - to.count);
 
             new Chart(countryChart, {
                 type: "doughnut",
                 data: {
-                    labels: countries,
+                    labels: unsortedData.map(e => e.label),
                     datasets: [{
                         label: 'Players',
-                        data: counts,
+                        data: unsortedData.map(e => e.count),
                         fill: true
                     }]
                 }
