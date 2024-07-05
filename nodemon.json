@@ -2,7 +2,8 @@
     "watch": [
         "src/",
         "assets/",
-        "nodemon.json"
+        "nodemon.json",
+        ".env"
     ],
     "ext": "ts, html, css, json"
 }

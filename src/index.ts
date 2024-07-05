@@ -17,4 +17,17 @@ if (fs.existsSync("database/country_players.json"))
 dotenv.config();
 
 // Create and listen on 2567 (or PORT environment variable.)
-listen(app);
+listen(app)
+    .then(server => {
+        if (process.env["STATS_ENABLED"] == "true") {
+            console.log("Stats are enabled")
+        }
+
+        if (process.env["NETWORK_ENABLED"] == "true") {
+            console.log("Network is enabled")
+        }
+    })
+    .catch(reason => {
+        console.log("Server failed to start!");
+        console.log(reason);
+    });

@@ -5,6 +5,9 @@ import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
 import { Assets } from "../Assets";
 import { MapSchema } from "@colyseus/schema";
+import { getPlayerByID } from "../network";
+import jwt from "jsonwebtoken";
+import { filterUsername } from "../util";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -398,19 +401,23 @@ export class GameRoom extends Room<RoomState> {
     if (options == null || options.name == null || (options.name + "").trim().length < 3) {
       throw new ServerError(5000, "Too short name!"); // too short name error
     }
+    else if (filterUsername(options.name) != options.name) {
+      throw new ServerError(5004, "Username contains invalid characters!");
+    }
     else if (latestVersion != options.protocol) {
       throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
     }
     else if (options.name.length >= 20) {
       throw new ServerError(5001, "Too long name!"); 
     }
+
     if (!await this.isClientAllowed(client, request)) {
       throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
     }
 
     const playerIp = this.getRequestIP(request);
     const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
-    if (ipInfo.country) {
+    if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
       if (!Assets.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
         Assets.COUNTRY_PLAYERS[ipInfo.country] = [];
 
@@ -421,26 +428,41 @@ export class GameRoom extends Room<RoomState> {
     return true;
   }
 
-  onJoin (client: Client, options: any) {
+  async onJoin (client: Client, options: any) {
+
+    let playerName = options.name;
+    let isVerified = false;
+    const player = await getPlayerByID(options.networkId);
+    if (options.networkId && options.networkToken && player) {
+      jwt.verify(options.networkToken, player.secret as string, (err: any, user: any) => {
+        if (!err) {
+          isVerified = true;
+          playerName = player.name;
+        }
+      })
+    }
+
     if (this.clients.length == 1) {
       this.ownerUUID = client.sessionId;
       this.state.player1 = new Player();
-      this.state.player1.name = options.name;
+      this.state.player1.name = playerName;
       this.state.player1.skinMod = options.skinMod;
       this.state.player1.skinName = options.skinName;
       this.state.player1.skinURL = options.skinURL;
       this.state.player1.points = options.points;
+      this.state.player1.verified = isVerified;
     }
     else if (this.clients.length == 2) {
       this.state.player2 = new Player();
-      if (this.state.player1.name == options.name) {
-        options.name += "(2)";
+      if (this.state.player1.name == playerName) {
+        playerName += "(2)";
       }
-      this.state.player2.name = options.name;
+      this.state.player2.name = playerName;
       this.state.player2.skinMod = options.skinMod;
       this.state.player2.skinName = options.skinName;
       this.state.player2.skinURL = options.skinURL;
       this.state.player2.points = options.points;
+      this.state.player2.verified = isVerified;
     }
     // else if (this.clients.length == 3) {
     //   this.state.player3 = new Player();

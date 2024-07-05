@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  name    String   @unique
+  secret  String // recovery token, if changed the session token will no longer work 
+  joined  DateTime @default(now())
+  lastActive  DateTime @default(now())
+  scores  Score[]
+  reports Report[]
+}
+
+model Song {
+  id     String  @id @map("_id") // song name, it's difficulty and the hashed value of the chart
+  scores Score[]
+}
+
+model Score {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  replayData String
+
+  score    Float
+  accuracy Float
+  points   Float
+  sicks    Float
+  goods    Float
+  bads     Float
+  shits    Float
+  misses    Float
+
+  strum    Int
+
+  submitted DateTime @default(now())
+
+  songRe Song? @relation(fields: [songId], references: [id])
+  userRe User? @relation(fields: [player], references: [id])
+
+  songId String? // filled by prisma
+  player String? @db.ObjectId // filled by prisma
+}
+
+model Report {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  content   String
+  submitted DateTime @default(now())
+  userRe    User     @relation(fields: [by], references: [id])
+  by        String   @db.ObjectId
+}

@@ -19,4 +19,5 @@ export class Player extends Schema {
     @type("number") points: number = 0;
     @type("string") status: string = "";
     @type("boolean") botplay: boolean = false;
+    @type("boolean") verified: boolean = false;
 }
