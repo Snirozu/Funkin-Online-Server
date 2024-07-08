@@ -5,5 +5,5 @@ export function filterSongName(str:string) {
 
 export function filterUsername(str:string) {
     var re = /[^<>\r\n\t]+/g;
-    return (str.match(re) || []).join('');
+    return (str.match(re) || []).join('').trim();
 }

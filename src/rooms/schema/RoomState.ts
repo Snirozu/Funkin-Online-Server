@@ -5,6 +5,7 @@ export class RoomState extends Schema {
   @type("string") song:string = "";
   @type("string") folder: string = "";
   @type("number") diff: number = 1;
+  @type({array: "string"}) diffList: string[] = [];
   @type("string") modDir: string = "";
   @type("string") modURL: string = "";
   //TODO change to 'players:Array'

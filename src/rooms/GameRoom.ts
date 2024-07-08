@@ -115,19 +115,15 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("setFSD", (client, message) => {
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 4)) return;
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 6)) return;
       if (this.hasPerms(client)) {
         this.state.folder = message[0];
         this.state.song = message[1];
         this.state.diff = message[2];
         this.chartHash = message[3];
         this.state.modDir = message[4];
-        if (message.length > 5 && (message[5] + "").trim() != "") {
-          this.state.modURL = message[5];
-        }
-        else {
-          this.state.modURL = null;
-        }
+        this.state.modURL = message[5];
+        this.state.diffList = message[6];
 
         this.state.player1.isReady = false;
         this.state.player2.isReady = false;
@@ -407,7 +403,7 @@ export class GameRoom extends Room<RoomState> {
     else if (latestVersion != options.protocol) {
       throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
     }
-    else if (options.name.length >= 20) {
+    else if (options.name.length > 14) {
       throw new ServerError(5001, "Too long name!"); 
     }
 

@@ -114,6 +114,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
                     id: score.id,
                 },
             },
+            points: submitter.points + replay.points
         },
     })
 
@@ -154,9 +155,6 @@ export async function submitReport(id: string, reqJson: any) {
 }
 
 export async function createUser(name: string) {
-    if (await getPlayerByName(name))
-        throw { error_message: "Player with that username exists!" }
-
     if (filterUsername(name) != name) {
         throw {
             error_message: "Your username contains invalid characters!"
@@ -169,16 +167,20 @@ export async function createUser(name: string) {
         }
     }
 
-    if (name.length > 20) {
+    if (name.length > 14) {
         throw {
-            error_message: "Your username is too long! (max 20 characters)"
+            error_message: "Your username is too long! (max 14 characters)"
         }
     }
+
+    if (await getPlayerByName(name))
+        throw { error_message: "Player with that username exists!" }
 
     return (await prisma.user.create({
         data: {
             name: name,
-            secret: crypto.randomBytes(64).toString('hex')
+            secret: crypto.randomBytes(64).toString('hex'),
+            points: 0
         },
     }));
 }
@@ -207,11 +209,14 @@ export async function renamePlayer(id: string, name: string) {
         }
     }
 
-    if (name.length > 20) {
+    if (name.length > 14) {
         throw {
             error_message: "Your username is too long! (max 15 characters)"
         }
     }
+
+    if (await getPlayerByName(name))
+        throw { error_message: "Player with that username exists!" }
 
     return (await prisma.user.update({
         data: {
@@ -228,7 +233,8 @@ export async function getPlayerByName(name: string) {
         return await prisma.user.findFirst({
             where: {
                 name: {
-                    equals: name
+                    equals: name,
+                    mode: "insensitive"
                 }
             }
         });
@@ -289,6 +295,27 @@ export async function topScores(id: string, strum:number, page: number):Promise<
                 player: true,
                 submitted: true,
                 id: true
+            },
+            take: 15,
+            skip: 15 * page
+        }));
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function topPlayers(page:number): Promise<Array<any>> {
+    try {
+        return (await prisma.user.findMany({
+            orderBy: [
+                {
+                    points: 'desc'
+                }
+            ],
+            select: {
+                name: true,
+                points: true
             },
             take: 15,
             skip: 15 * page

@@ -19,6 +19,7 @@ model User {
   secret  String // recovery token, if changed the session token will no longer work 
   joined  DateTime @default(now())
   lastActive  DateTime @default(now())
+  points    Int
   scores  Score[]
   reports Report[]
 }

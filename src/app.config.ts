@@ -10,9 +10,14 @@ import { matchMaker } from "colyseus";
 import { Assets } from "./Assets";
 import * as fs from 'fs';
 import bodyParser from "body-parser";
-import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScoreReplay } from "./network";
+import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScoreReplay, topPlayers } from "./network";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import TimeAgo from "javascript-time-ago";
+import en from 'javascript-time-ago/locale/en'
+
+TimeAgo.addDefaultLocale(en);
+const timeAgo = new TimeAgo('en-US')
 
 export default config({
 
@@ -26,8 +31,8 @@ export default config({
 
     initializeExpress: (app) => {
         app.use(rateLimit({
-            windowMs: 30 * 1000, // one minute one minute
-            limit: 20,
+            windowMs: 30 * 1000,
+            limit: 30,
         }));
         app.use(bodyParser.json({ limit: '1mb' }));
         app.use(bodyParser.urlencoded({ limit: '2mb' }));
@@ -70,7 +75,7 @@ export default config({
                     playerCount += room.clients;
                 });
             }
-            res.send(Assets.HTML_STATS.replace("$PLAYERS_ONLINE$", playerCount + ""));
+            res.send(Assets.HTML_STATS.replaceAll("$PLAYERS_ONLINE$", playerCount + "").replaceAll("$HOST$", req.protocol + "://" + req.hostname + ":" + req.socket.localPort));
         });
 
         app.get("/api/front", async (req, res) => {
@@ -106,11 +111,11 @@ export default config({
         });
 
         if (process.env["STATS_ENABLED"] == "true") {
-            app.get("/api/day_players", (req, res) => {
+            app.get("/api/stats/day_players", (req, res) => {
                 res.send(Assets.DAY_PLAYERS);
             });
 
-            app.get("/api/country_players", (req, res) => {
+            app.get("/api/stats/country_players", (req, res) => {
                 let returnMap: Map<string, number> = new Map<string, number>();
                 for (var key in Assets.COUNTRY_PLAYERS) {
                     if (Assets.COUNTRY_PLAYERS.hasOwnProperty(key)) {
@@ -138,7 +143,7 @@ export default config({
                             if (!player)
                                 throw { error_message: "Player not found!" };
 
-                            res.send("Name: " + player.name + "<br>Joined: " + new Date(player.joined).toDateString());
+                            res.send("<h2>" + player.name + "</h2><hr>Points: " + player.points + "<br>Online: " + (Date.now() - player.lastActive.getTime() < 1000 * 90 ? "Now" : timeAgo.format(player.lastActive)) + "<br>Joined: " + new Date(player.joined).toDateString());
                             break;
                         default:
                             res.send("unknown page");
@@ -158,14 +163,14 @@ export default config({
 
             //GET
 
-            app.get("/api/view_replay", async (req, res) => {
+            app.get("/api/network/score/replay", async (req, res) => {
                 if (!req.query.id)
                     return res.sendStatus(400);
 
                 res.send(await getScoreReplay(req.query.id as string));
             });
 
-            app.get("/api/top", async (req, res) => {
+            app.get("/api/network/top/song", async (req, res) => {
                 if (!req.query.song)
                     return res.sendStatus(400);
 
@@ -184,15 +189,27 @@ export default config({
                 res.send(top);
             });
 
+            app.get("/api/network/top/players", async (req, res) => {
+                const _top = await topPlayers(Number.parseInt(req.query.page as string ?? "0"));
+                const top: any[] = [];
+                for (const score of _top) {
+                    top.push({
+                        player: score.name,
+                        points: score.points
+                    });
+                }
+                res.send(top);
+            });
+
             // ping for successful authorization
-            app.get("/api/ping", checkLogin, async (req, res) => {
+            app.get("/api/network/account/ping", checkLogin, async (req, res) => {
                 const [id, token] = getIDToken(req);
                 
                 res.send((await pingPlayer(id)).name);
             });
 
             // saves the auth cookie in the browser
-            app.get("/api/cookie", async (req, res) => {
+            app.get("/api/network/account/cookie", async (req, res) => {
                 if (!req.query.id || !req.query.token) return;
 
                 res.cookie("authid", req.query.id, {
@@ -209,7 +226,7 @@ export default config({
             });
 
             // logs out the user of the website
-            app.get("/api/logout", async (req, res) => {
+            app.get("/api/network/account/logout", async (req, res) => {
                 res.clearCookie('authid');
                 res.clearCookie('authtoken');
                 res.sendStatus(200);
@@ -217,7 +234,7 @@ export default config({
 
             //POST
 
-            app.post("/api/post/front_message", checkLogin, async (req, res) => {
+            app.post("/api/network/sez", checkLogin, async (req, res) => {
                 if (req.body.message && req.body.message.length < 80 && !(req.body.message as string).includes("\n")) {
                     const [id, _] = getIDToken(req);
                     const player = await getPlayerByID(id);
@@ -233,7 +250,7 @@ export default config({
                     res.sendStatus(413);
             });
 
-            app.post("/api/post/change_name", checkLogin, async (req, res) => {
+            app.post("/api/network/account/rename", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
@@ -248,7 +265,7 @@ export default config({
 
             // reports a replay to me!!!!
             // requires `content` json body field
-            app.post("/api/post/report_score", checkLogin, async (req, res) => {
+            app.post("/api/network/score/report", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
@@ -263,7 +280,7 @@ export default config({
 
             // submits user replay to the leaderboard system
             // requires replay data json data
-            app.post("/api/post/submit_score", checkLogin, async (req, res) => {
+            app.post("/api/network/score/submit", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
@@ -280,7 +297,7 @@ export default config({
             // registers the user to the database
             // requires 'username' json body field
             // todo to add user deletion from the database
-            app.post("/api/post/register", async (req, res) => {
+            app.post("/api/network/auth/register", async (req, res) => {
                 try {
                     const user = await createUser(req.body.username);
                     res.json({
@@ -298,7 +315,7 @@ export default config({
 
             // resets the token and secret
             // doesnt require a body but requires to use secret instead of token in the authentication header
-            app.post("/api/post/reset_credentials", checkSecret, async (req, res) => {
+            app.post("/api/network/auth/reset", checkSecret, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
                     
@@ -317,7 +334,7 @@ export default config({
             });
         }
 
-        app.get("*", async (req, res) => {
+        app.get("/", async (req, res) => {
             var rooms = await matchMaker.query();
             let playerCount = 0;
             if (rooms.length >= 1) {
@@ -325,7 +342,7 @@ export default config({
                     playerCount += room.clients;
                 });
             }
-            res.send(Assets.HTML_HOME.replace("$PLAYERS_ONLINE$", playerCount + ""));
+            res.send(Assets.HTML_HOME.replaceAll("$PLAYERS_ONLINE$", playerCount + ""));
         });
 
         /**
