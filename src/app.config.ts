@@ -12,7 +12,6 @@ import * as fs from 'fs';
 import bodyParser from "body-parser";
 import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScoreReplay, topPlayers } from "./network";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
 
@@ -30,12 +29,6 @@ export default config({
     },
 
     initializeExpress: (app) => {
-        app.set("trust proxy", true);
-
-        app.use(rateLimit({
-            windowMs: 30 * 1000,
-            limit: 30,
-        }));
         app.use(bodyParser.json({ limit: '1mb' }));
         app.use(bodyParser.urlencoded({ limit: '2mb' }));
         app.use(cookieParser());
