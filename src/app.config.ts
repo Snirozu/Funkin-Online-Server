@@ -70,7 +70,7 @@ export default config({
                     playerCount += room.clients;
                 });
             }
-            res.send(Assets.HTML_STATS.replaceAll("$PLAYERS_ONLINE$", playerCount + "").replaceAll("$HOST$", req.protocol + "://" + req.hostname + ":" + req.socket.localPort));
+            res.send(Assets.HTML_STATS.replaceAll("$PLAYERS_ONLINE$", playerCount + "").replaceAll("$HOST$", "https://" + req.hostname));
         });
 
         app.get("/api/front", async (req, res) => {
