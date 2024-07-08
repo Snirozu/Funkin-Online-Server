@@ -427,6 +427,7 @@ export class GameRoom extends Room<RoomState> {
   async onJoin (client: Client, options: any) {
 
     let playerName = options.name;
+    let playerPoints = options.points;
     let isVerified = false;
     const player = await getPlayerByID(options.networkId);
     if (options.networkId && options.networkToken && player) {
@@ -434,6 +435,7 @@ export class GameRoom extends Room<RoomState> {
         if (!err) {
           isVerified = true;
           playerName = player.name;
+          playerPoints = player.points;
         }
       })
     }
@@ -445,7 +447,7 @@ export class GameRoom extends Room<RoomState> {
       this.state.player1.skinMod = options.skinMod;
       this.state.player1.skinName = options.skinName;
       this.state.player1.skinURL = options.skinURL;
-      this.state.player1.points = options.points;
+      this.state.player1.points = playerPoints;
       this.state.player1.verified = isVerified;
     }
     else if (this.clients.length == 2) {
@@ -457,7 +459,7 @@ export class GameRoom extends Room<RoomState> {
       this.state.player2.skinMod = options.skinMod;
       this.state.player2.skinName = options.skinName;
       this.state.player2.skinURL = options.skinURL;
-      this.state.player2.points = options.points;
+      this.state.player2.points = playerPoints;
       this.state.player2.verified = isVerified;
     }
     // else if (this.clients.length == 3) {
