@@ -30,6 +30,8 @@ export default config({
     },
 
     initializeExpress: (app) => {
+        app.set("trust proxy", true);
+
         app.use(rateLimit({
             windowMs: 30 * 1000,
             limit: 30,
