@@ -29,8 +29,8 @@ export default config({
     },
 
     initializeExpress: (app) => {
-        app.use(bodyParser.json({ limit: '2mb' }));
-        app.use(bodyParser.urlencoded({ limit: '2mb' }));
+        app.use(bodyParser.json({ limit: '5mb' }));
+        app.use(bodyParser.urlencoded({ limit: '5mb' }));
         app.use(cookieParser());
 
         /**
