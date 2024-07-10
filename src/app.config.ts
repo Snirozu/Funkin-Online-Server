@@ -35,100 +35,123 @@ export default config({
         app.use(bodyParser.urlencoded({ limit: '5mb' }));
         app.use(cookieParser());
 
-        app.use(async function (next) {
+        app.get("/rooms", async (req, res) => {
             try {
-                await next();
+                var rooms = await matchMaker.query(/*{private: false, clients: 1}*/);
+                let page = Assets.HTML_ROOMS + "<div id='filter'><div id='content'><h3><b>Available Public Rooms:</b></h3>";
+                let hasPublicRoom = false;
+                let playerCount = 0;
+
+                if (rooms.length >= 1) {
+                    rooms.forEach((room) => {
+                        playerCount += room.clients;
+                        if (!room.private && room.clients == 1) {
+                            page += "<div class='room'> Code: " + room.roomId + "<br>Player: " + room.metadata.name + "<br>Ping: " + room.metadata.ping + "ms" + "</div>";
+                            hasPublicRoom = true;
+                        }
+                    });
+                }
+
+                if (!hasPublicRoom) {
+                    page += 'None public.<br><br><iframe src="https://www.youtube.com/embed/v4YHIYXao9I?autoplay=1" width="560" height="315" frameborder="0" allowfullscreen></iframe> <br>';
+                }
+
+                page += "<br style='clear: left'>Players Online: " + playerCount;
+                page += "</div>";
+                res.send(page);
             }
             catch (exc) {
-                console.error("Uncaught Exception!", exc);
+                console.error(exc);
+                res.send(500);
             }
-        } as NextFunction);
-
-        /**
-         * Bind your custom express routes here:
-         * Read more: https://expressjs.com/en/starter/basic-routing.html
-         */
-        app.get("/rooms", async (req, res) => {
-            var rooms = await matchMaker.query(/*{private: false, clients: 1}*/);
-            let page = Assets.HTML_ROOMS + "<div id='filter'><div id='content'><h3><b>Available Public Rooms:</b></h3>";
-            let hasPublicRoom = false;
-            let playerCount = 0;
-
-            if (rooms.length >= 1) {
-                rooms.forEach((room) => {
-                    playerCount += room.clients;
-                    if (!room.private && room.clients == 1) {
-                        page += "<div class='room'> Code: " + room.roomId + "<br>Player: " + room.metadata.name + "<br>Ping: " + room.metadata.ping + "ms" + "</div>";
-                        hasPublicRoom = true;
-                    }
-                });
-            }
-
-            if (!hasPublicRoom) {
-                page += 'None public.<br><br><iframe src="https://www.youtube.com/embed/v4YHIYXao9I?autoplay=1" width="560" height="315" frameborder="0" allowfullscreen></iframe> <br>';
-            }
-
-            page += "<br style='clear: left'>Players Online: " + playerCount;
-            page += "</div>";
-            res.send(page);
         });
 
         app.get("/stats", async (req, res) => {
-            var rooms = await matchMaker.query();
-            let playerCount = 0;
-            if (rooms.length >= 1) {
-                rooms.forEach((room) => {
-                    playerCount += room.clients;
-                });
+            try {
+                var rooms = await matchMaker.query();
+                let playerCount = 0;
+                if (rooms.length >= 1) {
+                    rooms.forEach((room) => {
+                        playerCount += room.clients;
+                    });
+                }
+                res.send(Assets.HTML_STATS.replaceAll("$PLAYERS_ONLINE$", playerCount + "").replaceAll("$HOST$", "https://" + req.hostname));
             }
-            res.send(Assets.HTML_STATS.replaceAll("$PLAYERS_ONLINE$", playerCount + "").replaceAll("$HOST$", "https://" + req.hostname));
+            catch (exc) {
+                console.error(exc);
+                res.send(500);
+            }
         });
 
         app.get("/api/front", async (req, res) => {
-            var rooms = await matchMaker.query();
-            let playerCount = 0;
-            let roomCount = 0;
-            if (rooms.length >= 1) {
-                rooms.forEach((room) => {
-                    playerCount += room.clients;
-                    if (!room.private && room.clients == 1)
-                        roomCount += 1;
+            try {
+                var rooms = await matchMaker.query();
+                let playerCount = 0;
+                let roomCount = 0;
+                if (rooms.length >= 1) {
+                    rooms.forEach((room) => {
+                        playerCount += room.clients;
+                        if (!room.private && room.clients == 1)
+                            roomCount += 1;
+                    });
+                }
+
+                const player = await getPlayerByID(Assets.FRONT_MESSAGE_PLAYER);
+
+                res.send({
+                    online: playerCount,
+                    rooms: roomCount,
+                    sez: (player && Assets.FRONT_MESSAGE && Assets.FRONT_MESSAGE_PLAYER ? player.name + ' sez: "' + Assets.FRONT_MESSAGE + '"' : null)
                 });
             }
-
-            const player = await getPlayerByID(Assets.FRONT_MESSAGE_PLAYER);
-
-            res.send({
-                online: playerCount,
-                rooms: roomCount,
-                sez: (player && Assets.FRONT_MESSAGE && Assets.FRONT_MESSAGE_PLAYER ? player.name + ' sez: "' + Assets.FRONT_MESSAGE + '"' : null)
-            });
+            catch (exc) {
+                console.error(exc);
+                res.send(500);
+            }
         });
 
         app.get("/api/online", async (req, res) => {
-            var rooms = await matchMaker.query();
-            let playerCount = 0;
-            if (rooms.length >= 1) {
-                rooms.forEach((room) => {
-                    playerCount += room.clients;
-                });
+            try {
+                var rooms = await matchMaker.query();
+                let playerCount = 0;
+                if (rooms.length >= 1) {
+                    rooms.forEach((room) => {
+                        playerCount += room.clients;
+                    });
+                }
+                res.send(playerCount + "");
             }
-            res.send(playerCount + "");
+            catch (exc) {
+                console.error(exc);
+                res.send(500);
+            }
         });
 
         if (process.env["STATS_ENABLED"] == "true") {
             app.get("/api/stats/day_players", (req, res) => {
-                res.send(Assets.DAY_PLAYERS);
+                try {
+                    res.send(Assets.DAY_PLAYERS);
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
             });
 
             app.get("/api/stats/country_players", (req, res) => {
-                let returnMap: Map<string, number> = new Map<string, number>();
-                for (var key in Assets.COUNTRY_PLAYERS) {
-                    if (Assets.COUNTRY_PLAYERS.hasOwnProperty(key)) {
-                        returnMap.set(key, Assets.COUNTRY_PLAYERS[key].length);
+                try {
+                    let returnMap: Map<string, number> = new Map<string, number>();
+                    for (var key in Assets.COUNTRY_PLAYERS) {
+                        if (Assets.COUNTRY_PLAYERS.hasOwnProperty(key)) {
+                            returnMap.set(key, Assets.COUNTRY_PLAYERS[key].length);
+                        }
                     }
+                    res.send(Object.fromEntries(returnMap));
                 }
-                res.send(Object.fromEntries(returnMap));
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
             });
         }
 
@@ -170,90 +193,132 @@ export default config({
             //GET
 
             app.get("/api/network/score/replay", async (req, res) => {
-                if (!req.query.id)
-                    return res.sendStatus(400);
+                try {
+                    if (!req.query.id)
+                        return res.sendStatus(400);
 
-                res.send(await getScoreReplay(req.query.id as string));
+                    res.send(await getScoreReplay(req.query.id as string));
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
             });
 
             app.get("/api/network/top/song", async (req, res) => {
-                if (!req.query.song)
-                    return res.sendStatus(400);
+                try {
+                    if (!req.query.song)
+                        return res.sendStatus(400);
 
-                const _top = await topScores(req.query.song as string, Number.parseInt(req.query.strum as string ?? "0"), Number.parseInt(req.query.page as string ?? "0"));
-                const top:any[] = [];
-                for (const score of _top) {
-                    top.push({
-                        score: score.score,
-                        accuracy: score.accuracy,
-                        points: score.points,
-                        player: (await getPlayerByID(score.player)).name,
-                        submitted: score.submitted,
-                        id: score.id
-                    });
+                    const _top = await topScores(req.query.song as string, Number.parseInt(req.query.strum as string ?? "0"), Number.parseInt(req.query.page as string ?? "0"));
+                    const top:any[] = [];
+                    for (const score of _top) {
+                        top.push({
+                            score: score.score,
+                            accuracy: score.accuracy,
+                            points: score.points,
+                            player: (await getPlayerByID(score.player)).name,
+                            submitted: score.submitted,
+                            id: score.id
+                        });
+                    }
+                    res.send(top);
                 }
-                res.send(top);
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
             });
 
             app.get("/api/network/top/players", async (req, res) => {
-                const _top = await topPlayers(Number.parseInt(req.query.page as string ?? "0"));
-                const top: any[] = [];
-                for (const score of _top) {
-                    top.push({
-                        player: score.name,
-                        points: score.points
-                    });
+                try {
+                    const _top = await topPlayers(Number.parseInt(req.query.page as string ?? "0"));
+                    const top: any[] = [];
+                    for (const score of _top) {
+                        top.push({
+                            player: score.name,
+                            points: score.points
+                        });
+                    }
+                    res.send(top);
                 }
-                res.send(top);
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
             });
 
             // ping for successful authorization
             app.get("/api/network/account/ping", checkLogin, async (req, res) => {
-                const [id, token] = getIDToken(req);
-                
-                res.send((await pingPlayer(id)).name);
+                try {
+                    const [id, token] = getIDToken(req);
+                    
+                    res.send((await pingPlayer(id)).name);
+                } 
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
             });
 
             // saves the auth cookie in the browser
             app.get("/api/network/account/cookie", async (req, res) => {
-                if (!req.query.id || !req.query.token) return;
+                try {
+                    if (!req.query.id || !req.query.token) return;
 
-                res.cookie("authid", req.query.id, {
-                    expires: new Date(253402300000000)
-                });
+                    res.cookie("authid", req.query.id, {
+                        expires: new Date(253402300000000)
+                    });
 
-                res.cookie("authtoken", req.query.token, {
-                    expires: new Date(253402300000000)
-                });
+                    res.cookie("authtoken", req.query.token, {
+                        expires: new Date(253402300000000)
+                    });
 
-                const user = await getPlayerByID(String(req.query.id));
+                    const user = await getPlayerByID(String(req.query.id));
 
-                res.redirect('/network/user/' + user.name);
+                    res.redirect('/network/user/' + user.name);
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
             });
 
             // logs out the user of the website
             app.get("/api/network/account/logout", async (req, res) => {
-                res.clearCookie('authid');
-                res.clearCookie('authtoken');
-                res.sendStatus(200);
+                try {
+                    res.clearCookie('authid');
+                    res.clearCookie('authtoken');
+                    res.sendStatus(200);
+                } 
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
             });
 
             //POST
 
             app.post("/api/network/sez", checkLogin, async (req, res) => {
-                if (req.body.message && req.body.message.length < 80 && !(req.body.message as string).includes("\n")) {
-                    const [id, _] = getIDToken(req);
-                    const player = await getPlayerByID(id);
-                    
-                    Assets.FRONT_MESSAGE = req.body.message;
-                    Assets.FRONT_MESSAGE_PLAYER = player.id;
-                    res.sendStatus(200);
-                    return;
+                try {
+                    if (req.body.message && req.body.message.length < 80 && !(req.body.message as string).includes("\n")) {
+                        const [id, _] = getIDToken(req);
+                        const player = await getPlayerByID(id);
+                        
+                        Assets.FRONT_MESSAGE = req.body.message;
+                        Assets.FRONT_MESSAGE_PLAYER = player.id;
+                        res.sendStatus(200);
+                        return;
+                    }
+                    if (!req.body.message)
+                        res.sendStatus(418);
+                    else
+                        res.sendStatus(413);
                 }
-                if (!req.body.message)
-                    res.sendStatus(418);
-                else
-                    res.sendStatus(413);
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
             });
 
             app.post("/api/network/account/rename", checkLogin, async (req, res) => {
@@ -341,14 +406,20 @@ export default config({
         }
 
         app.get("/", async (req, res) => {
-            var rooms = await matchMaker.query();
-            let playerCount = 0;
-            if (rooms.length >= 1) {
-                rooms.forEach((room) => {
-                    playerCount += room.clients;
-                });
+            try {
+                var rooms = await matchMaker.query();
+                let playerCount = 0;
+                if (rooms.length >= 1) {
+                    rooms.forEach((room) => {
+                        playerCount += room.clients;
+                    });
+                }
+                res.send(Assets.HTML_HOME.replaceAll("$PLAYERS_ONLINE$", playerCount + ""));
             }
-            res.send(Assets.HTML_HOME.replaceAll("$PLAYERS_ONLINE$", playerCount + ""));
+            catch (exc) {
+                console.error(exc);
+                res.send(500);
+            }
         });
 
         /**
