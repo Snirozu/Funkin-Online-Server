@@ -14,6 +14,8 @@ import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, chec
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
+import { NextHandleFunction } from "connect";
+import { NextFunction, RequestHandler } from "express";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')
@@ -32,6 +34,15 @@ export default config({
         app.use(bodyParser.json({ limit: '5mb' }));
         app.use(bodyParser.urlencoded({ limit: '5mb' }));
         app.use(cookieParser());
+
+        app.use(async function (next) {
+            try {
+                await next();
+            }
+            catch (exc) {
+                console.error("Uncaught Exception!", exc);
+            }
+        } as NextFunction);
 
         /**
          * Bind your custom express routes here:
