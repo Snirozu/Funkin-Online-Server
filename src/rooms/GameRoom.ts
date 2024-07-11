@@ -17,6 +17,7 @@ export class GameRoom extends Room<RoomState> {
   IPS_CHANNEL = "$IPSChannel"
   chartHash:string = null;
   clientsIP: Map<Client, string> = new Map<Client, string>();
+  clientsID: Map<Client, string> = new Map<Client, string>();
   ownerUUID:string = null;
   lastPingTime:number = null;
 
@@ -34,7 +35,7 @@ export class GameRoom extends Room<RoomState> {
       }
     }
 
-    this.setMetadata({name: options.name, points: options.points});
+    this.setMetadata({name: options.name});
 
     this.onMessage("togglePrivate", (client, message) => {
       if (this.hasPerms(client)) {
@@ -322,15 +323,28 @@ export class GameRoom extends Room<RoomState> {
       this.getStatePlayer(client).skinURL = message[2];
     });
 
-    this.onMessage("updateFP", (client, message) => {
+    this.onMessage("updateFP", async (client, message) => {
       if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
+
+      const player = await getPlayerByID(this.clientsID.get(client));
       
       if (this.isOwner(client)) {
-        this.state.player1.points = message;
+        if (this.state.player1.verified && player) {
+          this.state.player1.points = player.points;
+          this.state.player1.name = player.name;
+        }
+        else
+          this.state.player1.points = message;
+
         this.metadata.points = this.state.player1.points;
       }
       else {
-        this.state.player2.points = message;
+        if (this.state.player2.verified) {
+          this.state.player2.points = player.points;
+          this.state.player2.name = player.name;
+        }
+        else
+          this.state.player2.points = message;
       }
     });
 
@@ -432,11 +446,15 @@ export class GameRoom extends Room<RoomState> {
     const player = await getPlayerByID(options.networkId);
     if (options.networkId && options.networkToken && player) {
       jwt.verify(options.networkToken, player.secret as string, (err: any, user: any) => {
-        if (!err) {
-          isVerified = true;
-          playerName = player.name;
-          playerPoints = player.points;
+        if (err) {
+          client.error(401, "Couldn't authorize to the network!");
+          return;
         }
+
+        isVerified = true;
+        this.clientsID.set(client, options.networkId);
+        playerName = player.name;
+        playerPoints = player.points;
       })
     }
 
@@ -507,6 +525,7 @@ export class GameRoom extends Room<RoomState> {
 
         this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client))) - 1) + ""));
         this.clientsIP.delete(client);
+        this.clientsID.delete(client);
 
         if (this.isOwner(client))
             this.disconnect(4000);
