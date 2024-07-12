@@ -339,6 +339,29 @@ export async function getScoreReplay(id: string): Promise<any> {
     }
 }
 
+export async function getScoresPlayer(id: string, page:number): Promise<any> {
+    try {
+        return (await prisma.score.findMany({
+            where: {
+                player: id,
+            },
+            select: {
+                submitted: true,
+                songId: true,
+                score: true,
+                accuracy: true,
+                points: true,
+                strum: true,
+            },
+            take: 15,
+            skip: 15 * page
+        }));
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
 class ReplayData {
     player: string;
 

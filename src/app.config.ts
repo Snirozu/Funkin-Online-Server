@@ -10,7 +10,7 @@ import { matchMaker } from "colyseus";
 import { Assets } from "./Assets";
 import * as fs from 'fs';
 import bodyParser from "body-parser";
-import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScoreReplay, topPlayers } from "./network";
+import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScoreReplay, topPlayers, getScoresPlayer } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -172,7 +172,97 @@ export default config({
                             if (!player)
                                 throw { error_message: "Player not found!" };
 
-                            res.send("<h2>" + player.name + "</h2><hr>Points: " + player.points + "<br>Online: " + (Date.now() - player.lastActive.getTime() < 1000 * 90 ? "Now" : timeAgo.format(player.lastActive)) + "<br>Joined: " + new Date(player.joined).toDateString());
+                            let trs = '';
+
+                            const score_page = Number.parseInt(req.query.score_page as string ?? "0");
+
+                            const scores = await getScoresPlayer(player.id, score_page);
+                            scores.forEach((score:any) => {
+                                const songId = (score.songId as string).split('-');
+                                songId.pop();
+                                trs += '<tr><td><a href="/network/song/' + score.songId + '?strum=' + score.strum + '">' + songId.join(" ") + '</a></td><td>' + score.score + '</td><td>' + score.accuracy + '</td><td>' + score.points + '</td><td>' + score.submitted + '</td></tr>';
+                            });
+
+                            let scoreStr = ' \
+                            <table style="width:1000px"> \
+                                <tr> \
+                                <td> Song </td> \
+                                <td> Score </td> \
+                                <td> Accuracy </td> \
+                                <td> Points </td> \
+                                <td> Submitted </td> \
+                                </tr>'
+                                + trs +
+                                '</table> \
+                            ';
+
+                            if (score_page >= 1) {
+                                scoreStr += "<br> <a href='/network/user/" + player.name + "?score_page=" + (score_page - 1) + "'> <-- Previous Page </a>";
+                            }
+                            if (scores.length >= 15) {
+                                if (score_page >= 1)
+                                    scoreStr += '&nbsp';
+                                else
+                                    scoreStr += '<br>';
+                                scoreStr += "<a href='/network/user/" + player.name + "?score_page=" + (score_page + 1) + "'> Next Page --> </a>";
+                            }
+
+                            res.send("<h2>" + player.name + "</h2><hr>Points: " + player.points + "<br>Online: " + (Date.now() - player.lastActive.getTime() < 1000 * 90 ? "Now" : timeAgo.format(player.lastActive)) + "<br>Joined: " + new Date(player.joined).toDateString() + '<h3>Scores:</h3><hr>' + scoreStr);
+                            break;
+                        case 'song':
+                            const strum = Number.parseInt(req.query.strum as string ?? "2");
+                            const top_page = Number.parseInt(req.query.page as string ?? "0");
+                            const top = await topScores(params[2], strum, top_page);
+
+                            let songTitle = '???';
+                            let trss = '';
+
+                            for (const score of top) {
+                                const songId = params[2].split('-');
+                                songId.pop();
+                                songTitle = songId.join(" ");
+                                const playerName = (await getPlayerByID(score.player)).name;
+                                trss += '<tr><td><a href="/network/user/' + playerName + '">' + playerName + '</a></td><td>' + score.score + '</td><td>' + score.accuracy + '</td><td>' + score.points + '</td><td>' + score.submitted + '</td></tr>';
+                            }
+
+                            let topStr = ' \
+                            <table style="width:1000px"> \
+                                <tr> \
+                                <td> Player </td> \
+                                <td> Score </td> \
+                                <td> Accuracy </td> \
+                                <td> Points </td> \
+                                <td> Submitted </td> \
+                                </tr>'
+                                + trss +
+                                '</table> \
+                            ';
+
+                            if (top_page >= 1) {
+                                topStr += "<br> <a href='/network/song/" + params[2] + "?page=" + (top_page - 1) + "'> <-- Previous Page </a>";
+                            }
+                            if (top.length >= 15) {
+                                if (top_page >= 1)
+                                    topStr += '&nbsp';
+                                else
+                                    topStr += '<br>';
+                                topStr += "<a href='/network/song/" + params[2] + "?page=" + (top_page + 1) + "'> Next Page --> </a>";
+                            }
+
+                            let strumStr = strum + "";
+                            switch (strum) {
+                                case 1: 
+                                    strumStr += ' (Dad)';
+                                    break;
+                                case 2:
+                                    strumStr += ' (Boyfriend)';
+                                    break;
+                                default:
+                                    strumStr += ' (???)';
+                                    break;
+                            }
+
+                            res.send('<h1>' + songTitle + "</h1><p>Strum: " + strumStr + "</p><hr>" + topStr);
                             break;
                         default:
                             res.send("unknown page");
