@@ -53,6 +53,10 @@ export async function checkSecret(req: any, res: any, next: any) {
 //DATABASE STUFF
 
 export async function submitScore(submitterID: string, replay: ReplayData) {
+    if (replay.version < 1) {
+        throw { error_message: "Outdated Client, can't submit!" }
+    }
+
     if (!replay)
         throw { error_message: "Empty Replay Data!" }
 
@@ -114,7 +118,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
                     id: score.id,
                 },
             },
-            points: submitter.points + replay.points
+            points: (submitter.points - (leaderboardScore?.points ?? 0)) + replay.points
         },
     })
 
@@ -133,7 +137,8 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
 
     return {
         song: song.id,
-        message: "Submitted!"
+        message: "Submitted!",
+        gained_points: replay.points - (leaderboardScore?.points ?? 0) 
     }
 }
 
@@ -362,6 +367,19 @@ export async function getScoresPlayer(id: string, page:number): Promise<any> {
     }
 }
 
+export async function perishScores() {
+    console.log("deleting rankings");
+    prisma.score.deleteMany();
+    prisma.report.deleteMany();
+    
+    prisma.user.updateMany({
+        data: {
+            points: 0
+        }
+    })
+    console.log("deleted ranking shit");
+}
+
 class ReplayData {
     player: string;
 
@@ -376,9 +394,17 @@ class ReplayData {
     score: number;
     points: number;
 
-    mod_url: string;
-    opponent_mode: boolean;
+	opponent_mode: boolean;
     beat_time: number;
     chart_hash: string;
-    inputs: Array<Array<any>>;
+
+    note_offset: number;
+	gameplay_modifiers: Map<string, any>;
+	ghost_tapping: boolean;
+    rating_offset: number;
+    safe_frames: number;
+
+	inputs: Array<Array<any>>;
+
+	version: number;
 }

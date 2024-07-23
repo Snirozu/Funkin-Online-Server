@@ -1,5 +1,5 @@
 export class Assets {
-    public static PROTOCOL_VERSION = 2;
+    public static PROTOCOL_VERSION = 3;
     public static HTML_ROOMS = "";
     public static HTML_HOME = "";
     public static HTML_STATS = "";

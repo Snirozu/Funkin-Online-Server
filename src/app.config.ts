@@ -14,8 +14,6 @@ import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, chec
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
-import { NextHandleFunction } from "connect";
-import { NextFunction, RequestHandler } from "express";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')

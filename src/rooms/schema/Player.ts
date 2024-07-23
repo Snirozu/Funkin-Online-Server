@@ -20,4 +20,12 @@ export class Player extends Schema {
     @type("string") status: string = "";
     @type("boolean") botplay: boolean = false;
     @type("boolean") verified: boolean = false;
+
+    @type({ array: "number" }) arrowColorFill: number[] = [];
+    @type({ array: "number" }) arrowColorLight: number[] = [];
+    @type({ array: "number" }) arrowColorLine: number[] = [];
+
+    @type({ array: "number" }) arrowColorPFill: number[] = [];
+    @type({ array: "number" }) arrowColorPLight: number[] = [];
+    @type({ array: "number" }) arrowColorPLine: number[] = [];
 }
