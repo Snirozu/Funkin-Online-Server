@@ -372,20 +372,26 @@ export class GameRoom extends Room<RoomState> {
       if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
 
       if (this.isOwner(client)) {
-        this.state.player1.arrowColorFill = message[0][0];
-        this.state.player1.arrowColorLight = message[0][1];
-        this.state.player1.arrowColorLine = message[0][2];
-        this.state.player1.arrowColorPFill = message[1][0];
-        this.state.player1.arrowColorPLight = message[1][1];
-        this.state.player1.arrowColorPLine = message[1][2];
+        this.state.player1.arrowColor0 = message[0][0];
+        this.state.player1.arrowColor1 = message[0][1];
+        this.state.player1.arrowColor2 = message[0][2];
+        this.state.player1.arrowColor3 = message[0][3];
+
+        this.state.player1.arrowColorP0 = message[1][0];
+        this.state.player1.arrowColorP1 = message[1][1];
+        this.state.player1.arrowColorP2 = message[1][2];
+        this.state.player1.arrowColorP3 = message[1][3];
       }
       else {
-        this.state.player2.arrowColorFill = message[0][0];
-        this.state.player2.arrowColorLight = message[0][1];
-        this.state.player2.arrowColorLine = message[0][2];
-        this.state.player2.arrowColorPFill = message[1][0];
-        this.state.player2.arrowColorPLight = message[1][1];
-        this.state.player2.arrowColorPLine = message[1][2];
+        this.state.player2.arrowColor0 = message[0][0];
+        this.state.player2.arrowColor1 = message[0][1];
+        this.state.player2.arrowColor2 = message[0][2];
+        this.state.player2.arrowColor3 = message[0][3];
+
+        this.state.player2.arrowColorP0 = message[1][0];
+        this.state.player2.arrowColorP1 = message[1][1];
+        this.state.player2.arrowColorP2 = message[1][2];
+        this.state.player2.arrowColorP3 = message[1][3];
       }
     });
 
@@ -489,12 +495,15 @@ export class GameRoom extends Room<RoomState> {
       this.state.player1.points = playerPoints;
       this.state.player1.verified = isVerified;
 
-      this.state.player1.arrowColorFill = options.arrowRGBT[0];
-      this.state.player1.arrowColorLight = options.arrowRGBT[1];
-      this.state.player1.arrowColorLine = options.arrowRGBT[2];
-      this.state.player1.arrowColorPFill = options.arrowRGBP[0];
-      this.state.player1.arrowColorPLight = options.arrowRGBP[1];
-      this.state.player1.arrowColorPLine = options.arrowRGBP[2];
+      this.state.player1.arrowColor0 = options.arrowRGBT[0];
+      this.state.player1.arrowColor1 = options.arrowRGBT[1];
+      this.state.player1.arrowColor2 = options.arrowRGBT[2];
+      this.state.player1.arrowColor3 = options.arrowRGBT[3];
+
+      this.state.player1.arrowColorP0 = options.arrowRGBP[0];
+      this.state.player1.arrowColorP1 = options.arrowRGBP[1];
+      this.state.player1.arrowColorP2 = options.arrowRGBP[2];
+      this.state.player1.arrowColorP3 = options.arrowRGBP[3];
     }
     else if (this.clients.length == 2) {
       this.state.player2 = new Player();
@@ -508,12 +517,15 @@ export class GameRoom extends Room<RoomState> {
       this.state.player2.points = playerPoints;
       this.state.player2.verified = isVerified;
 
-      this.state.player2.arrowColorFill = options.arrowRGBT[0];
-      this.state.player2.arrowColorLight = options.arrowRGBT[1];
-      this.state.player2.arrowColorLine = options.arrowRGBT[2];
-      this.state.player2.arrowColorPFill = options.arrowRGBP[0];
-      this.state.player2.arrowColorPLight = options.arrowRGBP[1];
-      this.state.player2.arrowColorPLine = options.arrowRGBP[2];
+      this.state.player2.arrowColor0 = options.arrowRGBT[0];
+      this.state.player2.arrowColor1 = options.arrowRGBT[1];
+      this.state.player2.arrowColor2 = options.arrowRGBT[2];
+      this.state.player2.arrowColor3 = options.arrowRGBT[3];
+
+      this.state.player2.arrowColorP0 = options.arrowRGBP[0];
+      this.state.player2.arrowColorP1 = options.arrowRGBP[1];
+      this.state.player2.arrowColorP2 = options.arrowRGBP[2];
+      this.state.player2.arrowColorP3 = options.arrowRGBP[3];
     }
     // else if (this.clients.length == 3) {
     //   this.state.player3 = new Player();
