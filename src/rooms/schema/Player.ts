@@ -21,11 +21,13 @@ export class Player extends Schema {
     @type("boolean") botplay: boolean = false;
     @type("boolean") verified: boolean = false;
 
-    @type({ array: "number" }) arrowColorFill: number[] = [];
-    @type({ array: "number" }) arrowColorLight: number[] = [];
-    @type({ array: "number" }) arrowColorLine: number[] = [];
+    @type({ array: "number" }) arrowColor0: number[] = [];
+    @type({ array: "number" }) arrowColor1: number[] = [];
+    @type({ array: "number" }) arrowColor2: number[] = [];
+    @type({ array: "number" }) arrowColor3: number[] = [];
 
-    @type({ array: "number" }) arrowColorPFill: number[] = [];
-    @type({ array: "number" }) arrowColorPLight: number[] = [];
-    @type({ array: "number" }) arrowColorPLine: number[] = [];
+    @type({ array: "number" }) arrowColorP0: number[] = [];
+    @type({ array: "number" }) arrowColorP1: number[] = [];
+    @type({ array: "number" }) arrowColorP2: number[] = [];
+    @type({ array: "number" }) arrowColorP3: number[] = [];
 }
