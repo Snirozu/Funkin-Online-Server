@@ -551,7 +551,7 @@ export class GameRoom extends Room<RoomState> {
     }
 
     try {
-      await this.allowReconnection(client, 5);
+      await this.allowReconnection(client, 10);
       this.broadcast("log", (this.isOwner(client) ? this.state.player1.name : this.state.player2.name) + " has reconnected!");
     }
     catch (err) {
