@@ -299,7 +299,8 @@ export async function topScores(id: string, strum:number, page: number):Promise<
                 points: true,
                 player: true,
                 submitted: true,
-                id: true
+                id: true,
+                misses: true
             },
             take: 15,
             skip: 15 * page

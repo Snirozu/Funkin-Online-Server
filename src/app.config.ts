@@ -307,7 +307,8 @@ export default config({
                             points: score.points,
                             player: (await getPlayerByID(score.player)).name,
                             submitted: score.submitted,
-                            id: score.id
+                            id: score.id,
+                            misses: score.misses
                         });
                     }
                     res.send(top);
