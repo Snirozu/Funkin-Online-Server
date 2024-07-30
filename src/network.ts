@@ -359,6 +359,9 @@ export async function getScoresPlayer(id: string, page:number): Promise<any> {
                 points: true,
                 strum: true,
             },
+            orderBy: {
+                points: "desc"
+            },
             take: 15,
             skip: 15 * page
         }));
