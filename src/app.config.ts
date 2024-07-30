@@ -193,7 +193,7 @@ export default config({
                             }
 
                             res.send("<h2>" + player.name + "</h2><hr>Points: " + player.points + 
-                                "<br>Online: " + Data.VERIFIED_PLAYING_PLAYERS.includes(player.name) ? 'In a Room' : (Date.now() - player.lastActive.getTime() < 1000 * 90 ? "Now" : timeAgo.format(player.lastActive))
+                                "<br>Online: " + (Data.VERIFIED_PLAYING_PLAYERS.includes(player.name) ? 'In a Room' : (Date.now() - player.lastActive.getTime() < 1000 * 90 ? "Now" : timeAgo.format(player.lastActive)))
                                 + "<br>Joined: " + new Date(player.joined).toDateString() + '<h3>Scores:</h3><hr>' + scoreStr);
                             break;
                         case 'song':
