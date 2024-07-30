@@ -343,6 +343,25 @@ export default config({
             });
 
             // ping for successful authorization
+            app.get("/api/network/account/me", checkLogin, async (req, res) => {
+                try {
+                    const [id, token] = getIDToken(req);
+                    const player = await pingPlayer(id);
+
+                    Data.ONLINE_PLAYERS.push(player.name);
+
+                    res.send({
+                        name: player.name,
+                        points: player.points
+                    });
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.send(500);
+                }
+            });
+
+            
             app.get("/api/network/account/ping", checkLogin, async (req, res) => {
                 try {
                     const [id, token] = getIDToken(req);
@@ -350,10 +369,7 @@ export default config({
 
                     Data.ONLINE_PLAYERS.push(player.name);
                     
-                    res.send({
-                        name: player.name,
-                        points: player.points
-                    });
+                    res.send(player.name);
                 } 
                 catch (exc) {
                     console.error(exc);
@@ -502,6 +518,11 @@ export default config({
                         error: exc.error_message ?? "Couldn't reset credentials..."
                     });
                 }
+            });
+        }
+        else {
+            app.all("/api/network*", async (req, res) => {
+                res.send(418);
             });
         }
 
