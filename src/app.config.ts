@@ -575,7 +575,8 @@ export default config({
             setInterval(async function () {
                 let refreshPlayers:string[] = [];
                 for (const pName of Data.ONLINE_PLAYERS) {
-                    if (Date.now() - (await getPlayerByName(pName)).lastActive.getTime() < 1000 * 90) {
+                    const player = await getPlayerByName(pName);
+                    if (player && Date.now() - player.lastActive.getTime() < 1000 * 90) {
                         refreshPlayers.push(pName);
                     }
                 };
