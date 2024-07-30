@@ -32,6 +32,9 @@ export class GameRoom extends Room<RoomState> {
     if (daGameplaySettings) {
       for (const key in daGameplaySettings) {
         const value = daGameplaySettings[key].toString();
+        if (key == "instakill" || key == "practice" || key == "opponentplay") {
+          continue;
+        }
         this.state.gameplaySettings.set(key, value);
       }
     }
@@ -292,6 +295,9 @@ export class GameRoom extends Room<RoomState> {
     this.onMessage("setGameplaySetting", (client, message) => {
       if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
       if (this.hasPerms(client)) {
+        if (message[0] == "instakill" || message[0] == "practice" || message[0] == "opponentplay") {
+          return;
+        }
         this.state.gameplaySettings.set(message[0], message[1].toString());
       }
     });
@@ -305,6 +311,9 @@ export class GameRoom extends Room<RoomState> {
         else if (!this.checkInvalid(message, VerifyTypes.ARRAY, 0)) {
           for (const key in message[0]) {
             const value = message[0][key].toString();
+            if (key == "instakill" || key == "practice" || key == "opponentplay") {
+              continue;
+            }
             this.state.gameplaySettings.set(key, value);
           }
         }
