@@ -522,7 +522,7 @@ export default config({
         }
         else {
             app.all("/api/network*", async (req, res) => {
-                res.send(418);
+                res.send(404);
             });
         }
 
