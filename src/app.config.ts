@@ -50,13 +50,13 @@ export default config({
                         }
                     });
                 }
-                playerCount += Data.ONLINE_PLAYERS.length;
 
                 if (!hasPublicRoom) {
                     page += 'None public.<br><br><iframe src="https://www.youtube.com/embed/v4YHIYXao9I?autoplay=1" width="560" height="315" frameborder="0" allowfullscreen></iframe> <br>';
                 }
 
-                page += "<br style='clear: left'>Players Online: " + playerCount;
+                page += "<br style='clear: left'>Room Players Online: " + playerCount;
+                page += "<br style='clear: left'>Network Players Online: " + Data.ONLINE_PLAYERS.length;
                 page += "</div>";
                 res.send(page);
             }
