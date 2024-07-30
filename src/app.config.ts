@@ -169,6 +169,15 @@ export default config({
                         case "":
                             res.send("home");
                             break;
+                        case "users":
+                            if (params[2] == "online") {
+                                let usersBody = '<h1>Players Online</h1>';
+                                for (const playerName in Data.ONLINE_PLAYERS) {
+                                    usersBody += '<a href="/network/user/' + playerName + '"> ' + playerName + '</a><br>';
+                                }
+                                res.send(usersBody);
+                            }
+                            break;
                         case "user":
                             const player = await getPlayerByName(params[2]);
 
@@ -348,7 +357,9 @@ export default config({
                     const [id, token] = getIDToken(req);
                     const player = await pingPlayer(id);
 
-                    Data.ONLINE_PLAYERS.push(player.name);
+                    if (!Data.ONLINE_PLAYERS.includes(player.name)) {
+                        Data.ONLINE_PLAYERS.push(player.name);
+                    }
 
                     res.send({
                         name: player.name,
@@ -367,7 +378,9 @@ export default config({
                     const [id, token] = getIDToken(req);
                     const player = await pingPlayer(id);
 
-                    Data.ONLINE_PLAYERS.push(player.name);
+                    if (!Data.ONLINE_PLAYERS.includes(player.name)) {
+                        Data.ONLINE_PLAYERS.push(player.name);
+                    }
                     
                     res.send(player.name);
                 } 
