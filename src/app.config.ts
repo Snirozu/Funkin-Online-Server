@@ -68,15 +68,7 @@ export default config({
 
         app.get("/stats", async (req, res) => {
             try {
-                var rooms = await matchMaker.query();
-                let playerCount = 0;
-                if (rooms.length >= 1) {
-                    rooms.forEach((room) => {
-                        playerCount += room.clients;
-                    });
-                }
-                playerCount += Data.ONLINE_PLAYERS.length;
-                res.send(Assets.HTML_STATS.replaceAll("$PLAYERS_ONLINE$", playerCount + "").replaceAll("$HOST$", "https://" + req.hostname));
+                res.send(Assets.HTML_STATS.replaceAll("$PLAYERS_ONLINE$", (await countPlayers())[0] + "").replaceAll("$HOST$", "https://" + req.hostname));
             }
             catch (exc) {
                 console.error(exc);
@@ -86,18 +78,7 @@ export default config({
 
         app.get("/api/front", async (req, res) => {
             try {
-                var rooms = await matchMaker.query();
-                let playerCount = 0;
-                let roomCount = 0;
-                if (rooms.length >= 1) {
-                    rooms.forEach((room) => {
-                        playerCount += room.clients;
-                        if (!room.private && room.clients == 1)
-                            roomCount += 1;
-                    });
-                }
-                playerCount += Data.ONLINE_PLAYERS.length;
-
+                const [playerCount, roomCount] = await countPlayers();
                 const player = await getPlayerByID(Data.FRONT_MESSAGE_PLAYER);
 
                 res.send({
@@ -114,15 +95,7 @@ export default config({
 
         app.get("/api/online", async (req, res) => {
             try {
-                var rooms = await matchMaker.query();
-                let playerCount = 0;
-                if (rooms.length >= 1) {
-                    rooms.forEach((room) => {
-                        playerCount += room.clients;
-                    });
-                }
-                playerCount += Data.ONLINE_PLAYERS.length;
-                res.send(playerCount + "");
+                res.send((await countPlayers())[0]);
             }
             catch (exc) {
                 console.error(exc);
@@ -171,7 +144,7 @@ export default config({
                             break;
                         case "users":
                             if (params[2] == "online") {
-                                let usersBody = '<h1>Players Online</h1>';
+                                let usersBody = '<h1>Players Online</h1><tr>';
                                 for (const playerName of Data.ONLINE_PLAYERS) {
                                     usersBody += '<a href="/network/user/' + playerName + '"> ' + playerName + '</a><br>';
                                 }
@@ -219,7 +192,9 @@ export default config({
                                 scoreStr += "<a href='/network/user/" + player.name + "?score_page=" + (score_page + 1) + "'> Next Page --> </a>";
                             }
 
-                            res.send("<h2>" + player.name + "</h2><hr>Points: " + player.points + "<br>Online: " + (Date.now() - player.lastActive.getTime() < 1000 * 90 ? "Now" : timeAgo.format(player.lastActive)) + "<br>Joined: " + new Date(player.joined).toDateString() + '<h3>Scores:</h3><hr>' + scoreStr);
+                            res.send("<h2>" + player.name + "</h2><hr>Points: " + player.points + 
+                                "<br>Online: " + Data.VERIFIED_PLAYING_PLAYERS.includes(player.name) ? 'In a Room' : (Date.now() - player.lastActive.getTime() < 1000 * 90 ? "Now" : timeAgo.format(player.lastActive))
+                                + "<br>Joined: " + new Date(player.joined).toDateString() + '<h3>Scores:</h3><hr>' + scoreStr);
                             break;
                         case 'song':
                             const strum = Number.parseInt(req.query.strum as string ?? "2");
@@ -454,6 +429,11 @@ export default config({
                 try {
                     const [id, _] = getIDToken(req);
 
+                    if (Data.VERIFIED_PLAYING_PLAYERS.includes(id)) {
+                        res.send(418);
+                        return;
+                    }
+
                     res.send((await renamePlayer(id, req.body.username)).name);
                 }
                 catch (exc: any) {
@@ -541,15 +521,7 @@ export default config({
 
         app.get("/", async (req, res) => {
             try {
-                var rooms = await matchMaker.query();
-                let playerCount = 0;
-                if (rooms.length >= 1) {
-                    rooms.forEach((room) => {
-                        playerCount += room.clients;
-                    });
-                }
-                playerCount += Data.ONLINE_PLAYERS.length;
-                res.send(Assets.HTML_HOME.replaceAll("$PLAYERS_ONLINE$", playerCount + ""));
+                res.send(Assets.HTML_HOME.replaceAll("$PLAYERS_ONLINE$", (await countPlayers())[0] + ""));
             }
             catch (exc) {
                 console.error(exc);
@@ -575,17 +547,8 @@ export default config({
         if (process.env["STATS_ENABLED"] == "true") {
             // refresh stats every 10 minutes
             setInterval(async function () {
-                var rooms = await matchMaker.query();
-                let playerCount = 0;
-                if (rooms.length >= 1) {
-                    rooms.forEach((room) => {
-                        playerCount += room.clients;
-                    });
-                }
-                playerCount += Data.ONLINE_PLAYERS.length;
-
                 Data.DAY_PLAYERS.push([
-                    playerCount,
+                    (await countPlayers())[0],
                     Date.now()
                 ]);
 
@@ -628,3 +591,25 @@ export default config({
          */
     }
 });
+
+/**
+ * @returns [playerCount, roomFreeCount]
+ */
+export async function countPlayers():Promise<number[]> {
+    let playerCount = 0;
+    let roomCount = 0;
+    var rooms = await matchMaker.query();
+    if (rooms.length >= 1) {
+        rooms.forEach((room) => {
+            playerCount += room.clients;
+            if (!room.private && room.clients == 1)
+                roomCount++;
+        });
+    }
+    for (const player of Data.ONLINE_PLAYERS) {
+        if (!Data.VERIFIED_PLAYING_PLAYERS.includes(player)) {
+            playerCount++;
+        }
+    }
+    return [playerCount, roomCount];
+}

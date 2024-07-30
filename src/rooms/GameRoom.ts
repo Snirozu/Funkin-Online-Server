@@ -467,7 +467,6 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onJoin (client: Client, options: any) {
-
     let playerName = options.name;
     let playerPoints = options.points;
     let isVerified = false;
@@ -481,6 +480,7 @@ export class GameRoom extends Room<RoomState> {
 
         isVerified = true;
         this.clientsID.set(client, options.networkId);
+        Data.VERIFIED_PLAYING_PLAYERS.push(player.name);
         playerName = player.name;
         playerPoints = player.points;
       })
@@ -560,26 +560,27 @@ export class GameRoom extends Room<RoomState> {
     }
   }
 
-    async removePlayer(client:Client) {
-        if (this.state.isStarted) {
-          this.endSong();
-        }
-        else {
-          this.state.player1.isReady = false;
-          this.state.player2.isReady = false;
-        }
-        
-        this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
-
-        this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client))) - 1) + ""));
-        this.clientsIP.delete(client);
-        this.clientsID.delete(client);
-
-        if (this.isOwner(client))
-            this.disconnect(4000);
-        else
-            this.state.player2 = new Player();
+  async removePlayer(client:Client) {
+    if (this.state.isStarted) {
+      this.endSong();
     }
+    else {
+      this.state.player1.isReady = false;
+      this.state.player2.isReady = false;
+    }
+    
+    this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
+
+    this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client))) - 1) + ""));
+    this.clientsIP.delete(client);
+    this.clientsID.delete(client);
+    Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
+
+    if (this.isOwner(client))
+        this.disconnect(4000);
+    else
+        this.state.player2 = new Player();
+  }
 
   async onDispose() {
     this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
@@ -587,6 +588,9 @@ export class GameRoom extends Room<RoomState> {
       this.presence.hset(this.IPS_CHANNEL, ip, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, ip)) - 1) + ""));
     }
     this.clientsIP = null;
+    for (const client of this.clients) {
+      this.removePlayer(client);
+    }
   }
 
   hasPerms(client: Client) {
