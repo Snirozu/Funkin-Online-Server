@@ -172,7 +172,7 @@ export default config({
                         case "users":
                             if (params[2] == "online") {
                                 let usersBody = '<h1>Players Online</h1>';
-                                for (const playerName in Data.ONLINE_PLAYERS) {
+                                for (const playerName of Data.ONLINE_PLAYERS) {
                                     usersBody += '<a href="/network/user/' + playerName + '"> ' + playerName + '</a><br>';
                                 }
                                 res.send(usersBody);
