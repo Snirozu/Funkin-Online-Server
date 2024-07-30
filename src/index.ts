@@ -3,15 +3,16 @@ import app from "./app.config";
 import * as fs from 'fs';
 import { Assets } from './Assets';
 import dotenv from 'dotenv';
+import { Data } from "./Data";
 
 // load files to memory
 Assets.HTML_ROOMS = fs.readFileSync('assets/rooms.html', 'utf8');
 Assets.HTML_HOME = fs.readFileSync('assets/index.html', 'utf8');
 Assets.HTML_STATS = fs.readFileSync('assets/stats.html', 'utf8');
 if (fs.existsSync("database/day_players.json"))
-    Assets.DAY_PLAYERS = JSON.parse(fs.readFileSync("database/day_players.json", 'utf8'));
+    Data.DAY_PLAYERS = JSON.parse(fs.readFileSync("database/day_players.json", 'utf8'));
 if (fs.existsSync("database/country_players.json"))
-    Assets.COUNTRY_PLAYERS = JSON.parse(fs.readFileSync("database/country_players.json", 'utf8'));
+    Data.COUNTRY_PLAYERS = JSON.parse(fs.readFileSync("database/country_players.json", 'utf8'));
 
 //load .env
 dotenv.config();

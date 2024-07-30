@@ -14,6 +14,7 @@ import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, chec
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
+import { Data } from "./Data";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')
@@ -49,6 +50,7 @@ export default config({
                         }
                     });
                 }
+                playerCount += Data.ONLINE_PLAYERS.length;
 
                 if (!hasPublicRoom) {
                     page += 'None public.<br><br><iframe src="https://www.youtube.com/embed/v4YHIYXao9I?autoplay=1" width="560" height="315" frameborder="0" allowfullscreen></iframe> <br>';
@@ -73,6 +75,7 @@ export default config({
                         playerCount += room.clients;
                     });
                 }
+                playerCount += Data.ONLINE_PLAYERS.length;
                 res.send(Assets.HTML_STATS.replaceAll("$PLAYERS_ONLINE$", playerCount + "").replaceAll("$HOST$", "https://" + req.hostname));
             }
             catch (exc) {
@@ -93,13 +96,14 @@ export default config({
                             roomCount += 1;
                     });
                 }
+                playerCount += Data.ONLINE_PLAYERS.length;
 
-                const player = await getPlayerByID(Assets.FRONT_MESSAGE_PLAYER);
+                const player = await getPlayerByID(Data.FRONT_MESSAGE_PLAYER);
 
                 res.send({
                     online: playerCount,
                     rooms: roomCount,
-                    sez: (player && Assets.FRONT_MESSAGE && Assets.FRONT_MESSAGE_PLAYER ? player.name + ' sez: "' + Assets.FRONT_MESSAGE + '"' : null)
+                    sez: (player && Data.FRONT_MESSAGE && Data.FRONT_MESSAGE_PLAYER ? player.name + ' sez: "' + Data.FRONT_MESSAGE + '"' : null)
                 });
             }
             catch (exc) {
@@ -117,6 +121,7 @@ export default config({
                         playerCount += room.clients;
                     });
                 }
+                playerCount += Data.ONLINE_PLAYERS.length;
                 res.send(playerCount + "");
             }
             catch (exc) {
@@ -128,7 +133,7 @@ export default config({
         if (process.env["STATS_ENABLED"] == "true") {
             app.get("/api/stats/day_players", (req, res) => {
                 try {
-                    res.send(Assets.DAY_PLAYERS);
+                    res.send(Data.DAY_PLAYERS);
                 }
                 catch (exc) {
                     console.error(exc);
@@ -139,9 +144,9 @@ export default config({
             app.get("/api/stats/country_players", (req, res) => {
                 try {
                     let returnMap: Map<string, number> = new Map<string, number>();
-                    for (var key in Assets.COUNTRY_PLAYERS) {
-                        if (Assets.COUNTRY_PLAYERS.hasOwnProperty(key)) {
-                            returnMap.set(key, Assets.COUNTRY_PLAYERS[key].length);
+                    for (var key in Data.COUNTRY_PLAYERS) {
+                        if (Data.COUNTRY_PLAYERS.hasOwnProperty(key)) {
+                            returnMap.set(key, Data.COUNTRY_PLAYERS[key].length);
                         }
                     }
                     res.send(Object.fromEntries(returnMap));
@@ -341,8 +346,14 @@ export default config({
             app.get("/api/network/account/ping", checkLogin, async (req, res) => {
                 try {
                     const [id, token] = getIDToken(req);
+                    const player = await pingPlayer(id);
+
+                    Data.ONLINE_PLAYERS.push(player.name);
                     
-                    res.send((await pingPlayer(id)).name);
+                    res.send({
+                        name: player.name,
+                        points: player.points
+                    });
                 } 
                 catch (exc) {
                     console.error(exc);
@@ -394,8 +405,8 @@ export default config({
                         const [id, _] = getIDToken(req);
                         const player = await getPlayerByID(id);
                         
-                        Assets.FRONT_MESSAGE = req.body.message;
-                        Assets.FRONT_MESSAGE_PLAYER = player.id;
+                        Data.FRONT_MESSAGE = req.body.message;
+                        Data.FRONT_MESSAGE_PLAYER = player.id;
                         res.sendStatus(200);
                         return;
                     }
@@ -503,6 +514,7 @@ export default config({
                         playerCount += room.clients;
                     });
                 }
+                playerCount += Data.ONLINE_PLAYERS.length;
                 res.send(Assets.HTML_HOME.replaceAll("$PLAYERS_ONLINE$", playerCount + ""));
             }
             catch (exc) {
@@ -536,20 +548,21 @@ export default config({
                         playerCount += room.clients;
                     });
                 }
+                playerCount += Data.ONLINE_PLAYERS.length;
 
-                Assets.DAY_PLAYERS.push([
+                Data.DAY_PLAYERS.push([
                     playerCount,
                     Date.now()
                 ]);
 
-                if (Assets.DAY_PLAYERS.length > 300)
-                    Assets.DAY_PLAYERS.shift();
+                if (Data.DAY_PLAYERS.length > 300)
+                    Data.DAY_PLAYERS.shift();
 
                 if (!fs.existsSync("database/")) {
                     fs.mkdirSync("database/");
                 }
 
-                fs.writeFileSync("database/day_players.json", JSON.stringify(Assets.DAY_PLAYERS));
+                fs.writeFileSync("database/day_players.json", JSON.stringify(Data.DAY_PLAYERS));
             }, 1000 * 60 * 10);
 
             // stats every minute
@@ -558,8 +571,19 @@ export default config({
                     fs.mkdirSync("database/");
                 }
 
-                fs.writeFileSync("database/country_players.json", JSON.stringify(Assets.COUNTRY_PLAYERS));
+                fs.writeFileSync("database/country_players.json", JSON.stringify(Data.COUNTRY_PLAYERS));
             }, 1000 * 60);
+
+            //stats every 2 minutes
+            setInterval(async function () {
+                let refreshPlayers:string[] = [];
+                for (const pName of Data.ONLINE_PLAYERS) {
+                    if (Date.now() - (await getPlayerByName(pName)).lastActive.getTime() < 1000 * 90) {
+                        refreshPlayers.push(pName);
+                    }
+                };
+                Data.ONLINE_PLAYERS = refreshPlayers;
+            }, 1000 * 60 * 2);
         }
     },
 

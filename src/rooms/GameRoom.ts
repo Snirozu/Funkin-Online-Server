@@ -8,6 +8,7 @@ import { MapSchema } from "@colyseus/schema";
 import { getPlayerByID } from "../network";
 import jwt from "jsonwebtoken";
 import { filterUsername } from "../util";
+import { Data } from "../Data";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -434,7 +435,7 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onAuth(client: Client, options: any, request: IncomingMessage) {
-    const latestVersion = Assets.PROTOCOL_VERSION;
+    const latestVersion = Data.PROTOCOL_VERSION;
     if (options == null || options.name == null || (options.name + "").trim().length < 3) {
       throw new ServerError(5000, "Too short name!"); // too short name error
     }
@@ -455,11 +456,11 @@ export class GameRoom extends Room<RoomState> {
     const playerIp = this.getRequestIP(request);
     const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
     if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
-      if (!Assets.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
-        Assets.COUNTRY_PLAYERS[ipInfo.country] = [];
+      if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
+        Data.COUNTRY_PLAYERS[ipInfo.country] = [];
 
-      if (!Assets.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
-        Assets.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
+      if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
+        Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
     }
 
     return true;
