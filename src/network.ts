@@ -31,6 +31,25 @@ export async function checkLogin(req:any, res:any, next:any) {
     })
 }
 
+export async function authPlayer(req: any) {
+    const [id, token] = getIDToken(req);
+    const player = await getPlayerByID(id);
+
+    if (player == null || token == null || id == null) {
+        return;
+    }
+
+    let isValid = false;
+    jwt.verify(token, player.secret as string, (err: any, user: any) => {
+        if (err) return isValid = false;
+        isValid = true;
+    })
+    if (isValid) {
+        return player;
+    }
+    return;
+}
+
 export async function checkSecret(req: any, res: any, next: any) {
     const authHeader = req.headers['authorization']
 
@@ -159,6 +178,37 @@ export async function submitReport(id: string, reqJson: any) {
     }));
 }
 
+export async function viewReports() {
+    return (await prisma.report.findMany());
+}
+
+export async function removeReport(id:string) {
+    return (await prisma.report.delete({
+        where: {
+            id: id
+        }
+    }));
+}
+
+export async function removeScore(id: string) {
+    const score = (await prisma.score.delete({
+        where: {
+            id: id
+        }
+    }));
+
+    return (await prisma.user.update({
+        data: {
+            points: {
+                decrement: score.points
+            }
+        },
+        where: {
+            id: score.player
+        }
+    }));
+}
+
 export async function createUser(name: string) {
     if (filterUsername(name) != name) {
         throw {
@@ -226,6 +276,21 @@ export async function renamePlayer(id: string, name: string) {
     return (await prisma.user.update({
         data: {
             name: name
+        },
+        where: {
+            id: id
+        }
+    }));
+}
+
+export async function grantPlayerMod(id: string) {
+    if ((await getPlayerByID(id))?.isMod) {
+        throw "already a mod";
+    }
+
+    return (await prisma.user.update({
+        data: {
+            isMod: true
         },
         where: {
             id: id
@@ -332,13 +397,13 @@ export async function topPlayers(page:number): Promise<Array<any>> {
     }
 }
 
-export async function getScoreReplay(id: string): Promise<any> {
+export async function getScore(id: string) {
     try {
         return (await prisma.score.findUnique({
             where: {
                 id: id
             }
-        })).replayData;
+        }));
     }
     catch (exc) {
         return null;

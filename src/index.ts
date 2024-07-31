@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { Assets } from './Assets';
 import dotenv from 'dotenv';
 import { Data } from "./Data";
+import { grantPlayerMod } from "./network";
 
 // load files to memory
 Assets.HTML_ROOMS = fs.readFileSync('assets/rooms.html', 'utf8');
@@ -19,13 +20,24 @@ dotenv.config();
 
 // Create and listen on 2567 (or PORT environment variable.)
 listen(app)
-    .then(server => {
+    .then(async server => {
         if (process.env["STATS_ENABLED"] == "true") {
             console.log("Stats are enabled")
         }
 
         if (process.env["NETWORK_ENABLED"] == "true") {
             console.log("Network is enabled")
+        }
+
+        if (process.env["GRANT_MODS"]) {
+            for (const id of process.env["GRANT_MODS"].split(" ")) {
+                try {
+                    const player = await grantPlayerMod(id);
+                    console.log(player.name + " is a mod!");
+                }
+                catch (exc) {
+                }
+            }
         }
     })
     .catch(reason => {

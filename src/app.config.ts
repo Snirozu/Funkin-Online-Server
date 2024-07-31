@@ -10,7 +10,7 @@ import { matchMaker } from "colyseus";
 import { Assets } from "./Assets";
 import * as fs from 'fs';
 import bodyParser from "body-parser";
-import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScoreReplay, topPlayers, getScoresPlayer } from "./network";
+import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -136,6 +136,7 @@ export default config({
             // will move this to react
             app.get("/network*", async (req, res) => {
                 try {
+                    const reqPlayer = await authPlayer(req);
                     const params = (req.params as Array<string>)[0].split("/");
                     switch (params[1]) {
                         case undefined:
@@ -192,7 +193,7 @@ export default config({
                                 scoreStr += "<a href='/network/user/" + player.name + "?score_page=" + (score_page + 1) + "'> Next Page --> </a>";
                             }
 
-                            res.send("<h2>" + player.name + "</h2><hr>Points: " + player.points + 
+                            res.send("<h2>" + player.name + "</h2> " + (player.isMod ? "Moderator" : '') + " <hr>Points: " + player.points + 
                                 "<br>Online: " + (Data.VERIFIED_PLAYING_PLAYERS.includes(player.name) ? 'In a Room' : (Date.now() - player.lastActive.getTime() < 1000 * 90 ? "Now" : timeAgo.format(player.lastActive)))
                                 + "<br>Joined: " + new Date(player.joined).toDateString() + '<h3>Scores:</h3><hr>' + scoreStr);
                             break;
@@ -251,13 +252,67 @@ export default config({
 
                             res.send('<h1>' + songTitle + "</h1><p>Strum: " + strumStr + "</p><hr>" + topStr);
                             break;
+                        case "admin":
+                            if (!reqPlayer || !reqPlayer.isMod) {
+                                res.send('nuh uh');
+                                return;
+                            }
+
+                            switch (params[2]) {
+                                case "remove":
+                                    const removed = [];
+                                    if (req.query.report) {
+                                        await removeReport(req.query.report as string);
+                                        removed.push("report");
+                                    }
+                                    if (req.query.score) {
+                                        await removeScore(req.query.score as string);
+                                        removed.push("score");
+                                    }
+
+                                    if (removed.length == 0) {
+                                        res.send('none removed ' + removed.join(',') + '! <br><a href="/network/admin"> go bakc </a>');
+                                        return;
+                                    }
+
+                                    res.send('removed ' + removed.join(',') + '! <br><a href="/network/admin"> go bakc </a>');
+                                    break;
+                                default:
+                                    let response = '';
+
+                                    response += '<h1>logged as ' + reqPlayer.name + "</h1>";
+
+                                    response += '<h2> Reports: </h2><hr>';
+                                    const reports = await viewReports();
+                                    for (const report of reports) {
+                                        const submitter = await getPlayerByID(report.by);
+                                        response += 'By: ' + submitter.name;
+                                        if (report.content.startsWith("Score #")) {
+                                            const score = await getScore(report.content.split("Score #")[1]);
+                                            const scorePlayer = await getPlayerByID(score.player);
+                                            response += "<br> " + "<a href='/api/network/score/replay?id=" + score.id + "'>" + scorePlayer.name + "'s Score"
+                                                + "</a> on <a href='/network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
+                                                + "<br><br><a href='/network/admin/remove?report=" + report.id + "&score=" + score.id + "'>(REMOVE SCORE)</a>&nbsp;&nbsp;&nbsp;";
+                                        }
+                                        else {
+                                            response += "<br>" + report.content + "<br><br>";
+                                        }
+                                        response += "<a href='/network/admin/remove?report=" + report.id + "'>(REMOVE REPORT)</a>"
+                                        response += "<hr>";
+                                    }
+                                    response += '';
+
+                                    res.send(response);
+                                    break;
+                            }
+                            break;
                         default:
                             res.send("unknown page");
                             break;
                     }
                 }
                 catch (exc:any) {
-                    res.status(400).send(exc.error_message ?? "Unknown error...");
+                    res.status(400).send(exc?.error_message ?? "Unknown error...");
                 }
             });
 
@@ -274,7 +329,7 @@ export default config({
                     if (!req.query.id)
                         return res.sendStatus(400);
 
-                    res.send(await getScoreReplay(req.query.id as string));
+                    res.send((await getScore(req.query.id as string)).replayData);
                 }
                 catch (exc) {
                     console.error(exc);

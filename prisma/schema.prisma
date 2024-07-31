@@ -22,6 +22,7 @@ model User {
   points    Int
   scores  Score[]
   reports Report[]
+  isMod Boolean?
 }
 
 model Song {
