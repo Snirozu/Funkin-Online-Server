@@ -183,6 +183,17 @@ export async function submitComment(userId: string, reqJson: any) {
     if (!submitter)
         throw { error_message: "Not registered!" }
 
+    await prisma.songComment.deleteMany({
+        where: {
+            songid: {
+                equals: reqJson.id as string
+            },
+            by: {
+                equals: userId
+            }
+        }
+    });
+
     if ((reqJson.content as string).length < 2)
         throw { error_message: "Too short!" }
 
@@ -467,14 +478,14 @@ export async function getScoresPlayer(id: string, page:number): Promise<any> {
 
 export async function getSongComments(id: string) {
     try {
-        return (await prisma.song.findUnique({
+        return (await prisma.songComment.findMany({
             where: {
-                id: id
+                songid: id
             },
-            include: {
-                comments: true
+            orderBy: {
+                at: "asc"
             }
-        })).comments;
+        }))
     }
     catch (exc) {
         return null;

@@ -237,6 +237,15 @@ export default config({
                                 topStr += "<a href='/network/song/" + params[2] + "?page=" + (top_page + 1) + "'> Next Page --> </a>";
                             }
 
+                            const comments = await getSongComments(params[2]);
+                            if (comments) {
+                                topStr += "<h1>Comments</h1>";
+                                for (const comment of comments) {
+                                    const cumdate = new Date(comment.at);
+                                    topStr += "<hr><b>" + (await getPlayerByID(comment.by)).name + "</b><br>" + comment.content + " at " + cumdate.getMinutes() + ":" + cumdate.getSeconds();
+                                }
+                            }
+
                             let strumStr = strum + "";
                             switch (strum) {
                                 case 1: 
