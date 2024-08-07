@@ -178,21 +178,25 @@ export async function submitReport(id: string, reqJson: any) {
     }));
 }
 
-export async function submitComment(userId: string, reqJson: any) {
-    const submitter = await getPlayerByID(userId);
-    if (!submitter)
-        throw { error_message: "Not registered!" }
-
+export async function removeSongComment(userId: string, songId: string) {
     await prisma.songComment.deleteMany({
         where: {
             songid: {
-                equals: reqJson.id as string
+                equals: songId
             },
             by: {
                 equals: userId
             }
         }
     });
+}
+
+export async function submitSongComment(userId: string, reqJson: any) {
+    const submitter = await getPlayerByID(userId);
+    if (!submitter)
+        throw { error_message: "Not registered!" }
+
+    await removeSongComment(userId, reqJson.id as string);
 
     if ((reqJson.content as string).length < 2)
         throw { error_message: "Too short!" }
@@ -230,7 +234,16 @@ export async function removeReport(id:string) {
     }));
 }
 
-export async function removeScore(id: string) {
+export async function removeScore(id: string, checkPlayer?: string) {
+    if (checkPlayer) {
+        if ((await prisma.score.findFirst({
+            where: {
+                id: id
+            }
+        })).player != checkPlayer)
+            throw { error_message: "Unauthorized!" }
+    }
+
     const score = (await prisma.score.delete({
         where: {
             id: id
@@ -484,6 +497,38 @@ export async function getSongComments(id: string) {
             },
             orderBy: {
                 at: "asc"
+            }
+        }))
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function searchSongs(query: string) {
+    try {
+        return (await prisma.song.findMany({
+            where: {
+                id: {
+                    contains: query,
+                    mode: "insensitive"
+                }
+            }
+        }))
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function searchUsers(query: string) {
+    try {
+        return (await prisma.user.findMany({
+            where: {
+                name: {
+                    contains: query,
+                    mode: "insensitive"
+                }
             }
         }))
     }

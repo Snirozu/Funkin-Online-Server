@@ -10,7 +10,7 @@ import { matchMaker } from "colyseus";
 import { Assets } from "./Assets";
 import * as fs from 'fs';
 import bodyParser from "body-parser";
-import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitComment } from "./network";
+import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -141,7 +141,7 @@ export default config({
                     switch (params[1]) {
                         case undefined:
                         case "":
-                            res.send("home");
+                            res.redirect('/network/users/online');
                             break;
                         case "users":
                             if (params[2] == "online") {
@@ -242,7 +242,13 @@ export default config({
                                 topStr += "<h1>Comments</h1>";
                                 for (const comment of comments) {
                                     const cumdate = new Date(comment.at);
-                                    topStr += "<hr><b>" + (await getPlayerByID(comment.by)).name + "</b><br>" + comment.content + " at " + cumdate.getMinutes() + ":" + cumdate.getSeconds();
+                                    topStr += "<hr><b>" + (await getPlayerByID(comment.by)).name + '</b><br>"' + comment.content + '" at ' + cumdate.getMinutes() + ":" + cumdate.getSeconds();
+                                    if (reqPlayer.id == comment.by) {
+                                        topStr += "<br><a href='/network/account/remove?song_comment=" + comment.songid + "'>(REMOVE)</a>"
+                                    }
+                                }
+                                if (comments.length <= 0) {
+                                    topStr += "No comments!";
                                 }
                             }
 
@@ -260,6 +266,51 @@ export default config({
                             }
 
                             res.send('<h1>' + songTitle + "</h1><p>Strum: " + strumStr + "</p><hr>" + topStr);
+                            break;
+                        case 'search':
+                            let resp = "<h1>Search Results for: " + req.query.q + "</h1>";
+                            switch (params[2]) {
+                                case 'songs':
+                                    for (const song of (await searchSongs(req.query.q as string))) {
+                                        resp += '<a href="/network/song/' + song.id + '"> ' + song.id + '</a><hr>';
+                                    }
+                                    res.send(resp);
+                                    break;
+                                case 'users':
+                                    for (const user of (await searchUsers(req.query.q as string))) {
+                                        resp += '<a href="/network/user/' + user.name + '"> ' + user.name + '</a><hr>';
+                                    }
+                                    res.send(resp);
+                                    break;
+                            }
+                            break;
+                        case "account":
+                            if (!reqPlayer) {
+                                res.send('nuh uh');
+                                return;
+                            }
+
+                            switch (params[2]) {
+                                case "remove":
+                                    const removed = [];
+                                    if (req.query.song_comment) {
+                                        await removeSongComment(reqPlayer.id, req.query.song_comment as string);
+                                        removed.push("song comment");
+                                    }
+                                    if (req.query.score) {
+                                        await removeScore(req.query.score as string, reqPlayer.id);
+                                        removed.push("score");
+                                    }
+
+                                    if (removed.length == 0) {
+                                        res.send('none removed! <br><a href="javascript:history.back()"> go bakc </a>');
+                                        return;
+                                    }
+
+                                    res.send('removed ' + removed.join(',') + '! <br><a href="javascript:history.back()"> go bakc </a>');
+                                    break;
+                            }
+
                             break;
                         case "admin":
                             if (!reqPlayer || !reqPlayer.isMod) {
@@ -280,11 +331,11 @@ export default config({
                                     }
 
                                     if (removed.length == 0) {
-                                        res.send('none removed ' + removed.join(',') + '! <br><a href="/network/admin"> go bakc </a>');
+                                        res.send('none removed! <br><a href="javascript:history.back()"> go bakc </a>');
                                         return;
                                     }
 
-                                    res.send('removed ' + removed.join(',') + '! <br><a href="/network/admin"> go bakc </a>');
+                                    res.send('removed ' + removed.join(',') + '! <br><a href="javascript:history.back()"> go bakc </a>');
                                     break;
                                 default:
                                     let response = '';
@@ -298,6 +349,11 @@ export default config({
                                         response += 'By: ' + submitter.name;
                                         if (report.content.startsWith("Score #")) {
                                             const score = await getScore(report.content.split("Score #")[1]);
+                                            if (!score) {
+                                                await removeReport(report.id);
+                                                response += "<br>REMOVED<hr>";
+                                                continue;
+                                            }
                                             const scorePlayer = await getPlayerByID(score.player);
                                             response += "<br> " + "<a href='/api/network/score/replay?id=" + score.id + "'>" + scorePlayer.name + "'s Score"
                                                 + "</a> on <a href='/network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
@@ -321,6 +377,7 @@ export default config({
                     }
                 }
                 catch (exc:any) {
+                    console.error(exc);
                     res.status(400).send(exc?.error_message ?? "Unknown error...");
                 }
             });
@@ -496,7 +553,7 @@ export default config({
                 try {
                     const [id, _] = getIDToken(req);
 
-                    res.json(await submitComment(id, req.body));
+                    res.json(await submitSongComment(id, req.body));
                 }
                 catch (exc: any) {
                     console.log(exc);
