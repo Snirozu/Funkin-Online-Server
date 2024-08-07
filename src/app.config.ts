@@ -62,7 +62,7 @@ export default config({
             }
             catch (exc) {
                 console.error(exc);
-                res.send(500);
+                res.sendStatus(500);
             }
         });
 
@@ -72,7 +72,7 @@ export default config({
             }
             catch (exc) {
                 console.error(exc);
-                res.send(500);
+                res.sendStatus(500);
             }
         });
 
@@ -89,17 +89,17 @@ export default config({
             }
             catch (exc) {
                 console.error(exc);
-                res.send(500);
+                res.sendStatus(500);
             }
         });
 
         app.get("/api/online", async (req, res) => {
             try {
-                res.send((await countPlayers())[0]);
+                res.send('' + (await countPlayers())[0]);
             }
             catch (exc) {
                 console.error(exc);
-                res.send(500);
+                res.sendStatus(500);
             }
         });
 
@@ -110,7 +110,7 @@ export default config({
                 }
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
 
@@ -126,7 +126,7 @@ export default config({
                 }
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
         }
@@ -333,7 +333,7 @@ export default config({
                 }
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
 
@@ -359,7 +359,7 @@ export default config({
                 }
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
 
@@ -377,7 +377,7 @@ export default config({
                 }
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
 
@@ -398,7 +398,7 @@ export default config({
                 }
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
 
@@ -416,7 +416,7 @@ export default config({
                 } 
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
 
@@ -439,7 +439,7 @@ export default config({
                 }
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
 
@@ -452,7 +452,7 @@ export default config({
                 } 
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
 
@@ -476,7 +476,7 @@ export default config({
                 }
                 catch (exc) {
                     console.error(exc);
-                    res.send(500);
+                    res.sendStatus(500);
                 }
             });
 
@@ -485,7 +485,7 @@ export default config({
                     const [id, _] = getIDToken(req);
 
                     if (Data.VERIFIED_PLAYING_PLAYERS.includes(id)) {
-                        res.send(418);
+                        res.sendStatus(418);
                         return;
                     }
 
@@ -570,7 +570,7 @@ export default config({
         }
         else {
             app.all("/api/network*", async (req, res) => {
-                res.send(404);
+                res.sendStatus(404);
             });
         }
 
@@ -580,7 +580,7 @@ export default config({
             }
             catch (exc) {
                 console.error(exc);
-                res.send(500);
+                res.sendStatus(500);
             }
         });
 
