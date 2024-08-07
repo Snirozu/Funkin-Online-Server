@@ -178,6 +178,35 @@ export async function submitReport(id: string, reqJson: any) {
     }));
 }
 
+export async function submitComment(userId: string, reqJson: any) {
+    const submitter = await getPlayerByID(userId);
+    if (!submitter)
+        throw { error_message: "Not registered!" }
+
+    if ((reqJson.content as string).length < 2)
+        throw { error_message: "Too short!" }
+
+    if ((reqJson.content as string).length > 100)
+        throw { error_message: "Too long!" }
+
+    return await prisma.songComment.create({
+        data: {
+            content: reqJson.content as string,
+            at: Number.parseFloat(reqJson.at as string),
+            userRe: {
+                connect: {
+                    id: userId
+                }
+            },
+            song: {
+                connect: {
+                    id: reqJson.id as string
+                }
+            }
+        }
+    });
+}
+
 export async function viewReports() {
     return (await prisma.report.findMany());
 }
@@ -430,6 +459,22 @@ export async function getScoresPlayer(id: string, page:number): Promise<any> {
             take: 15,
             skip: 15 * page
         }));
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function getSongComments(id: string) {
+    try {
+        return (await prisma.song.findUnique({
+            where: {
+                id: id
+            },
+            include: {
+                comments: true
+            }
+        })).comments;
     }
     catch (exc) {
         return null;

@@ -10,7 +10,7 @@ import { matchMaker } from "colyseus";
 import { Assets } from "./Assets";
 import * as fs from 'fs';
 import bodyParser from "body-parser";
-import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore } from "./network";
+import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitComment } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -324,6 +324,31 @@ export default config({
 
             //GET
 
+            app.get("/api/network/song/comments", async (req, res) => {
+                try {
+                    if (!req.query.id)
+                        return res.sendStatus(400);
+
+                    const comments = await getSongComments(req.query.id as string);
+                    if (!comments)
+                        return res.sendStatus(404);
+
+                    let cmts = [];
+                    for (const comment of comments) {
+                        cmts.push({
+                            player: (await getPlayerByID(comment.by)).name,
+                            content: comment.content,
+                            at: comment.at
+                        });
+                    }
+                    res.send(cmts);
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
             app.get("/api/network/score/replay", async (req, res) => {
                 try {
                     if (!req.query.id)
@@ -457,6 +482,20 @@ export default config({
             });
 
             //POST
+
+            app.post("/api/network/song/comment", checkLogin, async (req, res) => {
+                try {
+                    const [id, _] = getIDToken(req);
+
+                    res.json(await submitComment(id, req.body));
+                }
+                catch (exc: any) {
+                    console.log(exc);
+                    res.status(400).json({
+                        error: exc.error_message ?? "Couldn't submit..."
+                    });
+                }
+            });
 
             app.post("/api/network/sez", checkLogin, async (req, res) => {
                 try {

@@ -22,12 +22,14 @@ model User {
   points    Int
   scores  Score[]
   reports Report[]
+  songComments SongComment[]
   isMod Boolean?
 }
 
 model Song {
   id     String  @id @map("_id") // song name, it's difficulty and the hashed value of the chart
   scores Score[]
+  comments SongComment[]
 }
 
 model Score {
@@ -60,4 +62,14 @@ model Report {
   submitted DateTime @default(now())
   userRe    User     @relation(fields: [by], references: [id])
   by        String   @db.ObjectId
+}
+
+model SongComment {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  content String
+  at      Float
+  userRe  User   @relation(fields: [by], references: [id])
+  by      String @db.ObjectId
+  song    Song   @relation(fields: [songid], references: [id])
+  songid  String
 }
