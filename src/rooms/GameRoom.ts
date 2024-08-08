@@ -557,7 +557,7 @@ export class GameRoom extends Room<RoomState> {
 
   async onLeave (client: Client, consented: boolean) {
     try {
-      await this.allowReconnection(client, consented ? 5 : 20);
+      await this.allowReconnection(client, consented ? 0 : 20);
     }
     catch (err) {
       return this.removePlayer(client);
