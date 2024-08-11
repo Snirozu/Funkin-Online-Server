@@ -587,14 +587,10 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onDispose() {
-    this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
-    for (var ip in this.clientsIP) {
-      this.presence.hset(this.IPS_CHANNEL, ip, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, ip)) - 1) + ""));
-    }
-    this.clientsIP = null;
     for (const client of this.clients) {
       this.removePlayer(client);
     }
+    this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
   }
 
   hasPerms(client: Client) {
