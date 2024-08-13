@@ -15,7 +15,8 @@
     "haxify": "npx schema-codegen src/rooms/schema/* --haxe --output src/rooms/schema/",
     "servsetup": "node setupservice.js",
     "servrestart": "systemctl restart funkin-online.service",
-    "servlogs": "journalctl -u funkin-online.service"
+    "servlogs": "journalctl -u funkin-online.service",
+    "postinstall": "prisma generate"
   },
   "author": "Snirozu",
   "license": "Apache-2.0-NON-AI",
