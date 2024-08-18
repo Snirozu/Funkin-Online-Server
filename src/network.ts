@@ -85,7 +85,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
 
     const songId:string = filterSongName(replay.song) + "-" + filterSongName(replay.difficulty) + "-" + filterSongName(replay.chart_hash);
 
-    let song = await prisma.song.findFirst({
+    let song = await prisma.song.findFirstOrThrow({
         where: {
             id: songId
         }
@@ -100,7 +100,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
 
     const daStrum = replay.opponent_mode ? 1 : 2;
 
-    const leaderboardScore = (await prisma.score.findFirst({ where: { songId: songId, player: submitter.id, strum: daStrum } }));
+    const leaderboardScore = (await prisma.score.findFirstOrThrow({ where: { songId: songId, player: submitter.id, strum: daStrum } }));
     if (leaderboardScore) {
         if (leaderboardScore.score > replay.score && leaderboardScore.points > replay.points)
             return { song: song.id }
@@ -236,7 +236,7 @@ export async function removeReport(id:string) {
 
 export async function removeScore(id: string, checkPlayer?: string) {
     if (checkPlayer) {
-        if ((await prisma.score.findFirst({
+        if ((await prisma.score.findFirstOrThrow({
             where: {
                 id: id
             }
@@ -353,7 +353,7 @@ export async function grantPlayerMod(id: string) {
 
 export async function getPlayerByName(name: string) {
     try {
-        return await prisma.user.findFirst({
+        return await prisma.user.findFirstOrThrow({
             where: {
                 name: {
                     equals: name,
@@ -370,7 +370,7 @@ export async function getPlayerByName(name: string) {
 
 export async function getPlayerByID(id: string) {
     try {
-        return await prisma.user.findFirst({
+        return await prisma.user.findFirstOrThrow({
             where: {
                 id: {
                     equals: id
