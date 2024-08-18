@@ -90,7 +90,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
             id: songId
         }
     });
-    if (!song) {
+    if (!songId || !song) {
         song = await prisma.song.create({
             data: {
                 id: songId
@@ -101,7 +101,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     const daStrum = replay.opponent_mode ? 1 : 2;
 
     const leaderboardScore = (await prisma.score.findFirstOrThrow({ where: { songId: songId, player: submitter.id, strum: daStrum } }));
-    if (leaderboardScore) {
+    if (songId && leaderboardScore) {
         if (leaderboardScore.score > replay.score && leaderboardScore.points > replay.points)
             return { song: song.id }
 
@@ -236,7 +236,7 @@ export async function removeReport(id:string) {
 
 export async function removeScore(id: string, checkPlayer?: string) {
     if (checkPlayer) {
-        if ((await prisma.score.findFirstOrThrow({
+        if (!id || (await prisma.score.findFirstOrThrow({
             where: {
                 id: id
             }
@@ -352,6 +352,9 @@ export async function grantPlayerMod(id: string) {
 }
 
 export async function getPlayerByName(name: string) {
+    if (!name)
+        return null;
+
     try {
         return await prisma.user.findFirstOrThrow({
             where: {
@@ -369,6 +372,9 @@ export async function getPlayerByName(name: string) {
 }
 
 export async function getPlayerByID(id: string) {
+    if (!id)
+        return null;
+
     try {
         return await prisma.user.findFirstOrThrow({
             where: {
