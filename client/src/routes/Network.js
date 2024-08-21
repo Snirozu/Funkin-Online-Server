@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AvatarImg from "../AvatarImg";
+import { getHost } from "../Util";
 
 function Network() {
     const [data, setData] = useState({});
@@ -8,7 +9,7 @@ function Network() {
 
     const fetchData = async () => {
         try {
-            const response = await fetch('http://localhost:2567/api/network/online');
+            const response = await fetch(getHost() + '/api/network/online');
             if (!response.ok) {
                 throw new Error('Players not found.');
             }
@@ -59,7 +60,7 @@ function renderPlayers(players) {
         render.push(
             <div className="Coolbox">
                 <a href={"/user/" + player}>
-                    <AvatarImg className='SmallAvatar' src={"http://localhost:2567/api/avatar/" + btoa(player)}></AvatarImg>
+                    <AvatarImg className='SmallAvatar' src={getHost() + "/api/avatar/" + btoa(player)}></AvatarImg>
                     <br></br><span>{player}</span>
                 </a>
             </div>

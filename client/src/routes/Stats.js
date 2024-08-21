@@ -1,6 +1,7 @@
 import { Chart, registerables } from "chart.js";
 import { useEffect, useState } from "react";
 import { Doughnut, Line } from "react-chartjs-2";
+import { getHost } from "../Util";
 
 function Stats() {
     Chart.register(...registerables);
@@ -23,7 +24,7 @@ function RenderOnlineChart() {
 
     const fetchOnlineStats = async () => {
         try {
-            const response = await fetch('http://localhost:2567/api/stats/day_players');
+            const response = await fetch(getHost() + '/api/stats/day_players');
             if (!response.ok) {
                 throw new Error('Could not load online count stats.');
             }
@@ -79,7 +80,7 @@ function RenderCountryChart() {
 
     const fetchOnlineStats = async () => {
         try {
-            const response = await fetch('http://localhost:2567/api/stats/country_players');
+            const response = await fetch(getHost() + '/api/stats/country_players');
             if (!response.ok) {
                 throw new Error('Could not load online graph.');
             }

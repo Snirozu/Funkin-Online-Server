@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { ordinalNum, timeAgo } from "../Util";
+import { getHost, ordinalNum, timeAgo } from "../Util";
 import AvatarImg from "../AvatarImg";
 
 function Song() {
@@ -14,7 +14,7 @@ function Song() {
 
     const fetchData = async () => {
         try {
-            const response = await fetch('http://localhost:2567/api/network/top/song?song=' + song + "&strum=" + searchParams.get("strum"));
+            const response = await fetch(getHost() + '/api/network/top/song?song=' + song + "&strum=" + searchParams.get("strum"));
             if (!response.ok) {
                 throw new Error('Song not found.');
             }
@@ -88,7 +88,7 @@ function renderScores(song, scores) {
 
     return (<>
         <a href={"/user/" + leader.player} className='LeaderContainer'>
-            <AvatarImg src={"http://localhost:2567/api/avatar/" + btoa(leader.player)}></AvatarImg>
+            <AvatarImg src={getHost() + "/api/avatar/" + btoa(leader.player)}></AvatarImg>
             <div className="FlexBox">
                 <br></br>
                 <span className="BigText">1st</span><span className="BiggerText"> {leader.player} </span>

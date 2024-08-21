@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { timeAgo } from '../Util';
+import { getHost, timeAgo } from '../Util';
 
 function ReturnDate(time) {
     const date = new Date(time);
@@ -36,7 +36,7 @@ function User() {
 
     const fetchData = async () => {
         try {
-            const response = await axios.get('http://localhost:2567/api/network/user/details?name=' + name, {
+            const response = await axios.get(getHost() + '/api/network/user/details?name=' + name, {
                 headers: {
                     'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
                 }
@@ -64,7 +64,7 @@ function User() {
             ) : (
                 <>
                     <div className='Sidebar'>
-                        <AvatarImg src={"http://localhost:2567/api/avatar/" + btoa(name)} />
+                        <AvatarImg src={getHost() + "/api/avatar/" + btoa(name)} />
                         <span className='AvatarCaption'> {name} </span>
                         {data.isMod ? (
                             <center> <b> Moderator </b> </center>
@@ -139,7 +139,6 @@ const AvatarUpload = () => {
             alert("Image cannot exceed 512kB!");
             return;
         }
-        const url = 'http://localhost:2567/api/network/account/avatar';
         const formData = new FormData();
         formData.append('file', file);
         formData.append('fileName', file.name);
@@ -151,7 +150,7 @@ const AvatarUpload = () => {
                 'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken')),
             },
         };
-        axios.post(url, formData, config).then((response) => {
+        axios.post(getHost() + '/api/network/account/avatar', formData, config).then((response) => {
             console.log(response.data);
             window.location.reload();
         }).catch(exc => {

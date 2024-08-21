@@ -2,6 +2,7 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import AvatarImg from './AvatarImg';
+import { getHost } from './Util';
 
 function HeadBar() {
     const [data, setData] = useState({
@@ -13,7 +14,7 @@ function HeadBar() {
 
     const fetchData = async () => {
         try {
-            const response = await axios.get('http://localhost:2567/api/network/account/me', {
+            const response = await axios.get(getHost() + '/api/network/account/me', {
                 headers: {
                     'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
                 }
@@ -46,7 +47,7 @@ function HeadBar() {
                 ) : (
                     <>
                         <a className='BarProfile' id={data.name} href={"/user/" + data.name}>
-                            <AvatarImg className='SmallerAvatar' src={"http://localhost:2567/api/avatar/" + btoa(data.name)}/>
+                            <AvatarImg className='SmallerAvatar' src={getHost() + "/api/avatar/" + btoa(data.name)}/>
                             <div className='BarProfileText'>
                                 <b>Welcome, {data.name}! </b> <br></br>
                                 Points: {data.points}

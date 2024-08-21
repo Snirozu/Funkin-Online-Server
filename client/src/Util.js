@@ -13,3 +13,7 @@ export function ordinalNum(num) {
         return num + 'rd';
     return num + "th";
 }
+
+export function getHost() {
+    return window.location.protocol + "//" + window.location.host;
+}
