@@ -63,6 +63,7 @@ a:hover {
   overflow: hidden;
   padding-top: 5px;
   padding-bottom: 5px;
+  overflow: auto;
 }
 
 .Bar a {
@@ -132,6 +133,9 @@ a:hover {
   width: auto;
   height: 150px;
   filter: invert(80%);
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .Downloads a {
@@ -139,6 +143,11 @@ a:hover {
   border-radius: 10px;
   background-color: #121418;
   padding: 20px;
+  max-width: 20%;
+}
+
+.Downloads p {
+  font-size: 100%;
 }
 
 .Coolbox {
@@ -168,7 +177,7 @@ a:hover {
 
 .Content {
   background-color: #282c34;
-  width: 700px;
+  max-width: 800px;
   min-width: 300px;
   display: flex;
   color: white;
