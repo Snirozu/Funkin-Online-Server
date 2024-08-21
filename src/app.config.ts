@@ -613,7 +613,7 @@ export default config({
 
                     const user = await getPlayerByID(String(req.query.id));
 
-                    res.redirect('/network/user/' + user.name);
+                    res.redirect('/user/' + user.name);
                 }
                 catch (exc) {
                     console.error(exc);
