@@ -147,6 +147,7 @@ a:hover {
   padding: 10px;
   color: white;
   max-width: fit-content;
+  margin: 5px;
 }
 
 .Coolbox a {
@@ -217,6 +218,7 @@ a:hover {
 .CenterFlex {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .Main {

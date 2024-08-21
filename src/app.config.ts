@@ -34,12 +34,7 @@ export default config({
     initializeExpress: (app) => {
         app.use(bodyParser.json({ limit: '5mb' }));
         app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
-        app.use(
-            fileUpload({
-                limits: { fileSize: 512 * 1024 },
-                abortOnLimit: true
-            }),
-        );
+        app.use(fileUpload({}));
         app.use(cookieParser());
         app.use(cors());
 
@@ -642,6 +637,9 @@ export default config({
                     const player = await getPlayerByID(id);
 
                     const file = req.files.file as UploadedFile;
+                    if (file.size > 512 * 1024) {
+                        return res.sendStatus(413);
+                    }
                     await file.mv('database/avatars/' + btoa(player.name));
                     res.sendStatus(200);
                 }
