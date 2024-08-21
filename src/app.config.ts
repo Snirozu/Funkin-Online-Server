@@ -788,6 +788,17 @@ export default config({
             });
         }
 
+        app.use(express.static('client/build/'));
+        app.get('/*', function (req, res) {
+            try {
+                res.sendFile('client/build/index.html', { root: process.cwd() });
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(404);
+            }
+        });
+
         /**
          * Use @colyseus/playground
          * (It is not recommended to expose this route in a production environment)
