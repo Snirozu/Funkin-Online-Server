@@ -95,7 +95,10 @@ export default config({
 
         //every post request should be in a json format
         if (process.env["NETWORK_ENABLED"] == "true") {
-            // will move this to react
+            app.get("/network/user*", async (req, res) => {
+                res.redirect(req.url.substring("/network".length));
+            });
+
             app.get("/old_network*", async (req, res) => {
                 try {
                     const reqPlayer = await authPlayer(req);
