@@ -7,7 +7,6 @@ import config from "@colyseus/tools";
  */
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
-import { Assets } from "./Assets";
 import * as fs from 'fs';
 import bodyParser from "body-parser";
 import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers } from "./network";
@@ -15,6 +14,9 @@ import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
 import { Data } from "./Data";
+import cors from 'cors';
+import express from 'express';
+import fileUpload, { UploadedFile } from "express-fileupload";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')
@@ -31,50 +33,15 @@ export default config({
 
     initializeExpress: (app) => {
         app.use(bodyParser.json({ limit: '5mb' }));
-        app.use(bodyParser.urlencoded({ limit: '5mb' }));
+        app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
+        app.use(
+            fileUpload({
+                limits: { fileSize: 512 * 1024 },
+                abortOnLimit: true
+            }),
+        );
         app.use(cookieParser());
-
-        app.get("/rooms", async (req, res) => {
-            try {
-                var rooms = await matchMaker.query(/*{private: false, clients: 1}*/);
-                let page = Assets.HTML_ROOMS + "<div id='filter'><div id='content'><h3><b>Available Public Rooms:</b></h3>";
-                let hasPublicRoom = false;
-                let playerCount = 0;
-
-                if (rooms.length >= 1) {
-                    rooms.forEach((room) => {
-                        playerCount += room.clients;
-                        if (!room.private && room.clients == 1) {
-                            page += "<div class='room'> Code: " + room.roomId + "<br>Player: " + room.metadata.name + "<br>Ping: " + room.metadata.ping + "ms" + "</div>";
-                            hasPublicRoom = true;
-                        }
-                    });
-                }
-
-                if (!hasPublicRoom) {
-                    page += 'None public.<br><br><iframe src="https://www.youtube.com/embed/v4YHIYXao9I?autoplay=1" width="560" height="315" frameborder="0" allowfullscreen></iframe> <br>';
-                }
-
-                page += "<br style='clear: left'>Room Players Online: " + playerCount;
-                page += "<br style='clear: left'>Network Players Online: " + Data.ONLINE_PLAYERS.length;
-                page += "</div>";
-                res.send(page);
-            }
-            catch (exc) {
-                console.error(exc);
-                res.sendStatus(500);
-            }
-        });
-
-        app.get("/stats", async (req, res) => {
-            try {
-                res.send(Assets.HTML_STATS.replaceAll("$PLAYERS_ONLINE$", (await countPlayers())[0] + "").replaceAll("$HOST$", "https://" + req.hostname));
-            }
-            catch (exc) {
-                console.error(exc);
-                res.sendStatus(500);
-            }
-        });
+        app.use(cors());
 
         app.get("/api/front", async (req, res) => {
             try {
@@ -134,7 +101,7 @@ export default config({
         //every post request should be in a json format
         if (process.env["NETWORK_ENABLED"] == "true") {
             // will move this to react
-            app.get("/network*", async (req, res) => {
+            app.get("/old_network*", async (req, res) => {
                 try {
                     const reqPlayer = await authPlayer(req);
                     const params = (req.params as Array<string>)[0].split("/");
@@ -388,7 +355,127 @@ export default config({
             -
             */
 
+            app.use('/api/avatar', express.static('database/avatars'));
+
             //GET
+
+            app.get("/api/network/online", async (req, res) => {
+                try {
+                    let roomArray:any = [];
+                    var rooms = await matchMaker.query();
+                    if (rooms.length >= 1) {
+                        rooms.forEach((room) => {
+                            if (!room.private && !room.locked)
+                                roomArray.push({
+                                    code: room.roomId,
+                                    player: room.metadata.name,
+                                    ping: room.metadata.ping
+                                });
+                        });
+                    }
+
+                    res.send({
+                        network: Data.ONLINE_PLAYERS,
+                        playing: (await countPlayers())[2],
+                        rooms: roomArray
+                    });
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/network/account/info", checkLogin, async (req, res) => {
+                try {
+                    const [id, token] = getIDToken(req);
+                    const user = await pingPlayer(id);
+
+                    res.send({
+                        name: user.name,
+                        isMod: user.isMod,
+                        joined: user.joined,
+                        lastActive: user.lastActive,
+                        points: user.points
+                    });
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/network/user/info", async (req, res) => {
+                try {
+                    if (!req.query.name)
+                        return res.sendStatus(400);
+
+                    const user = await getPlayerByName(req.query.name as string);
+
+                    res.send({
+                        isMod: user.isMod,
+                        joined: user.joined,
+                        lastActive: user.lastActive,
+                        points: user.points
+                    });
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/network/user/details", async (req, res) => {
+                try {
+                    if (!req.query.name)
+                        return res.sendStatus(400);
+
+                    const auth = await authPlayer(req);
+                    const user = await getPlayerByName(req.query.name as string);
+
+                    let coolScores:any[] = [];
+
+                    const scores = await getScoresPlayer(user.id, Number.parseInt(req.query.page as string ?? "0"));
+                    scores.forEach((score: any) => {
+                        const songId = (score.songId as string).split('-');
+                        songId.pop();
+                        coolScores.push({
+                            name: songId.join(" "),
+                            songId: score.songId,
+                            strum: score.strum,
+                            score: score.score,
+                            accuracy: score.accuracy,
+                            points: score.points,
+                            submitted: score.submitted,
+                        });
+                    });
+
+                    res.send({
+                        isMod: user.isMod,
+                        joined: user.joined,
+                        lastActive: user.lastActive,
+                        points: user.points,
+                        scores: coolScores,
+                        isSelf: auth?.id == user.id
+                    });
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/network/admin/user/data", checkLogin , async (req, res) => {
+                try {
+                    const reqPlayer = await authPlayer(req);
+                    if (!reqPlayer || !reqPlayer.isMod)
+                        return res.sendStatus(403);
+                    return res.send(await getPlayerByName(req.query.username as string));
+                }
+                catch (exc) {
+                    res.sendStatus(500);
+                }
+            });
 
             app.get("/api/network/song/comments", async (req, res) => {
                 try {
@@ -433,7 +520,7 @@ export default config({
                     if (!req.query.song)
                         return res.sendStatus(400);
 
-                    const _top = await topScores(req.query.song as string, Number.parseInt(req.query.strum as string ?? "0"), Number.parseInt(req.query.page as string ?? "0"));
+                    const _top = await topScores(req.query.song as string, Number.parseInt(req.query.strum as string ?? "2"), Number.parseInt(req.query.page as string ?? "0"));
                     const top:any[] = [];
                     for (const score of _top) {
                         top.push({
@@ -549,6 +636,23 @@ export default config({
 
             //POST
 
+            app.post("/api/network/account/avatar", checkLogin, async (req, res) => {
+                try {
+                    const [id, _] = getIDToken(req);
+                    const player = await getPlayerByID(id);
+
+                    const file = req.files.file as UploadedFile;
+                    await file.mv('database/avatars/' + btoa(player.name));
+                    res.sendStatus(200);
+                }
+                catch (exc: any) {
+                    console.log(exc);
+                    res.status(400).json({
+                        error: exc.error_message ?? "Couldn't submit..."
+                    });
+                }
+            });
+
             app.post("/api/network/song/comment", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
@@ -594,7 +698,12 @@ export default config({
                         return;
                     }
 
-                    res.send((await renamePlayer(id, req.body.username)).name);
+                    const renameAction = await renamePlayer(id, req.body.username);
+
+                    if (fs.existsSync('database/avatars/' + btoa(renameAction.old)))
+                        fs.renameSync('database/avatars/' + btoa(renameAction.old), 'database/avatars/' + btoa(renameAction.new));
+
+                    res.send(renameAction.new);
                 }
                 catch (exc: any) {
                     res.status(400).json({
@@ -678,16 +787,6 @@ export default config({
                 res.sendStatus(404);
             });
         }
-
-        app.get("/", async (req, res) => {
-            try {
-                res.send(Assets.HTML_HOME.replaceAll("$PLAYERS_ONLINE$", (await countPlayers())[0] + ""));
-            }
-            catch (exc) {
-                console.error(exc);
-                res.sendStatus(500);
-            }
-        });
 
         /**
          * Use @colyseus/playground

@@ -3,7 +3,6 @@ import { RoomState } from "./schema/RoomState";
 import { Player } from "./schema/Player";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
-import { Assets } from "../Assets";
 import { MapSchema } from "@colyseus/schema";
 import { getPlayerByID } from "../network";
 import jwt from "jsonwebtoken";

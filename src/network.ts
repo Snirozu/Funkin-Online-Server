@@ -10,10 +10,17 @@ export async function genAccessToken(id: string) {
 }
 
 export function getIDToken(req:any):Array<string> {
+    if (req.cookies.authid && req.cookies.authtoken) {
+        return [req.cookies.authid, req.cookies.authtoken];
+    }
+
     const b64auth = (req.headers.authorization || '').split(' ')[1] || ''
-    return (req.cookies.authid && req.cookies.authtoken)
-        ? [req.cookies.authid, req.cookies.authtoken]
-        : Buffer.from(b64auth, 'base64').toString().split(':');
+    let [id, secret] = Buffer.from(b64auth, 'base64').toString().split(':')
+    if (id)
+        id = id.trim();
+    if (secret)
+        secret = secret.trim();
+    return [id, secret];
 }
 
 export async function checkLogin(req:any, res:any, next:any) {
@@ -57,7 +64,12 @@ export async function checkSecret(req: any, res: any, next: any) {
         return res.sendStatus(400)
 
     const b64auth = (req.headers.authorization || '').split(' ')[1] || ''
-    const [id, secret] = Buffer.from(b64auth, 'base64').toString().split(':')
+    let [id, secret] = Buffer.from(b64auth, 'base64').toString().split(':')
+    if (id)
+        id = id.trim();
+    if (secret)
+        secret = secret.trim();
+
     const player = await getPlayerByID(id);
 
     if (player == null || id == null || secret == null) return res.sendStatus(401)
@@ -323,10 +335,13 @@ export async function renamePlayer(id: string, name: string) {
         }
     }
 
-    if (await getPlayerByName(name))
+    const player = await getPlayerByName(name);
+    if (player)
         throw { error_message: "Player with that username exists!" }
 
-    return (await prisma.user.update({
+    const oldName = player.name;
+
+    const data = (await prisma.user.update({
         data: {
             name: name
         },
@@ -334,6 +349,11 @@ export async function renamePlayer(id: string, name: string) {
             id: id
         }
     }));
+
+    return {
+        new: data.name,
+        old: oldName
+    };
 }
 
 export async function grantPlayerMod(id: string) {

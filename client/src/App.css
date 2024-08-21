@@ -1,0 +1,299 @@
+@font-face {
+  font-family: "PhantomMuff";
+  src: url('PhantomMuff_Full_Letters_1.1.5.ttf');
+}
+
+p, h1, h2, h3, h4, h5, h6, span, a {
+  font-family: 'PhantomMuff';
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 20px;
+}
+
+p {
+  font-size: 20px;
+  margin-bottom: 15px;
+  margin-top: 10px;
+}
+
+img {
+  border-radius: 10px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.LeaderContainer {
+  background-color: #475063;
+  border-radius: 20px;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  animation: leader 5s infinite;
+  display: flex;
+  color: white;
+}
+
+@keyframes leader {
+  0% {
+    background-color: rgb(153, 100, 65);
+  }
+  
+  50% {
+    background-color: rgb(158, 59, 55);
+  }
+
+  100% {
+    background-color: rgb(153, 100, 65);
+  }
+}
+
+.LeaderContainer * {
+  padding: 5px;
+}
+
+.Bar {
+  background-color: #31353d;
+  height: 50px;
+  width: 100%;
+  display: flex;
+  font-size: 30px;
+  align-items: center;
+  overflow: hidden;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.Bar a {
+  margin-left: 20px;
+  color: white;
+  background-color: #475063;
+  padding: 5px;
+  border-radius: 10px;
+}
+
+.Bar .BarProfile {
+  background-color: #4c3974;
+  margin-left: auto;
+  margin-right: 20px;
+  max-height: 50px;
+  display: flex;
+  align-items: center;
+}
+
+.BarProfileText {
+  padding: 10px;
+  font-size: 15px;
+  font-weight: bold;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+.SmallerAvatar {
+  max-height: 50px;
+}
+
+.SmallAvatar {
+  max-height: 100px;
+}
+
+.BiggerText {
+  font-size: 30px;
+  line-height: 30px;
+}
+
+.BigText {
+  font-size: 20px;
+  line-height: 30px;
+}
+
+.CumImage {
+  max-height: 200px;
+  max-width: 100%;
+  text-align: center;
+}
+
+.CumBigImage {
+  max-height: 350px;
+  max-width: 100%;
+  text-align: center;
+}
+
+.Downloads {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  line-height: 5px;
+}
+
+.Downloads img {
+  width: auto;
+  height: 150px;
+  filter: invert(80%);
+}
+
+.Downloads a {
+  color: aliceblue;
+  border-radius: 10px;
+  background-color: #121418;
+  padding: 20px;
+}
+
+.Coolbox {
+  background-color: #121418;
+  border-radius: 20px;
+  padding: 10px;
+  color: white;
+  max-width: fit-content;
+}
+
+.Coolbox a {
+  color: white;
+}
+
+.Downloads * :hover {
+  text-decoration: underline;
+}
+
+.App {
+  min-height: 100vh;
+  color:white;
+  justify-content: center;
+  margin: auto;
+  width: 100%;
+}
+
+.Content {
+  background-color: #282c34;
+  width: 700px;
+  min-width: 300px;
+  display: flex;
+  color: white;
+  padding: 20px;
+  margin: 30px;
+  border-radius: 25px;
+  overflow: auto;
+
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.Content div {
+  width: 100%;
+}
+
+.Avatar {
+  width: 140px;
+  height: 140px;
+  max-width: 140px;
+  max-height: 140px;
+  border-radius: 20%;
+}
+
+.Sidebar {
+  max-width: 150px;
+  float: left;
+  width: 100%;
+}
+
+.AvatarButton {
+  color: #ff4d6a;
+  font-weight: bold;
+}
+
+.AvatarButton:hover {
+  color: #ffb3c0;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.Bottom {
+  display: inline-block;
+  align-self: flex-end;
+}
+
+.CenterFlex {
+  display: flex;
+  justify-content: center;
+}
+
+.Main {
+  text-align: center;
+}
+
+.Contents table {
+  width: 100%;
+}
+
+.VerticalLine {
+  border-right: 3px solid #121418;
+  height: 100%;
+  max-width: 1px;
+}
+
+.AvatarCaption {
+  display: block;
+  width: 150px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  overflow-wrap: break-word;
+}
+
+.ProfileInfo {
+  padding-left: 10px;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+/* .App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+} */
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+a {
+  color: #ff7d7d;
+  text-decoration: none;
+}
+
+table {
+  background-color: rgb(48, 39, 47);
+}
+
+tbody tr:nth-child(odd) {
+  background-color: rgb(54, 45, 59);
+}
+
+tbody tr:nth-child(even) {
+  background-color: rgb(46, 40, 51);
+}
