@@ -8,7 +8,6 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import bodyParser from "body-parser";
 import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
@@ -32,8 +31,9 @@ export default config({
     },
 
     initializeExpress: (app) => {
-        app.use(bodyParser.json({ limit: '5mb' }));
-        app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
+        app.use(express.json({
+            limit: 5 * 1024 * 1024
+        }));
         app.use(fileUpload({}));
         app.use(cookieParser());
         app.use(cors());
