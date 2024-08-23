@@ -16,6 +16,7 @@ import { Data } from "./Data";
 import cors from 'cors';
 import express from 'express';
 import fileUpload, { UploadedFile } from "express-fileupload";
+import bodyParser from "body-parser";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')
@@ -31,10 +32,10 @@ export default config({
     },
 
     initializeExpress: (app) => {
-        app.use(express.json({
+        app.use(bodyParser.json({
             limit: 5 * 1024 * 1024,
         }));
-        app.use(express.urlencoded({
+        app.use(bodyParser.urlencoded({
             limit: 5 * 1024 * 1024,
             extended: true
         }));
