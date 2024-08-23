@@ -32,7 +32,11 @@ export default config({
 
     initializeExpress: (app) => {
         app.use(express.json({
-            limit: 5 * 1024 * 1024
+            limit: 5 * 1024 * 1024,
+        }));
+        app.use(express.urlencoded({
+            limit: 5 * 1024 * 1024,
+            extended: true
         }));
         app.use(fileUpload({}));
         app.use(cookieParser());
