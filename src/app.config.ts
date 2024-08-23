@@ -37,7 +37,8 @@ export default config({
         }));
         app.use(bodyParser.urlencoded({
             limit: 5 * 1024 * 1024,
-            extended: true
+            extended: true,
+            parameterLimit: 50000
         }));
         app.use(fileUpload({}));
         app.use(cookieParser());
