@@ -336,6 +336,8 @@ export class GameRoom extends Room<RoomState> {
       if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
 
       const player = await getPlayerByID(this.clientsID.get(client));
+      if (!player)
+        return;
       
       if (this.isOwner(client)) {
         if (this.state.player1.verified && player) {
