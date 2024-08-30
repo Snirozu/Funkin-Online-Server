@@ -569,6 +569,59 @@ export async function searchUsers(query: string) {
     }
 }
 
+export async function acceptFriendRequest(recipent: any, from: any) {
+    if (recipent.id == from.id)
+        throw { error_message: "bro" }
+
+    if (!(recipent.pendingFriends as Array<string>).includes(from.id) || (recipent.friends as Array<string>).includes(from.id))
+        throw { error_message: "No one to accept!" }
+
+    let newPending = recipent.pendingFriends;
+    newPending.splice(newPending.indexOf(from.id, 0), 1);
+
+    await prisma.user.update({
+        data: {
+            friends: {
+                push: recipent.id
+            }
+        },
+        where: {
+            id: from.id
+        }
+    });
+
+    return (await prisma.user.update({
+        data: {
+            pendingFriends: newPending,
+            friends: {
+                push: from.id
+            }
+        },
+        where: {
+            id: recipent.id
+        }
+    }));
+}
+
+export async function sendFriendRequest(recipent: any, from: any) {
+    if (recipent.id == from.id)
+        throw { error_message: "bro" }
+
+    if ((recipent.pendingFriends as Array<string>).includes(from.id) || (recipent.friends as Array<string>).includes(from.id))
+        throw { error_message: "Already sent!" }
+    
+    return (await prisma.user.update({
+        data: {
+            pendingFriends: {
+                push: from.id
+            }
+        },
+        where: {
+            id: recipent.id
+        }
+    }));
+}
+
 export async function perishScores() {
     console.log("deleting rankings");
     prisma.score.deleteMany();

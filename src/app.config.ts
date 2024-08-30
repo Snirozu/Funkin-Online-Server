@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers } from "./network";
+import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -406,6 +406,44 @@ export default config({
                 catch (exc) {
                     console.error(exc);
                     res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/network/user/friends/accept", checkLogin, async (req, res) => {
+                try {
+                    if (!req.query.name)
+                        return res.sendStatus(400);
+
+                    const recipent = await authPlayer(req);
+                    const from = await getPlayerByName(req.query.name as string);
+
+                    if (!recipent || !from)
+                        return res.sendStatus(401);
+
+                    await acceptFriendRequest(recipent, from);
+                    res.sendStatus(200);
+                }
+                catch (exc:any) {
+                    res.status(400).send(exc?.error_message ?? "Unknown error...");
+                }
+            });
+
+            app.get("/api/network/user/friends/request", checkLogin, async (req, res) => {
+                try {
+                    if (!req.query.name)
+                        return res.sendStatus(400);
+
+                    const recipent = await getPlayerByName(req.query.name as string);
+                    const from = await authPlayer(req);
+
+                    if (!recipent || !from)
+                        return res.sendStatus(401);
+
+                    await sendFriendRequest(recipent, from);
+                    res.sendStatus(200);
+                }
+                catch (exc:any) {
+                    res.status(400).send(exc?.error_message ?? "Unknown error...");
                 }
             });
 

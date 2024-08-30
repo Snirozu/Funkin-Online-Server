@@ -24,6 +24,8 @@ model User {
   reports Report[]
   songComments SongComment[]
   isMod Boolean?
+  pendingFriends String[] //pending user ids
+  friends String[] // friends ids
 }
 
 model Song {
