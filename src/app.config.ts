@@ -17,18 +17,20 @@ import cors from 'cors';
 import express from 'express';
 import fileUpload, { UploadedFile } from "express-fileupload";
 import bodyParser from "body-parser";
+import { NetworkRoom } from "./rooms/NetworkRoom";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')
 
 export default config({
 
-    initializeGameServer: (gameServer) => {
+    initializeGameServer: async (gameServer) => {
         /**
          * Define your room handlers:
          */
         gameServer.define('room', GameRoom);
-
+        gameServer.define('network', NetworkRoom);
+        await matchMaker.createRoom("network", {});
     },
 
     initializeExpress: (app) => {

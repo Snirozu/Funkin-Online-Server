@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
 import { filterSongName, filterUsername } from "./util";
+import { notifyFromPlayer } from "./rooms/NetworkRoom";
 
 const prisma = new PrismaClient()
 
@@ -10,6 +11,10 @@ export async function genAccessToken(id: string) {
 }
 
 export function getIDToken(req:any):Array<string> {
+    if (req.networkId && req.networkToken) {
+        return [req.networkId, req.networkToken];
+    }
+
     if (req.cookies.authid && req.cookies.authtoken) {
         return [req.cookies.authid, req.cookies.authtoken];
     }
@@ -579,6 +584,8 @@ export async function acceptFriendRequest(recipent: any, from: any) {
     let newPending = recipent.pendingFriends;
     newPending.splice(newPending.indexOf(from.id, 0), 1);
 
+    notifyFromPlayer(from.id, recipent.name, "friend_accepted");
+
     await prisma.user.update({
         data: {
             friends: {
@@ -609,6 +616,8 @@ export async function sendFriendRequest(recipent: any, from: any) {
 
     if ((recipent.pendingFriends as Array<string>).includes(from.id) || (recipent.friends as Array<string>).includes(from.id))
         throw { error_message: "Already sent!" }
+
+    notifyFromPlayer(recipent.id, from.name, "friend_request");
     
     return (await prisma.user.update({
         data: {
