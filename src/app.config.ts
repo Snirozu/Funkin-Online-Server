@@ -114,13 +114,13 @@ export default config({
                     switch (params[1]) {
                         case undefined:
                         case "":
-                            res.redirect('/network/users/online');
+                            res.redirect('/old_network/users/online');
                             break;
                         case "users":
                             if (params[2] == "online") {
                                 let usersBody = '<h1>Players Online</h1><tr>';
                                 for (const playerName of Data.ONLINE_PLAYERS) {
-                                    usersBody += '<a href="/network/user/' + playerName + '"> ' + playerName + '</a><br>';
+                                    usersBody += '<a href="/old_network/user/' + playerName + '"> ' + playerName + '</a><br>';
                                 }
                                 res.send(usersBody);
                             }
@@ -139,7 +139,7 @@ export default config({
                             scores.forEach((score:any) => {
                                 const songId = (score.songId as string).split('-');
                                 songId.pop();
-                                trs += '<tr><td><a href="/network/song/' + score.songId + '?strum=' + score.strum + '">' + songId.join(" ") + '</a></td><td>' + score.score + '</td><td>' + score.accuracy + '</td><td>' + score.points + '</td><td>' + score.submitted + '</td></tr>';
+                                trs += '<tr><td><a href="/old_network/song/' + score.songId + '?strum=' + score.strum + '">' + songId.join(" ") + '</a></td><td>' + score.score + '</td><td>' + score.accuracy + '</td><td>' + score.points + '</td><td>' + score.submitted + '</td></tr>';
                             });
 
                             let scoreStr = ' \
@@ -156,14 +156,14 @@ export default config({
                             ';
 
                             if (score_page >= 1) {
-                                scoreStr += "<br> <a href='/network/user/" + player.name + "?score_page=" + (score_page - 1) + "'> <-- Previous Page </a>";
+                                scoreStr += "<br> <a href='/old_network/user/" + player.name + "?score_page=" + (score_page - 1) + "'> <-- Previous Page </a>";
                             }
                             if (scores.length >= 15) {
                                 if (score_page >= 1)
                                     scoreStr += '&nbsp';
                                 else
                                     scoreStr += '<br>';
-                                scoreStr += "<a href='/network/user/" + player.name + "?score_page=" + (score_page + 1) + "'> Next Page --> </a>";
+                                scoreStr += "<a href='/old_network/user/" + player.name + "?score_page=" + (score_page + 1) + "'> Next Page --> </a>";
                             }
 
                             res.send("<h2>" + player.name + "</h2> " + (player.isMod ? "Moderator" : '') + " <hr>Points: " + player.points + 
@@ -183,7 +183,7 @@ export default config({
                                 songId.pop();
                                 songTitle = songId.join(" ");
                                 const playerName = (await getPlayerByID(score.player)).name;
-                                trss += '<tr><td><a href="/network/user/' + playerName + '">' + playerName + '</a></td><td>' + score.score + '</td><td>' + score.accuracy + '</td><td>' + score.points + '</td><td>' + score.submitted + '</td></tr>';
+                                trss += '<tr><td><a href="/old_network/user/' + playerName + '">' + playerName + '</a></td><td>' + score.score + '</td><td>' + score.accuracy + '</td><td>' + score.points + '</td><td>' + score.submitted + '</td></tr>';
                             }
 
                             let topStr = ' \
@@ -200,14 +200,14 @@ export default config({
                             ';
 
                             if (top_page >= 1) {
-                                topStr += "<br> <a href='/network/song/" + params[2] + "?page=" + (top_page - 1) + "'> <-- Previous Page </a>";
+                                topStr += "<br> <a href='/old_network/song/" + params[2] + "?page=" + (top_page - 1) + "'> <-- Previous Page </a>";
                             }
                             if (top.length >= 15) {
                                 if (top_page >= 1)
                                     topStr += '&nbsp';
                                 else
                                     topStr += '<br>';
-                                topStr += "<a href='/network/song/" + params[2] + "?page=" + (top_page + 1) + "'> Next Page --> </a>";
+                                topStr += "<a href='/old_network/song/" + params[2] + "?page=" + (top_page + 1) + "'> Next Page --> </a>";
                             }
 
                             const comments = await getSongComments(params[2]);
@@ -217,7 +217,7 @@ export default config({
                                     const cumdate = new Date(comment.at);
                                     topStr += "<hr><b>" + (await getPlayerByID(comment.by)).name + '</b><br>"' + comment.content + '" at ' + cumdate.getMinutes() + ":" + cumdate.getSeconds();
                                     if (reqPlayer.id == comment.by) {
-                                        topStr += "<br><a href='/network/account/remove?song_comment=" + comment.songid + "'>(REMOVE)</a>"
+                                        topStr += "<br><a href='/old_network/account/remove?song_comment=" + comment.songid + "'>(REMOVE)</a>"
                                     }
                                 }
                                 if (comments.length <= 0) {
@@ -245,13 +245,13 @@ export default config({
                             switch (params[2]) {
                                 case 'songs':
                                     for (const song of (await searchSongs(req.query.q as string))) {
-                                        resp += '<a href="/network/song/' + song.id + '"> ' + song.id + '</a><hr>';
+                                        resp += '<a href="/old_network/song/' + song.id + '"> ' + song.id + '</a><hr>';
                                     }
                                     res.send(resp);
                                     break;
                                 case 'users':
                                     for (const user of (await searchUsers(req.query.q as string))) {
-                                        resp += '<a href="/network/user/' + user.name + '"> ' + user.name + '</a><hr>';
+                                        resp += '<a href="/old_network/user/' + user.name + '"> ' + user.name + '</a><hr>';
                                     }
                                     res.send(resp);
                                     break;
@@ -328,14 +328,14 @@ export default config({
                                                 continue;
                                             }
                                             const scorePlayer = await getPlayerByID(score.player);
-                                            response += "<br> " + "<a href='/api/network/score/replay?id=" + score.id + "'>" + scorePlayer.name + "'s Score"
-                                                + "</a> on <a href='/network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
-                                                + "<br><br><a href='/network/admin/remove?report=" + report.id + "&score=" + score.id + "'>(REMOVE SCORE)</a>&nbsp;&nbsp;&nbsp;";
+                                            response += "<br> " + "<a href='/api/old_network/score/replay?id=" + score.id + "'>" + scorePlayer.name + "'s Score"
+                                                + "</a> on <a href='/old_network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
+                                                + "<br><br><a href='/old_network/admin/remove?report=" + report.id + "&score=" + score.id + "'>(REMOVE SCORE)</a>&nbsp;&nbsp;&nbsp;";
                                         }
                                         else {
                                             response += "<br>" + report.content + "<br><br>";
                                         }
-                                        response += "<a href='/network/admin/remove?report=" + report.id + "'>(REMOVE REPORT)</a>"
+                                        response += "<a href='/old_network/admin/remove?report=" + report.id + "'>(REMOVE REPORT)</a>"
                                         response += "<hr>";
                                     }
                                     response += '';
@@ -835,16 +835,9 @@ export default config({
             });
         }
 
+        app.get('/', showIndex);
         app.use(express.static('client/build/'));
-        app.get('/*', function (req, res) {
-            try {
-                res.sendFile('client/build/index.html', { root: process.cwd() });
-            }
-            catch (exc) {
-                console.error(exc);
-                res.sendStatus(404);
-            }
-        });
+        app.get('/*', showIndex);
 
         /**
          * Use @colyseus/playground
@@ -909,6 +902,39 @@ export default config({
          */
     }
 });
+
+async function showIndex(req: { hostname: string; params: string[]; }, res: { send: (arg0: string) => void; sendStatus: (arg0: number) => void; }) {
+    try {
+        let response = fs.readFileSync(process.cwd() + '/client/build/index.html', { encoding: 'utf8', flag: 'r' }).toString();
+        let title = "Psych Online";
+        let description = "The FNF Multiplayer mod based on Psych Engine!";
+        let image = "https://" + req.hostname + "/fingerthumb.png";
+        const params = ((req.params as Array<string>)[0] ?? '').split("/");
+        switch (params[0]) {
+            case "user":
+                const player = await getPlayerByName(params[1]);
+                title = player.name + "'s Profile - Psych Online";
+                description = player.points + "FP";
+                if (fs.existsSync(process.cwd() + '/database/avatars'))
+                    image = "https://" + req.hostname + "/api/avatar/" + btoa(player.name);
+                else
+                    image = 'https://kickstarter.funkin.me/static/assets/img/stickers/bf1.png';
+                break;
+            case "song":
+                const song = params[1].split('-');
+                title = song[0] + " [" + song[1] + "] Leaderboard - Psych Online";
+                break;
+        }
+        response = response.replace('%___OG_TITLE___%', title);
+        response = response.replace('%___OG_DESC___%', description);
+        response = response.replace('%___OG_IMAGE___%', image);
+        res.send(response);
+    }
+    catch (exc) {
+        console.error(exc);
+        res.sendStatus(404);
+    }
+}
 
 /**
  * @returns [playerCount, roomFreeCount]
