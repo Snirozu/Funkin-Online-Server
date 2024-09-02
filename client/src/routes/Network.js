@@ -28,7 +28,7 @@ function Network() {
     return (
         <div className="Content">
             <div className="Main">
-                <p> Online Players: </p>
+                <p> Online Players </p>
                 <div className="CenterFlex">
                     {loading ? (
                         <p>Loading...</p>
@@ -38,7 +38,7 @@ function Network() {
                         renderPlayers(data.network)
                     )}
                 </div>
-                <p> Available Rooms: {data.playing}</p>
+                <p> Available Rooms </p>
                 <div className="CenterFlex">
                     {loading ? (
                         <p>Loading...</p>
@@ -48,6 +48,7 @@ function Network() {
                         renderRooms(data.rooms)
                     )}
                 </div>
+                <p> Currently In-Game: {data.playing}</p>
             </div>
         </div>
     )

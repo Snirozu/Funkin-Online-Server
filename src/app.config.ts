@@ -937,15 +937,17 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
 }
 
 /**
- * @returns [playerCount, roomFreeCount]
+ * @returns [playerCount, roomFreeCount, playingCount]
  */
 export async function countPlayers():Promise<number[]> {
     let playerCount = 0;
     let roomCount = 0;
+    let playingCount = 0;
     var rooms = await matchMaker.query();
     if (rooms.length >= 1) {
         rooms.forEach((room) => {
             playerCount += room.clients;
+            playingCount += room.clients;
             if (!room.private && room.clients == 1)
                 roomCount++;
         });
@@ -955,5 +957,5 @@ export async function countPlayers():Promise<number[]> {
             playerCount++;
         }
     }
-    return [playerCount, roomCount];
+    return [playerCount, roomCount, playingCount];
 }
