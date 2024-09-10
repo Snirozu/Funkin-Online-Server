@@ -16,7 +16,7 @@ datasource db {
 model User {
   id      String   @id @default(auto()) @map("_id") @db.ObjectId
   name    String   @unique
-  secret  String // recovery token, if changed the session token will no longer work 
+  secret  String // if changed then all sessions will be lost (TODO add reset secret)
   joined  DateTime @default(now())
   lastActive  DateTime @default(now())
   points    Int
@@ -26,6 +26,7 @@ model User {
   isMod Boolean?
   pendingFriends String[] //pending user ids
   friends String[] // friends ids
+  email String?
 }
 
 model Song {

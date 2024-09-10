@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import dotenv from 'dotenv';
 import { Data } from "./Data";
 import { grantPlayerMod } from "./network";
+import * as crypto from "crypto";
 
 if (!fs.existsSync("database/"))
     fs.mkdirSync("database/");

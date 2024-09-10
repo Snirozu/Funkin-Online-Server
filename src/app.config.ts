@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { checkSecret, genAccessToken, resetSecret, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest, setEmail, getPlayerByEmail } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -18,9 +18,21 @@ import express from 'express';
 import fileUpload, { UploadedFile } from "express-fileupload";
 import bodyParser from "body-parser";
 import { NetworkRoom } from "./rooms/NetworkRoom";
+import nodemailer from 'nodemailer';
+import * as crypto from "crypto";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')
+
+const transMail = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.GMAIL_ID,
+        pass: process.env.GMAIL_PASSWORD
+    }
+});
+const emailSetCodes: Map<String, String> = new Map<String, String>();
+const emailLoginCodes: Map<String, String> = new Map<String, String>();
 
 export default config({
 
@@ -809,18 +821,60 @@ export default config({
                 }
             });
 
-            // resets the token and secret
-            // doesnt require a body but requires to use secret instead of token in the authentication header
-            app.post("/api/network/auth/reset", checkSecret, async (req, res) => {
+            app.post("/api/network/auth/login", async (req, res) => {
+                try {
+                    if (!req.body.email || !(req.body.email as string).includes('@'))
+                        throw { error_message: 'Invalid Email Address!' }
+
+                    const player = await getPlayerByEmail(req.body.email);
+                    
+                    if (req.body.code) {
+                        if (req.body.code != emailLoginCodes.get(req.body.email))
+                            throw { error_message: 'Invalid Code!' }
+
+                        emailLoginCodes.delete(req.body.email);
+                        res.json({
+                            id: player.id,
+                            token: await genAccessToken(player.id)
+                        });
+                    }
+                    else {
+                        const daCode = generateCode();
+                        tempSetCode(emailLoginCodes, req.body.email, daCode);
+                        sendCodeMail(req.body.email, daCode, res);
+                    }
+                }
+                catch (exc: any) {
+                    res.status(400).json({
+                        error: exc.error_message ?? "Couldn't reset credentials..."
+                    });
+                }
+            });
+
+            app.post("/api/network/auth/email/set", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
-                    
-                    const user = await resetSecret(id);
-                    res.json({
-                        id: id,
-                        token: await genAccessToken(user.id),
-                        secret: user.secret
-                    });
+
+                    if (!req.body.email || !(req.body.email as string).includes('@'))
+                        throw { error_message: 'Invalid Email Address!' }
+
+                    const player = await getPlayerByID(id);
+                    if (player.email && player.email != req.body.old_email)
+                        throw { error_message: 'Currently Set Email is Not Provided!' }
+
+                    if (req.body.code) {
+                        if (req.body.code != emailSetCodes.get(req.body.email))
+                            throw { error_message: 'Invalid Code!' }
+                        
+                        emailSetCodes.delete(req.body.email);
+                        setEmail(id, req.body.email);
+                        res.sendStatus(200);
+                    }
+                    else {
+                        const daCode = generateCode();
+                        tempSetCode(emailSetCodes, req.body.email, daCode);
+                        sendCodeMail(req.body.email, daCode, res);
+                    }
                 }
                 catch (exc: any) {
                     res.status(400).json({
@@ -958,4 +1012,31 @@ export async function countPlayers():Promise<number[]> {
         }
     }
     return [playerCount, roomCount, playingCount];
+}
+
+export async function sendCodeMail(email:string, code:string, res?:any) {
+    transMail.sendMail({
+        from: 'Psych Online',
+        to: email,
+        subject: code + ' is your Verification Code',
+        html: '<h3>Your verification code is:<h3><h1>' + code + '</h1>'
+    },
+        (error, info) => {
+            if (res)
+                if (error)
+                    res.sendStatus(500);
+                else
+                    res.sendStatus(200);
+        });
+}
+
+export function tempSetCode(map:Map<String, String>, email:string, code:string) {
+    map.set(email, code);
+    setInterval(() => {
+        map.delete(email);
+    }, 1000 * 60 * 10)
+}
+
+export function generateCode() {
+    return crypto.randomBytes(3).toString('hex').toUpperCase();
 }

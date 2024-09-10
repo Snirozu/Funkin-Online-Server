@@ -41,6 +41,7 @@
   "dependencies": {
     "@colyseus/tools": "^0.15.35",
     "@prisma/client": "^5.15.0",
+    "@types/nodemailer": "^6.4.15",
     "body-parser": "^1.20.2",
     "chart.js": "^4.4.3",
     "colyseus": "^0.15.15",
@@ -50,6 +51,7 @@
     "express-fileupload": "^1.5.1",
     "funkin-online-server": "file:",
     "javascript-time-ago": "^2.5.10",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.15"
   }
 }

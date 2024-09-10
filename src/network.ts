@@ -62,30 +62,6 @@ export async function authPlayer(req: any) {
     return;
 }
 
-export async function checkSecret(req: any, res: any, next: any) {
-    const authHeader = req.headers['authorization']
-
-    if (!authHeader)
-        return res.sendStatus(400)
-
-    const b64auth = (req.headers.authorization || '').split(' ')[1] || ''
-    let [id, secret] = Buffer.from(b64auth, 'base64').toString().split(':')
-    if (id)
-        id = id.trim();
-    if (secret)
-        secret = secret.trim();
-
-    const player = await getPlayerByID(id);
-
-    if (player == null || id == null || secret == null) return res.sendStatus(401)
-
-    if (player.secret != secret) {
-        return res.sendStatus(403)
-    }
-
-    next();
-}
-
 //DATABASE STUFF
 
 export async function submitScore(submitterID: string, replay: ReplayData) {
@@ -327,6 +303,17 @@ export async function resetSecret(id: string) {
     }));
 }
 
+export async function setEmail(id: string, email: string) {
+    return (await prisma.user.update({
+        data: {
+            email: email
+        },
+        where: {
+            id: id
+        }
+    }));
+}
+
 export async function renamePlayer(id: string, name: string) {
     if (filterUsername(name) != name) {
         throw {
@@ -392,6 +379,25 @@ export async function getPlayerByName(name: string) {
                 name: {
                     equals: name,
                     mode: "insensitive"
+                }
+            }
+        });
+    }
+    catch (exc) {
+        console.log(exc);
+        return null;
+    }
+}
+
+export async function getPlayerByEmail(email: string) {
+    if (!email)
+        return null;
+
+    try {
+        return await prisma.user.findFirstOrThrow({
+            where: {
+                email: {
+                    equals: email
                 }
             }
         });
