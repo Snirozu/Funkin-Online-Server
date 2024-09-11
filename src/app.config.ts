@@ -386,8 +386,8 @@ export default config({
                             if (!room.private && !room.locked)
                                 roomArray.push({
                                     code: room.roomId,
-                                    player: room.metadata.name,
-                                    ping: room.metadata.ping
+                                    player: room.metadata?.name ?? "???",
+                                    ping: room.metadata?.ping ?? NaN
                                 });
                         });
                     }
