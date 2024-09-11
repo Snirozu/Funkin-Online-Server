@@ -17,7 +17,7 @@ import cors from 'cors';
 import express from 'express';
 import fileUpload, { UploadedFile } from "express-fileupload";
 import bodyParser from "body-parser";
-import { NetworkRoom } from "./rooms/NetworkRoom";
+import { networkRoom, NetworkRoom } from "./rooms/NetworkRoom";
 import nodemailer from 'nodemailer';
 import * as crypto from "crypto";
 
@@ -383,7 +383,7 @@ export default config({
                     var rooms = await matchMaker.query();
                     if (rooms.length >= 1) {
                         rooms.forEach((room) => {
-                            if (!room.private && !room.locked)
+                            if (!room.private && !room.locked && room.roomId != networkRoom.roomId)
                                 roomArray.push({
                                     code: room.roomId,
                                     player: room?.metadata?.name ?? "???",
@@ -1000,10 +1000,12 @@ export async function countPlayers():Promise<number[]> {
     var rooms = await matchMaker.query();
     if (rooms.length >= 1) {
         rooms.forEach((room) => {
-            playerCount += room.clients;
-            playingCount += room.clients;
-            if (!room.private && room.clients == 1)
-                roomCount++;
+            if (room.roomId != networkRoom.roomId) {
+                playerCount += room.clients;
+                playingCount += room.clients;
+                if (!room.private && room.clients == 1)
+                    roomCount++;
+            }
         });
     }
     for (const player of Data.ONLINE_PLAYERS) {
