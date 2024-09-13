@@ -519,6 +519,7 @@ export async function getScoresPlayer(id: string, page:number): Promise<any> {
                 accuracy: true,
                 points: true,
                 strum: true,
+                id: true
             },
             orderBy: {
                 points: "desc"
@@ -641,27 +642,31 @@ export async function deleteUser(id:string):Promise<any> {
     if (!id) {
         return null;
     }
+
+    console.log("Deleting user: " + id);
     
-    prisma.score.deleteMany({
+    await prisma.score.deleteMany({
         where: {
             player: id
         }
     })
-    prisma.report.deleteMany({
+    await prisma.report.deleteMany({
         where: {
             by: id
         }
     })
-    prisma.songComment.deleteMany({
+    await prisma.songComment.deleteMany({
         where: {
             by: id
         }
     })
-    prisma.user.delete({
+    await prisma.user.delete({
         where: {
             id: id
         }
     })
+
+    console.log("Deleted user: " + id);
 }
 
 export async function perishScores() {

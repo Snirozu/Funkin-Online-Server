@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -28,11 +28,13 @@ function User() {
                 accuracy: 0,
                 points: 0,
                 submitted: 0,
+                id: ''
             }
         ]
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [queryParams] = useSearchParams();
 
     const fetchData = async () => {
         try {
@@ -85,7 +87,7 @@ function User() {
                             <center> <b> Top Scores </b> </center>
                         ) : <></>}
                         {
-                            renderScores(data.scores)
+                            renderScores(data.scores, queryParams.get('admin'))
                         }
                     </div>
                 </>
@@ -94,7 +96,7 @@ function User() {
     );
 }
 
-function renderScores(scores) {
+function renderScores(scores, isAdmin) {
     var children = [];
 
     for (const score of scores) {
@@ -102,6 +104,15 @@ function renderScores(scores) {
         children.push(<tr key={score.submitted}>
             <td>
                 <a href={songURL}> {score.name} </a>
+                {
+                    isAdmin ?
+                        <>
+                            <a style={{ float: 'right', color: 'red' }} href={"/api/network/admin/score/delete?id=" + score.id}>
+                            DEL
+                            </a>
+                        </>
+                    : <></>
+                }
             </td>
             <td>
                 {score.score}

@@ -503,6 +503,7 @@ export default config({
                             accuracy: score.accuracy,
                             points: score.points,
                             submitted: score.submitted,
+                            id: score.id
                         });
                     });
 
@@ -551,6 +552,19 @@ export default config({
                     if (!reqPlayer || !reqPlayer.isMod)
                         return res.sendStatus(403);
                     return res.send(await deleteUser((await getPlayerByName(req.query.username as string)).id));
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/network/admin/score/delete", checkLogin, async (req, res) => {
+                try {
+                    const reqPlayer = await authPlayer(req);
+                    if (!reqPlayer || !reqPlayer.isMod)
+                        return res.sendStatus(403);
+                    return res.send(await removeScore(req.query.id as string));
                 }
                 catch (exc) {
                     res.sendStatus(500);

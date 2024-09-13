@@ -61,7 +61,7 @@ function renderPlayers(players) {
         render.push(
             <div className="Coolbox">
                 <a href={"/user/" + player}>
-                    <AvatarImg className='SmallAvatar' src={getHost() + "/api/avatar/" + btoa(player)}></AvatarImg>
+                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + btoa(player)}></AvatarImg>
                     <br></br><span>{player}</span>
                 </a>
             </div>

@@ -15,5 +15,6 @@ export function ordinalNum(num) {
 }
 
 export function getHost() {
+    //return "https://funkin.sniro.boo";
     return window.location.protocol + "//" + window.location.host;
 }
