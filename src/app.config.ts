@@ -845,8 +845,9 @@ export default config({
                     }
                 }
                 catch (exc: any) {
+                    console.error(exc);
                     res.status(400).json({
-                        error: exc.error_message ?? "Couldn't reset credentials..."
+                        error: exc.error_message ?? "Couldn't login..."
                     });
                 }
             });
@@ -877,8 +878,9 @@ export default config({
                     }
                 }
                 catch (exc: any) {
+                    console.error(exc);
                     res.status(400).json({
-                        error: exc.error_message ?? "Couldn't reset credentials..."
+                        error: exc.error_message ?? "Couldn't set the email..."
                     });
                 }
             });
