@@ -657,6 +657,10 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async isClientAllowed(client: Client, request: IncomingMessage): Promise<Boolean> {
+    if (process.env.DISABLE_IP_LOCK) {
+      return true;
+    }
+
     var requesterIP = this.getRequestIP(request);
 
     const currentIps = await this.presence.hget(this.IPS_CHANNEL, requesterIP);
