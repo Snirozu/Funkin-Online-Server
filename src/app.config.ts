@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest, setEmail, getPlayerByEmail } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest, setEmail, getPlayerByEmail, deleteUser } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -527,6 +527,30 @@ export default config({
                     if (!reqPlayer || !reqPlayer.isMod)
                         return res.sendStatus(403);
                     return res.send(await getPlayerByName(req.query.username as string));
+                }
+                catch (exc) {
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/network/admin/user/set/email", checkLogin, async (req, res) => {
+                try {
+                    const reqPlayer = await authPlayer(req);
+                    if (!reqPlayer || !reqPlayer.isMod)
+                        return res.sendStatus(403);
+                    return res.send(await setEmail((await getPlayerByName(req.query.username as string)).id, req.query.email as string));
+                }
+                catch (exc) {
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/network/admin/user/delete", checkLogin, async (req, res) => {
+                try {
+                    const reqPlayer = await authPlayer(req);
+                    if (!reqPlayer || !reqPlayer.isMod)
+                        return res.sendStatus(403);
+                    return res.send(await deleteUser((await getPlayerByName(req.query.username as string)).id));
                 }
                 catch (exc) {
                     res.sendStatus(500);

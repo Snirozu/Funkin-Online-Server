@@ -637,6 +637,33 @@ export async function sendFriendRequest(recipent: any, from: any) {
     }));
 }
 
+export async function deleteUser(id:string):Promise<any> {
+    if (!id) {
+        return null;
+    }
+    
+    prisma.score.deleteMany({
+        where: {
+            player: id
+        }
+    })
+    prisma.report.deleteMany({
+        where: {
+            by: id
+        }
+    })
+    prisma.songComment.deleteMany({
+        where: {
+            by: id
+        }
+    })
+    prisma.user.delete({
+        where: {
+            id: id
+        }
+    })
+}
+
 export async function perishScores() {
     console.log("deleting rankings");
     prisma.score.deleteMany();
