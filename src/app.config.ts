@@ -551,7 +551,8 @@ export default config({
                     const reqPlayer = await authPlayer(req);
                     if (!reqPlayer || !reqPlayer.isMod)
                         return res.sendStatus(403);
-                    return res.send(await deleteUser((await getPlayerByName(req.query.username as string)).id));
+                    await deleteUser((await getPlayerByName(req.query.username as string)).id)
+                    return res.sendStatus(200);
                 }
                 catch (exc) {
                     console.error(exc);
@@ -564,7 +565,8 @@ export default config({
                     const reqPlayer = await authPlayer(req);
                     if (!reqPlayer || !reqPlayer.isMod)
                         return res.sendStatus(403);
-                    return res.send(await removeScore(req.query.id as string));
+                    await removeScore(req.query.id as string)
+                    return res.sendStatus(200);
                 }
                 catch (exc) {
                     res.sendStatus(500);

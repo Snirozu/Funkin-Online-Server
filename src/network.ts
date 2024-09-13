@@ -249,7 +249,7 @@ export async function removeScore(id: string, checkPlayer?: string) {
         }
     }));
 
-    return (await prisma.user.update({
+    await prisma.user.update({
         data: {
             points: {
                 decrement: score.points
@@ -258,7 +258,7 @@ export async function removeScore(id: string, checkPlayer?: string) {
         where: {
             id: score.player
         }
-    }));
+    })
 }
 
 export async function createUser(name: string) {
