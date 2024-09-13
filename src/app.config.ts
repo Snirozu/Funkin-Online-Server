@@ -60,12 +60,12 @@ export default config({
 
         app.get("/api/front", async (req, res) => {
             try {
-                const [playerCount, roomCount] = await countPlayers();
+                const [playerCount, roomFreeCount] = await countPlayers();
                 const player = await getPlayerByID(Data.FRONT_MESSAGE_PLAYER);
 
                 res.send({
                     online: playerCount,
-                    rooms: roomCount,
+                    rooms: roomFreeCount,
                     sez: (player && Data.FRONT_MESSAGE && Data.FRONT_MESSAGE_PLAYER ? player.name + ' sez: "' + Data.FRONT_MESSAGE + '"' : null)
                 });
             }
@@ -995,7 +995,7 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
  */
 export async function countPlayers():Promise<number[]> {
     let playerCount = 0;
-    let roomCount = 0;
+    let roomFreeCount = 0;
     let playingCount = 0;
     var rooms = await matchMaker.query();
     if (rooms.length >= 1) {
@@ -1003,8 +1003,8 @@ export async function countPlayers():Promise<number[]> {
             if (room.roomId != networkRoom.roomId) {
                 playerCount += room.clients;
                 playingCount += room.clients;
-                if (!room.private && room.clients == 1)
-                    roomCount++;
+                if (!room.private && !room.locked)
+                    roomFreeCount++;
             }
         });
     }
@@ -1013,7 +1013,7 @@ export async function countPlayers():Promise<number[]> {
             playerCount++;
         }
     }
-    return [playerCount, roomCount, playingCount];
+    return [playerCount, roomFreeCount, playingCount];
 }
 
 export async function sendCodeMail(email:string, code:string, res?:any) {

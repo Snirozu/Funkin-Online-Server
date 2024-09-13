@@ -38,6 +38,7 @@ function Network() {
                         renderPlayers(data.network)
                     )}
                 </div>
+                <p> Currently in a Match: {data.playing}</p>
                 <p> Available Rooms </p>
                 <div className="CenterFlex">
                     {loading ? (
@@ -48,7 +49,6 @@ function Network() {
                         renderRooms(data.rooms)
                     )}
                 </div>
-                <p> Currently In-Game: {data.playing}</p>
             </div>
         </div>
     )
