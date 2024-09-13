@@ -657,7 +657,7 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async isClientAllowed(client: Client, request: IncomingMessage): Promise<Boolean> {
-    if (process.env.DISABLE_IP_LOCK) {
+    if (process.env.DISABLE_IP_LOCK == "true") {
       return true;
     }
 
