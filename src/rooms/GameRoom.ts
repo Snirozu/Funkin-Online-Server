@@ -18,6 +18,7 @@ export class GameRoom extends Room<RoomState> {
   chartHash:string = null;
   clientsIP: Map<Client, string> = new Map<Client, string>();
   clientsID: Map<Client, string> = new Map<Client, string>();
+  clientsPingas: Map<Client, number> = new Map<Client, number>();
   ownerUUID:string = null;
   lastPingTime:number = null;
 
@@ -280,6 +281,8 @@ export class GameRoom extends Room<RoomState> {
       else {
         this.state.player2.ping = daPing;
       }
+
+      this.clientsPingas.set(client, Date.now())
     });
 
     this.onMessage("requestEndSong", (client, message) => {
@@ -430,7 +433,15 @@ export class GameRoom extends Room<RoomState> {
     this.clock.setInterval(() => {
       this.lastPingTime = Date.now();
       this.broadcast("ping");
-    }, 3000);
+    }, 1000 * 3);
+
+    this.clock.setInterval(() => {
+      this.clientsPingas.forEach((pingas, client) => {
+        if (Date.now() - pingas > 1000 * 30) {
+          client.leave();
+        }
+      });
+    }, 1000 * 10);
   }
 
   endSong() {
@@ -558,7 +569,7 @@ export class GameRoom extends Room<RoomState> {
 
   async onLeave (client: Client, consented: boolean) {
     try {
-      await this.allowReconnection(client, consented ? 0 : 20);
+      await this.allowReconnection(client, consented ? 10 : 15);
     }
     catch (err) {
       return this.removePlayer(client);
@@ -579,6 +590,7 @@ export class GameRoom extends Room<RoomState> {
     this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client))) - 1) + ""));
     this.clientsIP.delete(client);
     this.clientsID.delete(client);
+    this.clientsPingas.delete(client);
     Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
 
     if (this.isOwner(client))
