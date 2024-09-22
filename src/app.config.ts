@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest, setEmail, getPlayerByEmail, deleteUser } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -414,7 +414,8 @@ export default config({
                         isMod: user.isMod,
                         joined: user.joined,
                         lastActive: user.lastActive,
-                        points: user.points
+                        points: user.points,
+                        isBanned: user.isBanned
                     });
                 }
                 catch (exc) {
@@ -472,7 +473,8 @@ export default config({
                         isMod: user.isMod,
                         joined: user.joined,
                         lastActive: user.lastActive,
-                        points: user.points
+                        points: user.points,
+                        isBanned: user.isBanned
                     });
                 }
                 catch (exc) {
@@ -513,7 +515,8 @@ export default config({
                         lastActive: user.lastActive,
                         points: user.points,
                         scores: coolScores,
-                        isSelf: auth?.id == user.id
+                        isSelf: auth?.id == user.id,
+                        isBanned: user.isBanned
                     });
                 }
                 catch (exc) {
@@ -552,6 +555,20 @@ export default config({
                     if (!reqPlayer || !reqPlayer.isMod)
                         return res.sendStatus(403);
                     await deleteUser((await getPlayerByName(req.query.username as string)).id)
+                    return res.sendStatus(200);
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/network/admin/user/ban", checkLogin, async (req, res) => {
+                try {
+                    const reqPlayer = await authPlayer(req);
+                    if (!reqPlayer || !reqPlayer.isMod)
+                        return res.sendStatus(403);
+                    await setUserBanStatus((await getPlayerByName(req.query.username as string)).id, (req.query.to as string ?? "false") == "true")
                     return res.sendStatus(200);
                 }
                 catch (exc) {

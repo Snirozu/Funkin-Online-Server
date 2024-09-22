@@ -19,6 +19,7 @@ function User() {
         lastActive: 0,
         points: 0,
         isSelf: false,
+        isBanned: false,
         scores: [
             {
                 name: "?",
@@ -66,11 +67,18 @@ function User() {
             ) : (
                 <>
                     <div className='Sidebar'>
-                        <AvatarImg src={getHost() + "/api/avatar/" + btoa(name)} />
-                        <span className='AvatarCaption'> {name} </span>
-                        {data.isMod ? (
-                            <center> <b> Moderator </b> </center>
-                        ) : <></>}
+                        {data.isBanned ? (
+                            <>
+                            <span className='AvatarCaption'> <s> {name} </s> </span>
+                            <center> <b> BANNED </b> </center>
+                            </>
+                        ) : <>
+                            <AvatarImg src={getHost() + "/api/avatar/" + btoa(name)} />
+                            <span className='AvatarCaption'> {name} </span>
+                            {data.isMod ? (
+                                <center> <b> Moderator </b> </center>
+                            ) : <></>}
+                        </>}
                         <b>Points: </b> {data.points} <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
                         <b>Joined: </b> {ReturnDate(Date.parse(data.joined))} <br />
@@ -80,6 +88,13 @@ function User() {
                                 <AvatarUpload></AvatarUpload>
                             </>
                          : <></>}
+                        {
+                            queryParams.get('admin') ? 
+                                <a style={{ float: 'right', color: 'red' }} href={"/api/network/admin/user/ban?username=" + name + "&to=" + (data.isBanned ? "false" : "true")}>
+                                    {(data.isBanned ? "UNBAN" : "BAN")}
+                                </a>
+                            : <></>
+                        }
                     </div>
                     <div className='VerticalLine'> </div>
                     <div className='Contents'> 

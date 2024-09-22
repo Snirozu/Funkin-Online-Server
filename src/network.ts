@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
 import { filterSongName, filterUsername } from "./util";
 import { notifyFromPlayer } from "./rooms/NetworkRoom";
+import * as fs from 'fs';
 
 const prisma = new PrismaClient()
 
@@ -36,6 +37,10 @@ export async function checkLogin(req:any, res:any, next:any) {
         return res.sendStatus(401)
     }
 
+    if (player.isBanned) {
+        return res.sendStatus(418)
+    }
+
     jwt.verify(token, player.secret as string, (err: any, user: any) => {
         if (err) return res.sendStatus(403)
 
@@ -49,6 +54,10 @@ export async function authPlayer(req: any) {
 
     if (player == null || token == null || id == null) {
         return;
+    }
+
+    if (player.isBanned) {
+        return
     }
 
     let isValid = false;
@@ -667,6 +676,25 @@ export async function deleteUser(id:string):Promise<any> {
     })
 
     console.log("Deleted user: " + id);
+}
+
+export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
+    if (!id) {
+        return null;
+    }
+
+    const player = await prisma.user.update({
+        where: {
+            id: id
+        },
+        data: {
+            isBanned: to
+        }
+    })
+    if (to)
+        fs.unlinkSync('database/avatars/' + btoa(player.name));
+
+    console.log("Set " + id + "'s ban status to " + to);
 }
 
 export async function perishScores() {

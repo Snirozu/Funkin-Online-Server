@@ -493,9 +493,16 @@ export class GameRoom extends Room<RoomState> {
     let isVerified = false;
     const player = await getPlayerByID(options.networkId);
     if (options.networkId && options.networkToken && player) {
+      if (player.isBanned) {
+        client.error(418, "get fucked lmao");
+        client.leave();
+        return;
+      }
+
       jwt.verify(options.networkToken, player.secret as string, (err: any, user: any) => {
         if (err) {
           client.error(401, "Couldn't authorize to the network!");
+          client.leave();
           return;
         }
 

@@ -27,6 +27,7 @@ model User {
   pendingFriends String[] //pending user ids
   friends String[] // friends ids
   email String?
+  isBanned Boolean?
 }
 
 model Song {

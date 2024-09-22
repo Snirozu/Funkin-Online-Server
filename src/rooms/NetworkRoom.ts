@@ -35,7 +35,7 @@ export class NetworkRoom extends Room<RoomState> {
 
     const player = await authPlayer(options);
     if (!player) {
-      throw new ServerError(5001, "Too long name!"); 
+      throw new ServerError(5001, "Prohibited!"); 
     }
 
     client.sessionId = player.id;
