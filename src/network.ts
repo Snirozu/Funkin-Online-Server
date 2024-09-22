@@ -81,6 +81,9 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     if (!replay)
         throw { error_message: "Empty Replay Data!" }
 
+    if (replay.points < 0)
+        throw { error_message: "Nuh uh" }
+
     const submitter = await getPlayerByID(submitterID);
     if (!submitter)
         throw { error_message: "Unknown Submitter!" }
