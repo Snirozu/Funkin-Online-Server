@@ -694,7 +694,7 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
             isBanned: to
         }
     })
-    if (to)
+    if (to && fs.existsSync('database/avatars/' + btoa(player.name)))
         fs.unlinkSync('database/avatars/' + btoa(player.name));
 
     console.log("Set " + id + "'s ban status to " + to);
