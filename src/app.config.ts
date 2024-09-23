@@ -47,12 +47,13 @@ export default config({
 
     initializeExpress: (app) => {
         app.use(bodyParser.json({
-            limit: 5 * 1024 * 1024,
+            limit: '5mb',
+            type: 'application/json'
         }));
         app.use(bodyParser.urlencoded({
-            limit: 5 * 1024 * 1024,
-            extended: true,
-            parameterLimit: 50000
+            parameterLimit: 100000,
+            limit: '5mb',
+            extended: true
         }));
         app.use(fileUpload({}));
         app.use(cookieParser());

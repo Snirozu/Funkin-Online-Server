@@ -33,25 +33,27 @@
     "mocha": "^10.3.0",
     "nodemon": "^3.1.0",
     "prisma": "^5.15.0",
-    "rimraf": "^5.0.5",
+    "rimraf": "^5.0.10",
     "ts-node": "^10.9.2",
     "tsx": "^4.7.1",
     "typescript": "^5.4.2"
   },
   "dependencies": {
-    "@colyseus/tools": "^0.15.35",
+    "@colyseus/tools": "^0.15.41",
     "@prisma/client": "^5.15.0",
     "@types/nodemailer": "^6.4.15",
-    "body-parser": "^1.20.2",
     "chart.js": "^4.4.3",
     "colyseus": "^0.15.15",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "express": "^4.18.3",
+    "elliptic": "^6.5.7",
+    "express": "^4.21.0",
     "express-fileupload": "^1.5.1",
     "funkin-online-server": "file:",
     "javascript-time-ago": "^2.5.10",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.15"
+    "micromatch": "^4.0.8",
+    "nodemailer": "^6.9.15",
+    "ws": "^8.18.0"
   }
 }
