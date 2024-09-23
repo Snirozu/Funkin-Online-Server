@@ -90,7 +90,7 @@ function User() {
                          : <></>}
                         {
                             queryParams.get('admin') ? 
-                                <a target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/admin/user/ban?username=" + name + "&to=" + (data.isBanned ? "false" : "true")}>
+                                <a target="_blank" rel='noreferrer' style={{ color: 'red' }} href={"/api/network/admin/user/ban?username=" + name + "&to=" + (data.isBanned ? "false" : "true")}>
                                     {(data.isBanned ? "UNBAN" : "BAN")}
                                 </a>
                             : <></>
@@ -122,8 +122,11 @@ function renderScores(scores, isAdmin) {
                 {
                     isAdmin ?
                         <>
+                            <a target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/score/replay?id=" + score.id}>
+                                VIEW
+                            </a>
                             <a target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/admin/score/delete?id=" + score.id}>
-                            DEL
+                                DEL
                             </a>
                         </>
                     : <></>
