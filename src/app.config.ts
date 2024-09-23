@@ -14,7 +14,7 @@ import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
 import { Data } from "./Data";
 import cors from 'cors';
-import express from 'express';
+import express, { Router } from 'express';
 import fileUpload, { UploadedFile } from "express-fileupload";
 import bodyParser from "body-parser";
 import { networkRoom, NetworkRoom } from "./rooms/NetworkRoom";
@@ -46,18 +46,22 @@ export default config({
     },
 
     initializeExpress: (app) => {
-        app.use(bodyParser.json({
+        const router = express.Router();
+
+        app.use(cors());
+
+        router.use(bodyParser.json({
             limit: '5mb',
             type: 'application/json'
         }));
-        app.use(bodyParser.urlencoded({
+        router.use(bodyParser.urlencoded({
             parameterLimit: 100000,
             limit: '5mb',
             extended: true
         }));
+
         app.use(fileUpload({}));
         app.use(cookieParser());
-        app.use(cors());
 
         app.get("/api/front", async (req, res) => {
             try {
