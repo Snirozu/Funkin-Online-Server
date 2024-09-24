@@ -21,12 +21,13 @@ export class GameRoom extends Room<RoomState> {
   clientsPingas: Map<Client, number> = new Map<Client, number>();
   ownerUUID:string = null;
   lastPingTime:number = null;
+  networkOnly:boolean = false;
 
   async onCreate (options: any) {
     this.roomId = await this.generateRoomId();
     this.setPrivate();
     this.setState(new RoomState());
-    this.autoDispose = true;
+    this.autoDispose = false; //setting this to true may probably crash the room?
 
     var daGameplaySettings = options.gameplaySettings;
     if (daGameplaySettings) {
@@ -39,7 +40,9 @@ export class GameRoom extends Room<RoomState> {
       }
     }
 
-    this.setMetadata({name: options.name});
+    this.networkOnly = options.networkOnly;
+
+    this.setMetadata({ name: options.name, networkOnly: this.networkOnly });
 
     this.onMessage("togglePrivate", (client, message) => {
       if (this.hasPerms(client)) {
@@ -441,6 +444,10 @@ export class GameRoom extends Room<RoomState> {
           client.leave();
         }
       });
+      
+      if (this.clients.length < 1) {
+        this.disconnect();
+      }
     }, 1000 * 10);
   }
 
@@ -469,8 +476,7 @@ export class GameRoom extends Room<RoomState> {
     else if (options.name.length > 14) {
       throw new ServerError(5001, "Too long name!"); 
     }
-
-    if (!await this.isClientAllowed(client, request)) {
+    else if (!await this.isClientAllowed(client, request)) {
       throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
     }
 
@@ -512,6 +518,12 @@ export class GameRoom extends Room<RoomState> {
         playerName = player.name;
         playerPoints = player.points;
       })
+    }
+
+    if (!isVerified && this.networkOnly) {
+      client.error(400, "Only Registered Network players can join!");
+      client.leave();
+      return;
     }
 
     if (this.clients.length == 1) {
