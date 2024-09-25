@@ -12,7 +12,9 @@ function ReturnDate(time) {
 }
 
 function User() {
-    const { name } = useParams();
+    const { _name } = useParams();
+    const name = decodeURIComponent(_name);
+
     const [data, setData] = useState({
         isMod: false,
         joined: 0,
