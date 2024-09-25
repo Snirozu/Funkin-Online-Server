@@ -12,8 +12,8 @@ function ReturnDate(time) {
 }
 
 function User() {
-    const { _name } = useParams();
-    const name = decodeURIComponent(_name);
+    let { name } = useParams();
+    name = decodeURIComponent(name);
 
     const [data, setData] = useState({
         isMod: false,
