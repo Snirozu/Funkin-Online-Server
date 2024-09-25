@@ -60,7 +60,7 @@ function renderPlayers(players) {
     for (const player of players) {
         render.push(
             <div className="Coolbox">
-                <a href={"/user/" + player}>
+                <a href={"/user/" + encodeURIComponent(player)}>
                     <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + btoa(player)}></AvatarImg>
                     <br></br><span>{player}</span>
                 </a>

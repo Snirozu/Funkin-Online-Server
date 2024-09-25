@@ -46,7 +46,7 @@ function HeadBar() {
                     <></>
                 ) : (
                     <>
-                        <a className='BarProfile' id={data.name} href={"/user/" + data.name}>
+                        <a className='BarProfile' id={data.name} href={"/user/" + encodeURIComponent(data.name)}>
                             <AvatarImg className='SmallerAvatar' src={getHost() + "/api/avatar/" + btoa(data.name)}/>
                             <div className='BarProfileText'>
                                 <b>Welcome, {data.name}! </b> <br></br>

@@ -68,7 +68,7 @@ function renderScores(song, scores) {
                 {ordinalNum(i)}
             </td>
             <td>
-                <a href={"/user/" + score.player}> {score.player} </a>
+                <a href={"/user/" + encodeURIComponent(score.player)}> {score.player} </a>
             </td>
             <td>
                 {score.score}
@@ -87,7 +87,7 @@ function renderScores(song, scores) {
     }
 
     return (<>
-        <a href={"/user/" + leader.player} className='LeaderContainer'>
+        <a href={"/user/" + encodeURIComponent(leader.player)} className='LeaderContainer'>
             <AvatarImg src={getHost() + "/api/avatar/" + btoa(leader.player)}></AvatarImg>
             <div className="FlexBox">
                 <br></br>
