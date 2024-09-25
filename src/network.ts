@@ -81,8 +81,13 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     if (!replay)
         throw { error_message: "Empty Replay Data!" }
 
-    if (replay.points < 0)
-        throw { error_message: "Nuh uh" }
+    const noteEvents = replay.shits + replay.bads + replay.goods + replay.sicks;
+    if (noteEvents <= 0 || replay.inputs.length <= 0) {
+        throw { error_message: "Empty Replay" }
+    }
+
+    if (replay.points < 0 || replay.points > 10000 || replay.score > 10000000 || replay.inputs.length < noteEvents)
+        throw { error_message: "Invalid Replay Data" }
 
     const submitter = await getPlayerByID(submitterID);
     if (!submitter)
@@ -261,16 +266,21 @@ export async function removeScore(id: string, checkPlayer?: string) {
         }
     }));
 
-    await prisma.user.update({
-        data: {
-            points: {
-                decrement: score.points
+    try {
+        await prisma.user.update({
+            data: {
+                points: {
+                    decrement: score.points
+                }
+            },
+            where: {
+                id: score.player
             }
-        },
-        where: {
-            id: score.player
-        }
-    })
+        })
+    }
+    catch (exc) {
+        console.error(exc);
+    }
 }
 
 export async function createUser(name: string) {
@@ -654,8 +664,6 @@ export async function deleteUser(id:string):Promise<any> {
     if (!id) {
         return null;
     }
-
-    console.log("Deleting user: " + id);
     
     await prisma.score.deleteMany({
         where: {
@@ -672,13 +680,16 @@ export async function deleteUser(id:string):Promise<any> {
             by: id
         }
     })
-    await prisma.user.delete({
+    const user = await prisma.user.delete({
         where: {
             id: id
+        },
+        select: {
+            name: true
         }
     })
 
-    console.log("Deleted user: " + id);
+    console.log("Deleted user: " + user.name);
 }
 
 export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
