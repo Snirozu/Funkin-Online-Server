@@ -26,7 +26,7 @@ model User {
   isMod Boolean?
   pendingFriends String[] //pending user ids
   friends String[] // friends ids
-  email String?
+  email String? @unique
   isBanned Boolean?
 }
 
