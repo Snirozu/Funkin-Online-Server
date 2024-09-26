@@ -143,6 +143,20 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
+    this.onMessage("setStage", (client, message) => {
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
+      if (this.hasPerms(client)) {
+        this.state.stageName = message[0];
+        this.state.stageMod = message[1];
+        this.state.stageURL = message[2];
+
+        this.state.player1.isReady = false;
+        this.state.player2.isReady = false;
+
+        this.broadcast("checkStage", "", { afterNextPatch: true });
+      }
+    });
+
     this.onMessage("verifyChart", (client, message) => {
       if (this.checkInvalid(message, VerifyTypes.STRING)) return;
       if (!this.isOwner(client)) {

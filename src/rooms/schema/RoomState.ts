@@ -6,6 +6,9 @@ export class RoomState extends Schema {
   @type("string") folder: string = "";
   @type("number") diff: number = 1;
   @type({array: "string"}) diffList: string[] = [];
+  @type("string") stageName: string = "";
+  @type("string") stageMod: string = "";
+  @type("string") stageURL: string = "";
   @type("string") modDir: string = "";
   @type("string") modURL: string = "";
   //TODO change to 'players:Array'
