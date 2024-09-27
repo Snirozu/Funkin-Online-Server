@@ -34,6 +34,7 @@ const transMail = nodemailer.createTransport({
 const emailSetCodes: Map<String, String> = new Map<String, String>();
 const emailLoginCodes: Map<String, String> = new Map<String, String>();
 const emailRegisterCodes: Map<String, String> = new Map<String, String>();
+const emailAccountDelete: Map<String, String> = new Map<String, String>();
 
 export default config({
 
@@ -936,7 +937,7 @@ export default config({
                 }
             });
 
-            app.post("/api/network/auth/email/set", checkLogin, async (req, res) => {
+            app.post("/api/network/account/email/set", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
@@ -967,6 +968,35 @@ export default config({
                     console.error(exc);
                     res.status(400).json({
                         error: exc.error_message ?? "Couldn't set the email..."
+                    });
+                }
+            });
+
+            app.all("/api/network/account/delete", checkLogin, async (req, res) => {
+                try {
+                    const [id, _] = getIDToken(req);
+                    const player = await getPlayerByID(id);
+
+                    if (req.query.code) {
+                        if (req.query.code != emailAccountDelete.get(player.email)) {
+                            emailAccountDelete.delete(player.email);
+                            throw { error_message: 'Invalid Code!' }
+                        }
+
+                        emailAccountDelete.delete(player.email);
+                        await deleteUser(player.id);
+                        res.sendStatus(200);
+                    }
+                    else {
+                        const daCode = generateCode();
+                        tempSetCode(emailAccountDelete, player.email, daCode);
+                        sendCodeMail(player.email, daCode, res);
+                    }
+                }
+                catch (exc: any) {
+                    console.error(exc);
+                    res.status(400).json({
+                        error: exc.error_message ?? "Couldn't delete your account..."
                     });
                 }
             });
