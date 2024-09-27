@@ -426,7 +426,8 @@ export async function getPlayerByEmail(email: string) {
         return await prisma.user.findFirstOrThrow({
             where: {
                 email: {
-                    equals: email
+                    equals: email,
+                    mode: "insensitive"
                 }
             }
         });
