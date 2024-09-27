@@ -288,6 +288,12 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
+    this.onMessage("toggleGF", (client, message) => {
+      if (this.hasPerms(client)) {
+        this.state.hideGF = !this.state.hideGF;
+      }
+    });
+
     this.onMessage("pong", (client, message:number) => {
       const daPing = Date.now() - this.lastPingTime;
 
@@ -542,6 +548,9 @@ export class GameRoom extends Room<RoomState> {
 
     if (this.clients.length == 1) {
       this.ownerUUID = client.sessionId;
+      this.metadata.points = playerPoints;
+      this.metadata.verified = isVerified;
+      
       this.state.player1 = new Player();
       this.state.player1.name = playerName;
       this.state.player1.skinMod = options.skinMod;

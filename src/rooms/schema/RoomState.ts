@@ -22,4 +22,5 @@ export class RoomState extends Schema {
   @type("number") health: number = 0.0;
   @type({ map: "string" }) gameplaySettings = new MapSchema<string>();
   @type("boolean") permitModifiers: boolean = false;
+  @type("boolean") hideGF: boolean = false;
 }

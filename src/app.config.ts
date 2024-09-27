@@ -33,6 +33,7 @@ const transMail = nodemailer.createTransport({
 });
 const emailSetCodes: Map<String, String> = new Map<String, String>();
 const emailLoginCodes: Map<String, String> = new Map<String, String>();
+const emailRegisterCodes: Map<String, String> = new Map<String, String>();
 
 export default config({
 
@@ -869,14 +870,31 @@ export default config({
             // todo to add user deletion from the database
             app.post("/api/network/auth/register", async (req, res) => {
                 try {
-                    const user = await createUser(req.body.username);
-                    res.json({
-                        id: user.id,
-                        token: await genAccessToken(user.id),
-                        secret: user.secret
-                    });
+                    if (!req.body.email || !(req.body.email as string).includes('@'))
+                        throw { error_message: 'Invalid Email Address!' }
+
+                    if (req.body.code) {
+                        if (req.body.code != emailRegisterCodes.get(req.body.email)) {
+                            emailRegisterCodes.delete(req.body.email);
+                            throw { error_message: 'Invalid Code!' }
+                        }
+
+                        emailRegisterCodes.delete(req.body.email);
+                        const user = await createUser(req.body.username, req.body.email);
+                        res.json({
+                            id: user.id,
+                            token: await genAccessToken(user.id),
+                            secret: user.secret
+                        });
+                    }
+                    else {
+                        const daCode = generateCode();
+                        tempSetCode(emailRegisterCodes, req.body.email, daCode);
+                        sendCodeMail(req.body.email, daCode, res);
+                    }
                 }
                 catch (exc: any) {
+                    console.error(exc);
                     res.status(400).json({
                         error: exc.error_message ?? "Couldn't register..."
                     });
@@ -889,10 +907,14 @@ export default config({
                         throw { error_message: 'Invalid Email Address!' }
 
                     const player = await getPlayerByEmail(req.body.email);
+                    if (!player)
+                        throw { error_message: 'Player with that email doesn\'t exist!' }
                     
                     if (req.body.code) {
-                        if (req.body.code != emailLoginCodes.get(req.body.email))
+                        if (req.body.code != emailLoginCodes.get(req.body.email)) {
+                            emailLoginCodes.delete(req.body.email);
                             throw { error_message: 'Invalid Code!' }
+                        }
 
                         emailLoginCodes.delete(req.body.email);
                         res.json({
@@ -926,11 +948,13 @@ export default config({
                         throw { error_message: 'Currently Set Email is Not Provided!' }
 
                     if (req.body.code) {
-                        if (req.body.code != emailSetCodes.get(req.body.email))
+                        if (req.body.code != emailSetCodes.get(req.body.email)) {
+                            emailSetCodes.delete(req.body.email);
                             throw { error_message: 'Invalid Code!' }
+                        }
                         
                         emailSetCodes.delete(req.body.email);
-                        setEmail(id, req.body.email);
+                        await setEmail(id, req.body.email);
                         res.sendStatus(200);
                     }
                     else {

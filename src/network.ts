@@ -283,7 +283,7 @@ export async function removeScore(id: string, checkPlayer?: string) {
     }
 }
 
-export async function createUser(name: string) {
+export async function createUser(name: string, email: string) {
     if (filterUsername(name) != name) {
         throw {
             error_message: "Your username contains invalid characters!"
@@ -303,11 +303,15 @@ export async function createUser(name: string) {
     }
 
     if (await getPlayerByName(name))
-        throw { error_message: "Player with that username exists!" }
+        throw { error_message: "Player with that username already exists!" }
+
+    if (await getPlayerByEmail(email))
+        throw { error_message: "Player with that email already exists!" }
 
     return (await prisma.user.create({
         data: {
             name: name,
+            email: email,
             secret: crypto.randomBytes(64).toString('hex'),
             points: 0
         },
@@ -326,6 +330,9 @@ export async function resetSecret(id: string) {
 }
 
 export async function setEmail(id: string, email: string) {
+    if (await getPlayerByEmail(email))
+        throw { error_message: "Player with that email already exists!" }
+
     return (await prisma.user.update({
         data: {
             email: email
