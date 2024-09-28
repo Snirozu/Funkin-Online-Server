@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import dotenv from 'dotenv';
 import { Data } from "./Data";
 import { grantPlayerMod } from "./network";
-import * as crypto from "crypto";
+import sanitizeHtml from 'sanitize-html';
 
 if (!fs.existsSync("database/"))
     fs.mkdirSync("database/");
@@ -18,6 +18,8 @@ if (fs.existsSync("database/country_players.json"))
 
 //load .env
 dotenv.config();
+
+sanitizeHtml.defaults.allowedTags.push('img');
 
 // Create and listen on 2567 (or PORT environment variable.)
 listen(app)

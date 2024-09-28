@@ -4,6 +4,7 @@ import * as crypto from "crypto";
 import { filterSongName, filterUsername } from "./util";
 import { notifyFromPlayer } from "./rooms/NetworkRoom";
 import * as fs from 'fs';
+import sanitizeHtml from 'sanitize-html';
 
 const prisma = new PrismaClient()
 
@@ -398,6 +399,23 @@ export async function grantPlayerMod(id: string) {
     }));
 }
 
+export async function setPlayerBio(id: string, bio: string) {
+    if (bio.length > 1500) {
+        return null;
+    }
+
+    const sanitizedHtml = sanitizeHtml(bio);
+
+    return (await prisma.user.update({
+        data: {
+            bio: sanitizedHtml
+        },
+        where: {
+            id: id
+        }
+    }));
+}
+
 export async function getPlayerByName(name: string) {
     if (!name)
         return null;
@@ -464,6 +482,14 @@ export async function pingPlayer(id: string) {
             },
             where: {
                 id: id
+            },
+            select: {
+                name: true,
+                points: true,
+                isMod: true,
+                joined: true,
+                lastActive: true,
+                isBanned: true
             }
         }));
     }
@@ -672,6 +698,10 @@ export async function deleteUser(id:string):Promise<any> {
     if (!id) {
         return null;
     }
+
+    const player = await getPlayerByID(id);
+    if (player.isMod)
+        return null;
     
     await prisma.score.deleteMany({
         where: {
@@ -705,12 +735,19 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
         return null;
     }
 
+    const user = await getPlayerByID(id);
+    if (user.isMod)
+        return null;
+
     const player = await prisma.user.update({
         where: {
             id: id
         },
         data: {
-            isBanned: to
+            isBanned: to,
+            bio: {
+                unset: true
+            }
         }
     })
     if (to && fs.existsSync('database/avatars/' + btoa(player.name)))

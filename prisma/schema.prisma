@@ -28,6 +28,7 @@ model User {
   friends String[] // friends ids
   email String? @unique
   isBanned Boolean?
+  bio String?
 }
 
 model Song {

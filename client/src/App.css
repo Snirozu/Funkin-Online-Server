@@ -318,3 +318,32 @@ tbody tr:nth-child(odd) {
 tbody tr:nth-child(even) {
   background-color: rgb(46, 40, 51);
 }
+
+.SvgButton {
+  border: none;
+  border-radius: 10px;
+  width: 30px;
+  aspect-ratio: 1/1;
+  background-color: rgb(218, 206, 206);
+  margin-right: 5px;
+}
+
+.SvgButton:hover {
+  background-color: white;
+}
+
+.UserBio {
+  max-height: 200px;
+  max-width: 100%;
+  overflow: auto;
+  font-family: 'PhantomMuff';
+}
+
+.SvgNoButton {
+  border: none;
+  background-color: transparent;
+}
+
+.SvgNoButton :hover {
+  cursor: pointer;
+}

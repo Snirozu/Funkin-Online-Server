@@ -5,6 +5,7 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
 import { getHost, timeAgo } from '../Util';
+import { Icon } from '@iconify/react';
 
 function ReturnDate(time) {
     const date = new Date(time);
@@ -22,6 +23,7 @@ function User() {
         points: 0,
         isSelf: false,
         isBanned: false,
+        bio: '',
         scores: [
             {
                 name: "?",
@@ -37,6 +39,7 @@ function User() {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [editBioMode, setBioEditMode] = useState(null);
     const [queryParams] = useSearchParams();
 
     const fetchData = async () => {
@@ -59,6 +62,89 @@ function User() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const toggleEditBio = async () => {
+        if (editBioMode) {
+            try {
+                const response = await axios.post(getHost() + '/api/network/account/bio/set', {
+                    content: document.getElementById('bioInput').value
+                }, {
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                    }
+                });
+                if (response.status !== 200) {
+                    throw new Error('Failed.');
+                }
+            } catch (error) {}
+        }
+
+        setBioEditMode(!editBioMode);
+        fetchData();
+    }
+
+    async function removeScore(scoreId) {
+        try {
+            const response = await axios.get(getHost() + "/api/network/admin/score/delete?id=" + scoreId, {
+                headers: {
+                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                }
+            });
+            if (response.status !== 200) {
+                throw new Error('Failed.');
+            }
+        } catch (error) { }
+
+        fetchData();
+    }
+
+    function renderScores(scores, isAdmin) {
+        var children = [];
+
+        for (const score of scores) {
+            const songURL = "/song/" + score.songId + "?strum=" + score.strum;
+            children.push(<tr key={score.submitted}>
+                <td>
+                    <a href={songURL}> {score.name} </a>
+                    {
+                        isAdmin ?
+                            <>
+                                <button title='Remove Score' className='SvgNoButton' style={{ float: 'right', color: 'red' }} onClick={() => removeScore(score.id)}>
+                                    <Icon width={20} icon="mdi:trash-outline" />
+                                </button>
+                                <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/score/replay?id=" + score.id}>
+                                    <Icon width={20} icon="mdi:eye" />
+                                </a>
+                            </>
+                        : <></>
+                    }
+                </td>
+                <td>
+                    {score.score}
+                </td>
+                <td>
+                    {score.accuracy}%
+                </td>
+                <td>
+                    {score.points}
+                </td>
+            </tr>);
+        }
+
+        return (
+            <table>
+                <tbody>
+                    <tr>
+                        <td> Song </td>
+                        <td> Score </td>
+                        <td> Accuracy </td>
+                        <td> FP </td>
+                    </tr>
+                    {children}
+                </tbody>
+            </table>
+        );
+    }
 
     return (
         <div className='Content'>
@@ -88,18 +174,39 @@ function User() {
                         {data.isSelf ?
                             <>
                                 <AvatarUpload></AvatarUpload>
+                                <button className='SvgButton' title={editBioMode ? "Save Bio" : "Bio Edit Mode"} onClick={toggleEditBio}>
+                                    {editBioMode ? <Icon width={20} icon="material-symbols:save" /> : <Icon width={20} icon="mdi:paper-edit-outline" />}
+                                </button>
                             </>
                          : <></>}
+                        {Cookies.get('modmode') ?
+                            <a href={queryParams.get('admin') ? "?" : "?admin=1"} title={queryParams.get('admin') ? "User Mode" : "Admin Mode"}>
+                                <button className='SvgButton'>
+                                    {queryParams.get('admin') ? <Icon width={20} icon="mdi:user-box" /> : <Icon width={20} icon="eos-icons:admin" />}
+                                </button>
+                            </a>
+                        : <></>}
                         {
                             queryParams.get('admin') ? 
-                                <a target="_blank" rel='noreferrer' style={{ color: 'red' }} href={"/api/network/admin/user/ban?username=" + name + "&to=" + (data.isBanned ? "false" : "true")}>
-                                    {(data.isBanned ? "UNBAN" : "BAN")}
+                                <a title='Ban' target="_blank" rel='noreferrer' style={{ color: 'red' }} href={"/api/network/admin/user/ban?username=" + name + "&to=" + (data.isBanned ? "false" : "true")}>
+                                    <button className='SvgButton'>
+                                        {(data.isBanned ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
+                                    </button>
                                 </a>
                             : <></>
                         }
                     </div>
                     <div className='VerticalLine'> </div>
-                    <div className='Contents'> 
+                    <div className='Contents'>
+                        {editBioMode ? 
+                            <>
+                                <textarea rows="10" cols="85" id="bioInput" placeholder={"Hello World! <br>\n:)"}>
+                                    {data.bio}
+                                </textarea>
+                            </>
+                        : 
+                            <div className='UserBio' dangerouslySetInnerHTML={{ __html: data.bio }} />
+                        }
                         {data.scores.length > 0 ? (
                             <center> <b> Top Scores </b> </center>
                         ) : <></>}
@@ -110,54 +217,6 @@ function User() {
                 </>
             )}
         </div>
-    );
-}
-
-function renderScores(scores, isAdmin) {
-    var children = [];
-
-    for (const score of scores) {
-        const songURL = "/song/" + score.songId + "?strum=" + score.strum;
-        children.push(<tr key={score.submitted}>
-            <td>
-                <a href={songURL}> {score.name} </a>
-                {
-                    isAdmin ?
-                        <>
-                            <a target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/score/replay?id=" + score.id}>
-                                VIEW
-                            </a>
-                            <a target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/admin/score/delete?id=" + score.id}>
-                                DEL
-                            </a>
-                        </>
-                    : <></>
-                }
-            </td>
-            <td>
-                {score.score}
-            </td>
-            <td>
-                {score.accuracy}%
-            </td>
-            <td>
-                {score.points}
-            </td>
-        </tr>);
-    }
-
-    return (
-        <table>
-            <tbody>
-                <tr>
-                    <td> Song </td>
-                    <td> Score </td>
-                    <td> Accuracy </td>
-                    <td> FP </td>
-                </tr>
-                {children}
-            </tbody>
-        </table>
     );
 }
 
@@ -192,8 +251,12 @@ const AvatarUpload = () => {
 
     return (
         <>
-            <input accept="image/*" type="file" id="actual-btn" hidden ref={actualBtnRef} onChange={upload} />
-            <label className='AvatarButton' htmlFor="actual-btn">Change Avatar</label>
+            <input accept="image/*" type="file" id="upload-avatar" hidden ref={actualBtnRef} onChange={upload} />
+            <button className='SvgButton' title='Upload Avatar' onClick={() => {
+                document.getElementById('upload-avatar').click();
+            }}>
+                <Icon width={20} icon="mdi:image-add" />
+            </button>
         </>
     );
 };

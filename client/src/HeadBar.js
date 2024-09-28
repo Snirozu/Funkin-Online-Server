@@ -23,6 +23,9 @@ function HeadBar() {
                 throw new Error('Not logged in');
             }
             const data = response.data;
+            if (data.isMod) {
+                Cookies.set('modmode', true, {sameSite: 'none'});
+            }
             setData(data);
             setLoading(false);
         } catch (error) {

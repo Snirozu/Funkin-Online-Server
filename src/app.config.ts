@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -50,8 +50,6 @@ export default config({
     initializeExpress: (app) => {
         const router = express.Router();
 
-        app.use(cors());
-
         router.use(bodyParser.json({
             limit: '5mb',
             type: 'application/json'
@@ -60,6 +58,10 @@ export default config({
             parameterLimit: 100000,
             limit: '5mb',
             extended: true
+        }));
+
+        router.use(cors({
+            origin: 'http://localhost:3000' //only allow from the debug server
         }));
 
         app.use(fileUpload({}));
@@ -523,7 +525,8 @@ export default config({
                         points: user.points,
                         scores: coolScores,
                         isSelf: auth?.id == user.id,
-                        isBanned: user.isBanned
+                        isBanned: user.isBanned,
+                        bio: user.bio
                     });
                 }
                 catch (exc) {
@@ -691,7 +694,8 @@ export default config({
 
                     res.send({
                         name: player.name,
-                        points: player.points
+                        points: player.points,
+                        isMod: player.isMod
                     });
                 }
                 catch (exc) {
@@ -809,6 +813,20 @@ export default config({
                 catch (exc) {
                     console.error(exc);
                     res.sendStatus(500);
+                }
+            });
+
+            app.post("/api/network/account/bio/set", checkLogin, async (req, res) => {
+                try {
+                    const [id, _] = getIDToken(req);
+
+                    await setPlayerBio(id, req.body.content);
+                    res.sendStatus(200);
+                }
+                catch (exc: any) {
+                    res.status(400).json({
+                        error: exc.error_message ?? "Couldn't set bio..."
+                    });
                 }
             });
 
