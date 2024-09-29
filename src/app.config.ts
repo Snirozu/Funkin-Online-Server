@@ -516,7 +516,7 @@ export default config({
                         isBanned: user.isBanned,
                         bio: user.bio,
                         friends: await getUserFriends(user.friends),
-                        canFriend: !user.pendingFriends.includes(auth?.id),
+                        canFriend: !auth.pendingFriends.includes(user?.id),
                         profileHue: user.profileHue
                     });
                 }
