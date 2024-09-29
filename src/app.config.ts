@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, getUserPendingFriends } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -696,6 +696,18 @@ export default config({
                 }
             });
 
+            app.get("/api/network/account/friends/pending", checkLogin, async (req, res) => {
+                try {
+                    const [id, token] = getIDToken(req);
+                    const pending = await getUserPendingFriends(id);
+
+                    res.send(pending);
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
             
             app.get("/api/network/account/ping", checkLogin, async (req, res) => {
                 try {
