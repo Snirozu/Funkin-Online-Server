@@ -7,7 +7,8 @@ import Cookies from 'js-cookie';
 function FriendArea() {
     const [data, setData] = useState({
         friends: [],
-        pending: []
+        pending: [],
+        requests: []
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -47,7 +48,17 @@ function FriendArea() {
                         renderPlayers(data.friends)
                     )}
                 </div>
-                <p> Pending Friends </p>
+                <p> Pending Invite from </p>
+                <div className="CenterFlex">
+                    {loading ? (
+                        <p>Loading...</p>
+                    ) : error ? (
+                        <p>Error: {error}</p>
+                    ) : (
+                        renderPlayers(data.requests)
+                    )}
+                </div>
+                <p> Pending Invite to </p>
                 <div className="CenterFlex">
                     {loading ? (
                         <p>Loading...</p>

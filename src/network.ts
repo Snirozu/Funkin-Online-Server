@@ -761,6 +761,20 @@ export async function getUserFriends(friends: Array<string>) {
     return value;
 }
 
+export async function searchFriendRequests(id:string) {
+    let value: Array<string> = [];
+    for (const pender of await prisma.user.findMany({
+        where: {
+            pendingFriends: {
+                has: id
+            }
+        }
+    })) {
+        value.push(pender.name);
+    }
+    return value;
+}
+
 export async function deleteUser(id:string):Promise<any> {
     if (!id) {
         return null;

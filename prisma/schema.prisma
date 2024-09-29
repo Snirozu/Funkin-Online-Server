@@ -24,7 +24,7 @@ model User {
   reports Report[]
   songComments SongComment[]
   isMod Boolean?
-  pendingFriends String[] //pending user ids
+  pendingFriends String[] //list of players to accept invites from
   friends String[] // friends ids
   email String? @unique
   isBanned Boolean?
