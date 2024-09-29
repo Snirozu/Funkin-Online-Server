@@ -768,6 +768,9 @@ export async function searchFriendRequests(id:string) {
             pendingFriends: {
                 has: id
             }
+        },
+        select: {
+            name: true
         }
     })) {
         value.push(pender.name);
