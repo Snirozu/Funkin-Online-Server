@@ -21,3 +21,21 @@ export function getHost() {
     }
     return window.location.protocol + "//" + window.location.host;
 }
+
+export function headProfileColor(hue) {
+    return "hsl(" + hue + ",20%,30%)";
+}
+
+export function contentProfileColor(hue) {
+    return "hsl(" + hue + ",20%,20%)";
+}
+
+export function textProfileColor(hue) {
+    return "hsl(" + hue + ",65%,80%)";
+}
+
+export function textProfileRow(hue, alt) {
+    if (alt)
+        return "hsl(" + hue + ",10%,18%)";
+    return "hsl(" + hue + ",10%,22%)";
+}

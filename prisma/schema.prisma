@@ -29,6 +29,7 @@ model User {
   email String? @unique
   isBanned Boolean?
   bio String?
+  profileHue Int?
 }
 
 model Song {

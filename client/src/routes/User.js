@@ -1,10 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useParams, useSearchParams } from 'react-router-dom';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { getHost, timeAgo } from '../Util';
+import { contentProfileColor, getHost, headProfileColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
 import { Icon } from '@iconify/react';
 
 function ReturnDate(time) {
@@ -24,6 +24,9 @@ function User() {
         isSelf: false,
         isBanned: false,
         bio: '',
+        friends: [],
+        canFriend: false,
+        profileHue: 250,
         scores: [
             {
                 name: "?",
@@ -59,15 +62,13 @@ function User() {
             setLoading(false);
         }
     };
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     const toggleEditBio = async () => {
         if (editBioMode) {
             try {
-                const response = await axios.post(getHost() + '/api/network/account/bio/set', {
-                    content: document.getElementById('bioInput').value
+                const response = await axios.post(getHost() + '/api/network/account/profile/set', {
+                    bio: document.getElementById('bioInput').value,
+                    hue: document.getElementById('ProfileColorSlider').value
                 }, {
                     headers: {
                         'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
@@ -80,6 +81,22 @@ function User() {
         }
 
         setBioEditMode(!editBioMode);
+        fetchData();
+    }
+
+    const requestFriend = async () => {
+        try {
+            const response = await axios.get(getHost() + '/api/network/user/friends/' + (data.friends.includes(Cookies.get('username')) ? 'remove' : 'request') + '?name=' + name, {
+                headers: {
+                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                }
+            });
+            if (response.status !== 200) {
+                alert(response.data);
+                throw new Error('Failed.');
+            }
+        } catch (error) { }
+
         fetchData();
     }
 
@@ -146,8 +163,49 @@ function User() {
         );
     }
 
+    let index = 0;
+    function onColorChange(e) {
+        index = 0;
+
+        const color = e?.target?.value ?? data.profileHue;
+
+        document.getElementById('HeadProfile').style.backgroundColor = headProfileColor(color);
+        document.getElementsByClassName('Content')[0].style.backgroundColor = contentProfileColor(color);
+
+        function shitLoop(ele) {
+            if (ele.style && ele.tagName === "A") {
+                ele.style.color = textProfileColor(color);   
+            }
+
+            if (ele.style && ele.tagName === "TR") {
+                index++;
+                ele.style.backgroundColor = textProfileRow(color, index % 2);
+            }
+
+            if (ele.childNodes)
+                for (const child of ele.childNodes) {
+                    shitLoop(child);
+                }
+                
+        }
+
+        for (const idk of document.getElementsByClassName('Content')) {
+            shitLoop(idk);
+        }
+    }
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    useLayoutEffect(() => {
+        try {
+            onColorChange();
+        } catch (exc) { }
+    }, [data, setData, setLoading])
+
     return (
-        <div className='Content'>
+        <div className='Content' style={{ backgroundColor: contentProfileColor(data.profileHue) }}>
             {loading ? (
                 <p>Loading...</p>
             ) : error ? (
@@ -170,15 +228,33 @@ function User() {
                         <b>Points: </b> {data.points} <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
                         <b>Joined: </b> {ReturnDate(Date.parse(data.joined))} <br />
+                        {
+                            data?.friends.length > 0 ?
+                                <>
+                                    <br></br>
+                                    <center> <b>Friends</b> </center>
+                                    <div className='FrenBox'>
+                                        {renderFriends(data.friends)}
+                                    </div>
+                                </>
+                            : <></>
+                        }
                         <br></br>
                         {data.isSelf ?
                             <>
                                 <AvatarUpload></AvatarUpload>
-                                <button className='SvgButton' title={editBioMode ? "Save Bio" : "Bio Edit Mode"} onClick={toggleEditBio}>
+                                <button className='SvgButton' title={editBioMode ? "Save Profile" : "Profile Edit Mode"} onClick={toggleEditBio}>
                                     {editBioMode ? <Icon width={20} icon="material-symbols:save" /> : <Icon width={20} icon="mdi:paper-edit-outline" />}
                                 </button>
                             </>
-                         : <></>}
+                         : 
+                            data.canFriend ? 
+                                <button className='SvgButton' title={data.friends.includes(Cookies.get('username')) ? "Remove Friend" : "Add Friend"} onClick={requestFriend}>
+                                    {data.friends.includes(Cookies.get('username')) ? <Icon width={20} icon="mdi:user-minus" /> : <Icon width={20} icon="mdi:user-add" />}
+                                </button>
+                            :
+                            <></>
+                        }
                         {Cookies.get('modmode') ?
                             <a href={queryParams.get('admin') ? "?" : "?admin=1"} title={queryParams.get('admin') ? "User Mode" : "Admin Mode"}>
                                 <button className='SvgButton'>
@@ -195,6 +271,17 @@ function User() {
                                 </a>
                             : <></>
                         }
+                        {
+                            editBioMode ? 
+                                <>
+                                    <br></br>
+                                    <br></br>
+                                    BG Color:
+                                    <input id='ProfileColorSlider' type="range" min="0" max="360" defaultValue={data.profileHue} onInput={onColorChange} />
+                                </>
+                            :
+                                <></>
+                        }
                     </div>
                     <div className='VerticalLine'> </div>
                     <div className='Contents'>
@@ -208,16 +295,30 @@ function User() {
                             <div className='UserBio' dangerouslySetInnerHTML={{ __html: data.bio }} />
                         }
                         {data.scores.length > 0 ? (
-                            <center> <b> Top Scores </b> </center>
+                            <>
+                                <center> <b> Best Performances </b> </center>
+                                {renderScores(data.scores, queryParams.get('admin'))}
+                            </>
                         ) : <></>}
-                        {
-                            renderScores(data.scores, queryParams.get('admin'))
-                        }
                     </div>
                 </>
             )}
         </div>
     );
+}
+
+function renderFriends(friends) {
+    let children = [];
+
+    for (const friend of friends) {
+        children.push(
+            <a key={friend} href={"/user/" + encodeURIComponent(friend)}>
+                <AvatarImg className='FrenAvatar' src={getHost() + "/api/avatar/" + btoa(friend)}></AvatarImg>
+            </a>
+        );
+    }
+
+    return children;
 }
 
 const AvatarUpload = () => {

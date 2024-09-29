@@ -75,7 +75,6 @@ a:hover {
 }
 
 .Bar .BarProfile {
-  background-color: #4c3974;
   margin-left: auto;
   margin-right: 20px;
   max-height: 50px;
@@ -116,6 +115,29 @@ a:hover {
 
   height: 50px;
   max-height: 50px;
+}
+
+.FrenAvatar {
+  width: 30px;
+  max-width: 30px;
+
+  height: 30px;
+  max-height: 30px;
+}
+
+.FrenBox {
+  width: 95%;
+  max-width: 95%;
+  max-height: 200px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-top: 5px;
+}
+
+.FrenBox * {
+  margin-right: 2px;
+  margin-bottom: 2px;
 }
 
 .BiggerText {
@@ -333,7 +355,7 @@ tbody tr:nth-child(even) {
 }
 
 .UserBio {
-  max-height: 200px;
+  max-height: 150px;
   max-width: 100%;
   overflow: auto;
   font-family: 'PhantomMuff';
@@ -346,4 +368,9 @@ tbody tr:nth-child(even) {
 
 .SvgNoButton :hover {
   cursor: pointer;
+}
+
+#ProfileColorSlider {
+  margin-top: 10px;
+  width: 90%;
 }

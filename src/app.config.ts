@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, sendFriendRequest, acceptFriendRequest, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -31,10 +31,9 @@ const transMail = nodemailer.createTransport({
         pass: process.env.GMAIL_PASSWORD
     }
 });
-const emailSetCodes: Map<String, String> = new Map<String, String>();
-const emailLoginCodes: Map<String, String> = new Map<String, String>();
-const emailRegisterCodes: Map<String, String> = new Map<String, String>();
-const emailAccountDelete: Map<String, String> = new Map<String, String>();
+
+const emailCodes: Map<String, String> = new Map<String, String>();
+const emailCodeTimers: Map<String, NodeJS.Timeout> = new Map<String, NodeJS.Timeout>();
 
 export default config({
 
@@ -433,21 +432,15 @@ export default config({
                 }
             });
 
-            app.get("/api/network/user/friends/accept", checkLogin, async (req, res) => {
+            app.get("/api/network/user/friends/remove", checkLogin, async (req, res) => {
                 try {
                     if (!req.query.name)
                         return res.sendStatus(400);
 
-                    const recipent = await authPlayer(req);
-                    const from = await getPlayerByName(req.query.name as string);
-
-                    if (!recipent || !from)
-                        return res.sendStatus(401);
-
-                    await acceptFriendRequest(recipent, from);
+                    await removeFriendFromUser(req);
                     res.sendStatus(200);
                 }
-                catch (exc:any) {
+                catch (exc: any) {
                     res.status(400).send(exc?.error_message ?? "Unknown error...");
                 }
             });
@@ -457,13 +450,7 @@ export default config({
                     if (!req.query.name)
                         return res.sendStatus(400);
 
-                    const recipent = await getPlayerByName(req.query.name as string);
-                    const from = await authPlayer(req);
-
-                    if (!recipent || !from)
-                        return res.sendStatus(401);
-
-                    await sendFriendRequest(recipent, from);
+                    await requestFriendRequest(req);
                     res.sendStatus(200);
                 }
                 catch (exc:any) {
@@ -483,7 +470,8 @@ export default config({
                         joined: user.joined,
                         lastActive: user.lastActive,
                         points: user.points,
-                        isBanned: user.isBanned
+                        isBanned: user.isBanned,
+                        profileHue: user.profileHue ?? 250
                     });
                 }
                 catch (exc) {
@@ -526,7 +514,10 @@ export default config({
                         scores: coolScores,
                         isSelf: auth?.id == user.id,
                         isBanned: user.isBanned,
-                        bio: user.bio
+                        bio: user.bio,
+                        friends: await getUserFriends(user.friends),
+                        canFriend: !user.pendingFriends.includes(auth?.id),
+                        profileHue: user.profileHue
                     });
                 }
                 catch (exc) {
@@ -695,7 +686,8 @@ export default config({
                     res.send({
                         name: player.name,
                         points: player.points,
-                        isMod: player.isMod
+                        isMod: player.isMod,
+                        profileHue: player.profileHue ?? 250
                     });
                 }
                 catch (exc) {
@@ -816,11 +808,11 @@ export default config({
                 }
             });
 
-            app.post("/api/network/account/bio/set", checkLogin, async (req, res) => {
+            app.post("/api/network/account/profile/set", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
-                    await setPlayerBio(id, req.body.content);
+                    await setPlayerBio(id, req.body.bio, Number.parseInt(req.body.hue));
                     res.sendStatus(200);
                 }
                 catch (exc: any) {
@@ -893,12 +885,12 @@ export default config({
                         throw { error_message: 'Invalid Email Address!' }
 
                     if (req.body.code) {
-                        if (req.body.code != emailRegisterCodes.get(req.body.email)) {
-                            emailRegisterCodes.delete(req.body.email);
+                        if (req.body.code != emailCodes.get(req.body.email)) {
+                            emailCodes.delete(req.body.email);
                             throw { error_message: 'Invalid Code!' }
                         }
 
-                        emailRegisterCodes.delete(req.body.email);
+                        emailCodes.delete(req.body.email);
                         const user = await createUser(req.body.username, req.body.email);
                         res.json({
                             id: user.id,
@@ -908,7 +900,7 @@ export default config({
                     }
                     else {
                         const daCode = generateCode();
-                        tempSetCode(emailRegisterCodes, req.body.email, daCode);
+                        tempSetCode(req.body.email, daCode);
                         sendCodeMail(req.body.email, daCode, res);
                     }
                 }
@@ -930,12 +922,12 @@ export default config({
                         throw { error_message: 'Player with that email doesn\'t exist!' }
                     
                     if (req.body.code) {
-                        if (req.body.code != emailLoginCodes.get(req.body.email)) {
-                            emailLoginCodes.delete(req.body.email);
+                        if (req.body.code != emailCodes.get(req.body.email)) {
+                            emailCodes.delete(req.body.email);
                             throw { error_message: 'Invalid Code!' }
                         }
 
-                        emailLoginCodes.delete(req.body.email);
+                        emailCodes.delete(req.body.email);
                         res.json({
                             id: player.id,
                             token: await genAccessToken(player.id)
@@ -943,7 +935,7 @@ export default config({
                     }
                     else {
                         const daCode = generateCode();
-                        tempSetCode(emailLoginCodes, req.body.email, daCode);
+                        tempSetCode(req.body.email, daCode);
                         sendCodeMail(req.body.email, daCode, res);
                     }
                 }
@@ -967,18 +959,18 @@ export default config({
                         throw { error_message: 'Currently Set Email is Not Provided!' }
 
                     if (req.body.code) {
-                        if (req.body.code != emailSetCodes.get(req.body.email)) {
-                            emailSetCodes.delete(req.body.email);
+                        if (req.body.code != emailCodes.get(req.body.email)) {
+                            emailCodes.delete(req.body.email);
                             throw { error_message: 'Invalid Code!' }
                         }
                         
-                        emailSetCodes.delete(req.body.email);
+                        emailCodes.delete(req.body.email);
                         await setEmail(id, req.body.email);
                         res.sendStatus(200);
                     }
                     else {
                         const daCode = generateCode();
-                        tempSetCode(emailSetCodes, req.body.email, daCode);
+                        tempSetCode(req.body.email, daCode);
                         sendCodeMail(req.body.email, daCode, res);
                     }
                 }
@@ -996,18 +988,18 @@ export default config({
                     const player = await getPlayerByID(id);
 
                     if (req.query.code) {
-                        if (req.query.code != emailAccountDelete.get(player.email)) {
-                            emailAccountDelete.delete(player.email);
+                        if (req.query.code != emailCodes.get(player.email)) {
+                            emailCodes.delete(player.email);
                             throw { error_message: 'Invalid Code!' }
                         }
 
-                        emailAccountDelete.delete(player.email);
+                        emailCodes.delete(player.email);
                         await deleteUser(player.id);
                         res.sendStatus(200);
                     }
                     else {
                         const daCode = generateCode();
-                        tempSetCode(emailAccountDelete, player.email, daCode);
+                        tempSetCode(player.email, daCode);
                         sendCodeMail(player.email, daCode, res);
                     }
                 }
@@ -1021,7 +1013,9 @@ export default config({
         }
         else {
             app.all("/api/network*", async (req, res) => {
-                res.sendStatus(404);
+                res.status(400).json({
+                    error: "This server doesn't support the Network functionality!"
+                });
             });
         }
 
@@ -1168,11 +1162,16 @@ export async function sendCodeMail(email:string, code:string, res?:any) {
         });
 }
 
-export function tempSetCode(map:Map<String, String>, email:string, code:string) {
-    map.set(email, code);
-    setInterval(() => {
-        map.delete(email);
-    }, 1000 * 60 * 10)
+export function tempSetCode(email:string, code:string) {
+    if (emailCodeTimers.has(email)) {
+        clearInterval(emailCodeTimers.get(email));
+    }
+
+    emailCodes.set(email, code);
+    
+    emailCodeTimers.set(email, setInterval(() => {
+        emailCodes.delete(email);
+    }, 1000 * 60 * 10));
 }
 
 export function generateCode() {

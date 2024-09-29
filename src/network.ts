@@ -399,21 +399,28 @@ export async function grantPlayerMod(id: string) {
     }));
 }
 
-export async function setPlayerBio(id: string, bio: string) {
+export async function setPlayerBio(id: string, bio: string, hue: number) {
     if (bio.length > 1500) {
         return null;
     }
+
+    if (hue > 360)
+        hue = 360;
+    if (hue < 0)
+        hue = 0;
 
     const sanitizedHtml = sanitizeHtml(bio);
 
     return (await prisma.user.update({
         data: {
-            bio: sanitizedHtml
+            bio: sanitizedHtml,
+            profileHue: hue
         },
         where: {
             id: id
         }
     }));
+
 }
 
 export async function getPlayerByName(name: string) {
@@ -489,7 +496,8 @@ export async function pingPlayer(id: string) {
                 isMod: true,
                 joined: true,
                 lastActive: true,
-                isBanned: true
+                isBanned: true,
+                profileHue: true
             }
         }));
     }
@@ -637,61 +645,120 @@ export async function searchUsers(query: string) {
     }
 }
 
-export async function acceptFriendRequest(recipent: any, from: any) {
-    if (recipent.id == from.id)
-        throw { error_message: "bro" }
+export async function removeFriendFromUser(req: any) {
+    const me = await getPlayerByName(req.query.name as string);
+    const remove = await authPlayer(req);
 
-    if (!(recipent.pendingFriends as Array<string>).includes(from.id) || (recipent.friends as Array<string>).includes(from.id))
-        throw { error_message: "No one to accept!" }
+    if (!me || !remove)
+        throw { error_message: "Player not found" }
 
-    let newPending = recipent.pendingFriends;
-    newPending.splice(newPending.indexOf(from.id, 0), 1);
+    if (!me.friends.includes(remove.id)) 
+        throw { error_message: "Not on friend list" }
 
-    notifyFromPlayer(from.id, recipent.name, "friend_accepted");
+    let meFriends = me.friends;
+    meFriends.splice(meFriends.indexOf(remove.id, 0), 1);
+    
+    let removedFriends = remove.friends;
+    removedFriends.splice(removedFriends.indexOf(me.id, 0), 1);
 
     await prisma.user.update({
-        data: {
-            friends: {
-                push: recipent.id
-            }
-        },
         where: {
-            id: from.id
+            id: me.id
+        },
+        data: {
+            friends: meFriends
         }
-    });
+    })
 
-    return (await prisma.user.update({
-        data: {
-            pendingFriends: newPending,
-            friends: {
-                push: from.id
-            }
-        },
+    await prisma.user.update({
         where: {
-            id: recipent.id
+            id: remove.id
+        },
+        data: {
+            friends: removedFriends
         }
-    }));
+    })
 }
 
-export async function sendFriendRequest(recipent: any, from: any) {
-    if (recipent.id == from.id)
+export async function requestFriendRequest(req:any) {
+    // to and from is confusing for me sorry lol
+    const me = await getPlayerByName(req.query.name as string);
+    const want = await authPlayer(req);
+
+    if (!me || !want)
+        throw { error_message: "Player not found" }
+    
+    if (me.id == want.id)
         throw { error_message: "bro" }
 
-    if ((recipent.pendingFriends as Array<string>).includes(from.id) || (recipent.friends as Array<string>).includes(from.id))
-        throw { error_message: "Already sent!" }
+    if (want.friends.includes(me.id)) {
+        throw { error_message: "Already frens :)" }
+    }
 
-    notifyFromPlayer(recipent.id, from.name, "friend_request");
-    
-    return (await prisma.user.update({
-        data: {
-            pendingFriends: {
-                push: from.id
+    if (me.pendingFriends.includes(want.id)) {
+        //accept invite, we frens now
+        //https://youtu.be/b858s3ktOsU?si=2nNqP3_VQmqBcVwQ&t=227
+
+        let newMePending = me.pendingFriends;
+        newMePending.splice(newMePending.indexOf(want.id, 0), 1);
+        
+        await prisma.user.update({
+            data: {
+                pendingFriends: newMePending,
+                friends: {
+                    push: want.id
+                }
+            },
+            where: {
+                id: me.id
             }
-        },
-        where: {
-            id: recipent.id
-        }
-    }));
+        });
+
+        let newPending = want.pendingFriends;
+        newPending.splice(newPending.indexOf(me.id, 0), 1);
+
+        await prisma.user.update({
+            data: {
+                pendingFriends: newPending,
+                friends: {
+                    push: me.id
+                }
+            },
+            where: {
+                id: want.id
+            }
+        });
+
+        // notifyFromPlayer(want.id, me.name, "friend_accepted");
+
+        return;
+    }
+
+    if (!want.pendingFriends.includes(me.id)) {
+        //send invite
+
+        //notifyFromPlayer(want.id, me.name, "friend_request");
+
+        return await prisma.user.update({
+            data: {
+                pendingFriends: {
+                    push: me.id
+                }
+            },
+            where: {
+                id: want.id
+            }
+        });
+    }
+}
+
+export async function getUserFriends(friends: Array<string>) {
+    let value:Array<string> = [];
+    for (const friendID of friends) {
+        const friend = await getPlayerByID(friendID);
+        value.push(friend.name);
+    }
+    return value;
 }
 
 export async function deleteUser(id:string):Promise<any> {
