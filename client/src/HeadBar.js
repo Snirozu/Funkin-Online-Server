@@ -45,6 +45,7 @@ function HeadBar() {
                 <a href="/">HOME</a>
                 <a href="/network">NETWORK</a>
                 <a href="/stats">STATS</a>
+                <a href="/friends">FRIENDS</a>
                 {loading ? (
                     <></>
                 ) : error ? (

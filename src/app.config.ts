@@ -696,12 +696,17 @@ export default config({
                 }
             });
 
-            app.get("/api/network/account/friends/pending", checkLogin, async (req, res) => {
+            app.get("/api/network/account/friends", checkLogin, async (req, res) => {
                 try {
                     const [id, token] = getIDToken(req);
-                    const pending = await getUserPendingFriends(id);
+                    const player = await getPlayerByID(id);
+                    const friends = await getUserFriends(player.friends);
+                    const pending = await getUserFriends(player.pendingFriends);
 
-                    res.send(pending);
+                    res.send({
+                        friends: friends,
+                        pending: pending
+                    });
                 }
                 catch (exc) {
                     console.error(exc);

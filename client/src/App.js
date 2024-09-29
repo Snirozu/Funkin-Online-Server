@@ -7,6 +7,7 @@ import HeadBar from './HeadBar';
 import Song from './routes/Song';
 import Network from './routes/Network';
 import Stats from './routes/Stats';
+import FriendArea from './routes/FriendArea';
 
 const App = () => {
   useEffect(() => {
@@ -22,6 +23,7 @@ const App = () => {
         <Route path="/song/:song" element={<Song />} />
         <Route path="/network" element={<Network />} />
         <Route path="/stats" element={<Stats />} />
+        <Route path="/friends" element={<FriendArea />} />
       </Routes>
     </div>
   );

@@ -761,17 +761,6 @@ export async function getUserFriends(friends: Array<string>) {
     return value;
 }
 
-export async function getUserPendingFriends(id:string) {
-    const player = await getPlayerByID(id);
-
-    let value:Array<string> = [];
-    for (const friendID of player.pendingFriends) {
-        const friend = await getPlayerByID(friendID);
-        value.push(friend.name);
-    }
-    return value;
-}
-
 export async function deleteUser(id:string):Promise<any> {
     if (!id) {
         return null;

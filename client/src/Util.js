@@ -15,7 +15,7 @@ export function ordinalNum(num) {
 }
 
 export function getHost() {
-    //return "https://funkin.sniro.boo";
+    return "https://funkin.sniro.boo";
     if (window.location.hostname === "localhost") {
         return "http://localhost:2567";
     }
