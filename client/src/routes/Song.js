@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { getHost, ordinalNum, timeAgo } from "../Util";
 import AvatarImg from "../AvatarImg";
+import { Icon } from "@iconify/react/dist/iconify.js";
 
 function Song() {
     const { song } = useParams();
@@ -69,6 +70,17 @@ function renderScores(song, scores) {
             </td>
             <td>
                 <a href={"/user/" + encodeURIComponent(score.player)}> {score.player} </a>
+                <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/score/replay?id=" + score.id}>
+                    <Icon width={20} icon="mdi:eye" />
+                </a>
+                {
+                    (score.modURL && (score.modURL + '').startsWith('https://')) ?
+                        <a title='View Mod URL' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={score.modURL}>
+                            <Icon width={20} icon="material-symbols:dataset-linked-outline-rounded" />
+                        </a>
+                        :
+                        <></>
+                }
             </td>
             <td>
                 {score.score}

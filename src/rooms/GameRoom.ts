@@ -29,6 +29,9 @@ export class GameRoom extends Room<RoomState> {
     this.setState(new RoomState());
     this.autoDispose = false; //setting this to true may probably crash the room?
 
+    if (process.env.DEBUG == "true")
+      console.log("new room created: " + this.roomId);
+
     var daGameplaySettings = options.gameplaySettings;
     if (daGameplaySettings) {
       for (const key in daGameplaySettings) {
@@ -461,11 +464,15 @@ export class GameRoom extends Room<RoomState> {
     this.clock.setInterval(() => {
       this.clientsPingas.forEach((pingas, client) => {
         if (Date.now() - pingas > 1000 * 30) {
+          if (process.env.DEBUG == "true")
+            console.log(client.sessionId + " wasn't active on " + this.roomId + "! disposing... ");
           client.leave();
         }
       });
       
       if (this.clients.length < 1) {
+        if (process.env.DEBUG == "true")
+          console.log(this.roomId + " has no clients! disposing... ");
         this.disconnect();
       }
     }, 1000 * 10);
@@ -546,6 +553,9 @@ export class GameRoom extends Room<RoomState> {
       return;
     }
 
+    if (process.env.DEBUG == "true")
+      console.log(client.sessionId + " has joined on " + this.roomId);
+
     if (this.clients.length == 1) {
       this.ownerUUID = client.sessionId;
       this.metadata.points = playerPoints;
@@ -610,10 +620,21 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onLeave (client: Client, consented: boolean) {
+    if (process.env.DEBUG == "true")
+      console.log(client.sessionId + " has left " + this.roomId + " " + (consented ? 'with consent' : 'without consent'));
+
     try {
-      await this.allowReconnection(client, consented ? 10 : 20);
+      if (process.env.DEBUG == "true")
+        console.log(client.sessionId + " is allowed to reconnect with token " + client._reconnectionToken + " " + this.roomId);
+
+      await this.allowReconnection(client, consented ? 0 : 20);
+      if (process.env.DEBUG == "true")
+        console.log(client.sessionId + " has reconnected on " + this.roomId);
     }
     catch (err) {
+      if (process.env.DEBUG == "true")
+        console.log(client.sessionId + " has failed to reconnect on " + this.roomId);
+
       return this.removePlayer(client);
     }
   }
@@ -642,6 +663,9 @@ export class GameRoom extends Room<RoomState> {
   }
 
   async onDispose() {
+    if (process.env.DEBUG == "true")
+      console.log("room has been disposed: " + this.roomId);
+
     for (const client of this.clients) {
       this.removePlayer(client);
     }

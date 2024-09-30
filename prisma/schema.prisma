@@ -54,6 +54,7 @@ model Score {
   strum    Int
 
   submitted DateTime @default(now())
+  modURL String?
 
   songRe Song? @relation(fields: [songId], references: [id])
   userRe User? @relation(fields: [player], references: [id])

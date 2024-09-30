@@ -36,7 +36,8 @@ function User() {
                 accuracy: 0,
                 points: 0,
                 submitted: 0,
-                id: ''
+                id: '',
+                modURL: ''
             }
         ]
     });
@@ -129,11 +130,19 @@ function User() {
                                 <button title='Remove Score' className='SvgNoButton' style={{ float: 'right', color: 'red' }} onClick={() => removeScore(score.id)}>
                                     <Icon width={20} icon="mdi:trash-outline" />
                                 </button>
-                                <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/score/replay?id=" + score.id}>
-                                    <Icon width={20} icon="mdi:eye" />
-                                </a>
                             </>
                         : <></>
+                    }
+                    <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/score/replay?id=" + score.id}>
+                        <Icon width={20} icon="mdi:eye" />
+                    </a>
+                    {
+                        (score.modURL && (score.modURL + '').startsWith('https://') ) ?
+                            <a title='View Mod URL' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={score.modURL}>
+                                <Icon width={20} icon="material-symbols:dataset-linked-outline-rounded" />
+                            </a>
+                        :
+                        <></>
                     }
                 </td>
                 <td>

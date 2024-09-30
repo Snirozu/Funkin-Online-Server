@@ -45,13 +45,13 @@ function HeadBar() {
                 <a href="/">HOME</a>
                 <a href="/network">NETWORK</a>
                 <a href="/stats">STATS</a>
-                <a href="/friends">FRIENDS</a>
                 {loading ? (
                     <></>
                 ) : error ? (
                     <></>
                 ) : (
                     <>
+                        <a href="/friends">FRIENDS</a>
                         <a className='BarProfile' id='HeadProfile' style={{backgroundColor: headProfileColor(data.profileHue)}} href={"/user/" + encodeURIComponent(data.name)}>
                             <AvatarImg className='SmallerAvatar' src={getHost() + "/api/avatar/" + btoa(data.name)}/>
                             <div className='BarProfileText'>

@@ -140,7 +140,8 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
             shits: replay.shits,
             sicks: replay.sicks,
             misses: replay.misses,
-            strum: daStrum
+            strum: daStrum,
+            modURL: replay.mod_url
         }
     });
 
@@ -506,7 +507,7 @@ export async function pingPlayer(id: string) {
     }
 }
 
-export async function topScores(id: string, strum:number, page: number):Promise<Array<any>> {
+export async function topScores(id: string, strum:number, page: number) {
     try {
         return (await prisma.score.findMany({
             where: {
@@ -525,7 +526,8 @@ export async function topScores(id: string, strum:number, page: number):Promise<
                 player: true,
                 submitted: true,
                 id: true,
-                misses: true
+                misses: true,
+                modURL: true
             },
             take: 15,
             skip: 15 * page
@@ -570,7 +572,7 @@ export async function getScore(id: string) {
     }
 }
 
-export async function getScoresPlayer(id: string, page:number): Promise<any> {
+export async function getScoresPlayer(id: string, page:number) {
     try {
         return (await prisma.score.findMany({
             where: {
@@ -583,7 +585,8 @@ export async function getScoresPlayer(id: string, page:number): Promise<any> {
                 accuracy: true,
                 points: true,
                 strum: true,
-                id: true
+                id: true,
+                modURL: true
             },
             orderBy: {
                 points: "desc"
@@ -879,5 +882,6 @@ class ReplayData {
 
 	inputs: Array<Array<any>>;
 
-	version: number;
+    version: number;
+    mod_url: string;
 }

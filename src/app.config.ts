@@ -491,7 +491,7 @@ export default config({
                     let coolScores:any[] = [];
 
                     const scores = await getScoresPlayer(user.id, Number.parseInt(req.query.page as string ?? "0"));
-                    scores.forEach((score: any) => {
+                    scores.forEach(score => {
                         const songId = (score.songId as string).split('-');
                         songId.pop();
                         coolScores.push({
@@ -502,7 +502,8 @@ export default config({
                             accuracy: score.accuracy,
                             points: score.points,
                             submitted: score.submitted,
-                            id: score.id
+                            id: score.id,
+                            modURL: score.modURL
                         });
                     });
 
@@ -635,7 +636,7 @@ export default config({
                         return res.sendStatus(400);
 
                     const _top = await topScores(req.query.song as string, Number.parseInt(req.query.strum as string ?? "2"), Number.parseInt(req.query.page as string ?? "0"));
-                    const top:any[] = [];
+                    const top = [];
                     for (const score of _top) {
                         top.push({
                             score: score.score,
@@ -644,7 +645,8 @@ export default config({
                             player: (await getPlayerByID(score.player)).name,
                             submitted: score.submitted,
                             id: score.id,
-                            misses: score.misses
+                            misses: score.misses,
+                            modURL: score.modURL
                         });
                     }
                     res.send(top);
