@@ -16,9 +16,8 @@ export class GameRoom extends Room<RoomState> {
   LOBBY_CHANNEL = "$lobbiesChannel"
   IPS_CHANNEL = "$IPSChannel"
   chartHash:string = null;
-  clientsIP: Map<Client, string> = new Map<Client, string>();
-  clientsID: Map<Client, string> = new Map<Client, string>();
-  clientsPingas: Map<Client, number> = new Map<Client, number>();
+  clientsIP: Map<string, string> = new Map<string, string>(); // nvm don't use Client here, sessionId instead
+  clientsID: Map<string, string> = new Map<string, string>();
   ownerUUID:string = null;
   lastPingTime:number = null;
   networkOnly:boolean = false;
@@ -27,7 +26,7 @@ export class GameRoom extends Room<RoomState> {
     this.roomId = await this.generateRoomId();
     this.setPrivate();
     this.setState(new RoomState());
-    this.autoDispose = false; //setting this to true may probably crash the room?
+    this.autoDispose = true;
 
     if (process.env.DEBUG == "true")
       console.log("new room created: " + this.roomId);
@@ -307,8 +306,6 @@ export class GameRoom extends Room<RoomState> {
       else {
         this.state.player2.ping = daPing;
       }
-
-      this.clientsPingas.set(client, Date.now())
     });
 
     this.onMessage("requestEndSong", (client, message) => {
@@ -364,7 +361,7 @@ export class GameRoom extends Room<RoomState> {
     this.onMessage("updateFP", async (client, message) => {
       if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
 
-      const player = await getPlayerByID(this.clientsID.get(client));
+      const player = await getPlayerByID(this.clientsID.get(client.sessionId));
       if (!player)
         return;
       
@@ -460,22 +457,6 @@ export class GameRoom extends Room<RoomState> {
       this.lastPingTime = Date.now();
       this.broadcast("ping");
     }, 1000 * 3);
-
-    this.clock.setInterval(() => {
-      this.clientsPingas.forEach((pingas, client) => {
-        if (Date.now() - pingas > 1000 * 30) {
-          if (process.env.DEBUG == "true")
-            console.log(client.sessionId + " wasn't active on " + this.roomId + "! disposing... ");
-          client.leave();
-        }
-      });
-      
-      if (this.clients.length < 1) {
-        if (process.env.DEBUG == "true")
-          console.log(this.roomId + " has no clients! disposing... ");
-        this.disconnect();
-      }
-    }, 1000 * 10);
   }
 
   endSong() {
@@ -540,7 +521,7 @@ export class GameRoom extends Room<RoomState> {
         }
 
         isVerified = true;
-        this.clientsID.set(client, options.networkId);
+        this.clientsID.set(client.sessionId, options.networkId);
         Data.VERIFIED_PLAYING_PLAYERS.push(player.name);
         playerName = player.name;
         playerPoints = player.points;
@@ -650,10 +631,9 @@ export class GameRoom extends Room<RoomState> {
     
     this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
 
-    this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client))) - 1) + ""));
-    this.clientsIP.delete(client);
-    this.clientsID.delete(client);
-    this.clientsPingas.delete(client);
+    this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId))) - 1) + ""));
+    this.clientsIP.delete(client.sessionId);
+    this.clientsID.delete(client.sessionId);
     Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
 
     if (this.isOwner(client))
@@ -745,7 +725,7 @@ export class GameRoom extends Room<RoomState> {
     var ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);
     if (ipOccurs < 4) {
       await this.presence.hset(this.IPS_CHANNEL, requesterIP, (ipOccurs + 1) + "");
-      this.clientsIP.set(client, requesterIP);
+      this.clientsIP.set(client.sessionId, requesterIP);
       return true;
     }
     return false;
