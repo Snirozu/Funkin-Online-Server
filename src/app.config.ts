@@ -14,7 +14,7 @@ import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
 import { Data } from "./Data";
 import cors from 'cors';
-import express, { Router } from 'express';
+import express from 'express';
 import fileUpload, { UploadedFile } from "express-fileupload";
 import bodyParser from "body-parser";
 import { networkRoom, NetworkRoom } from "./rooms/NetworkRoom";
@@ -47,19 +47,18 @@ export default config({
     },
 
     initializeExpress: (app) => {
-        const router = express.Router();
 
-        router.use(bodyParser.json({
-            limit: '5mb',
+        app.use(bodyParser.json({
+            limit: '1mb',
             type: 'application/json'
         }));
-        router.use(bodyParser.urlencoded({
+        app.use(bodyParser.urlencoded({
             parameterLimit: 100000,
-            limit: '5mb',
+            limit: '1mb',
             extended: true
         }));
 
-        router.use(cors({
+        app.use(cors({
             origin: 'http://localhost:3000' //only allow from the debug server
         }));
 
