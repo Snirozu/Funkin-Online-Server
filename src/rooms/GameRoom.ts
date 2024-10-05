@@ -466,7 +466,10 @@ export class GameRoom extends Room<RoomState> {
         if (Date.now() - pingas > 1000 * 60) { // if the player wasnt active for 60 seconds
           if (process.env.DEBUG == "true")
             console.log(clientSusID + " wasn't active on " + this.roomId + "! disposing... ");
-          this.clients.getById(clientSusID).leave();
+
+          const kiclient = this.clients.getById(clientSusID);
+          if (kiclient)
+            kiclient.leave();
         }
       });
     }, 1000 * 60); //every minute
