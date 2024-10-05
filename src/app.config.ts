@@ -13,10 +13,8 @@ import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
 import { Data } from "./Data";
-import cors from 'cors';
 import express from 'express';
 import fileUpload, { UploadedFile } from "express-fileupload";
-import bodyParser from "body-parser";
 import { networkRoom, NetworkRoom } from "./rooms/NetworkRoom";
 import nodemailer from 'nodemailer';
 import * as crypto from "crypto";
@@ -47,20 +45,6 @@ export default config({
     },
 
     initializeExpress: (app) => {
-
-        app.use(bodyParser.json({
-            limit: '1mb',
-            type: 'application/json'
-        }));
-        app.use(bodyParser.urlencoded({
-            parameterLimit: 100000,
-            limit: '1mb',
-            extended: true
-        }));
-
-        app.use(cors({
-            origin: 'http://localhost:3000' //only allow from the debug server
-        }));
 
         app.use(fileUpload({}));
         app.use(cookieParser());
