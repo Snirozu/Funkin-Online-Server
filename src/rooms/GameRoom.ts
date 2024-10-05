@@ -18,6 +18,7 @@ export class GameRoom extends Room<RoomState> {
   chartHash:string = null;
   clientsIP: Map<string, string> = new Map<string, string>(); // nvm don't use Client here, sessionId instead
   clientsID: Map<string, string> = new Map<string, string>();
+  clientsPingas: Map<string, number> = new Map<string, number>();
   ownerUUID:string = null;
   lastPingTime:number = null;
   networkOnly:boolean = false;
@@ -306,6 +307,8 @@ export class GameRoom extends Room<RoomState> {
       else {
         this.state.player2.ping = daPing;
       }
+
+      this.clientsPingas.set(client.sessionId, Date.now())
     });
 
     this.onMessage("requestEndSong", (client, message) => {
@@ -456,7 +459,17 @@ export class GameRoom extends Room<RoomState> {
     this.clock.setInterval(() => {
       this.lastPingTime = Date.now();
       this.broadcast("ping");
-    }, 1000 * 3);
+    }, 1000 * 3); //every 3 seconds
+
+    this.clock.setInterval(() => {
+      this.clientsPingas.forEach((pingas, clientSusID) => {
+        if (Date.now() - pingas > 1000 * 60) { // if the player wasnt active for 60 seconds
+          if (process.env.DEBUG == "true")
+            console.log(clientSusID + " wasn't active on " + this.roomId + "! disposing... ");
+          this.clients.getById(clientSusID).leave();
+        }
+      });
+    }, 1000 * 60); //every minute
   }
 
   endSong() {
@@ -634,6 +647,7 @@ export class GameRoom extends Room<RoomState> {
     this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId))) - 1) + ""));
     this.clientsIP.delete(client.sessionId);
     this.clientsID.delete(client.sessionId);
+    this.clientsPingas.delete(client.sessionId);
     Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
 
     if (this.isOwner(client))
