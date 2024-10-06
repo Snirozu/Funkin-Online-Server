@@ -1106,8 +1106,9 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 description = player.points + "FP";
                 if (fs.existsSync(process.cwd() + '/database/avatars'))
                     image = "https://" + req.hostname + "/api/avatar/" + btoa(player.name);
-                else
-                    image = 'https://kickstarter.funkin.me/static/assets/img/stickers/bf1.png';
+                else 
+                    image = "https://raw.githubusercontent.com/FunkinCrew/funkin.assets/a6786b4f37e352356dec86576442a169b01f4d43/shared/images/transitionSwag/stickers-set-1/bfSticker1.png";
+                    //image = 'https://kickstarter.funkin.me/static/assets/img/stickers/bf1.png';
                 break;
             case "song":
                 const song = params[1].split('-');
