@@ -150,6 +150,12 @@ a:hover {
   line-height: 30px;
 }
 
+.SmallText {
+  font-size: 14px;
+  line-height: 10px;
+  color: #808899;
+}
+
 .CumImage {
   max-height: 200px;
   max-width: 100%;
@@ -228,6 +234,28 @@ a:hover {
 
   margin-left: auto;
   margin-right: auto;
+}
+
+.Comments {
+  padding-top: 15px;
+}
+
+.Comment {
+  background-color: #202329;
+  max-width: 80%;
+  display: flex;
+  color: white;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 25px;
+  overflow: auto;
+
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.Comment * {
+  padding: 4px;
 }
 
 .Content div {

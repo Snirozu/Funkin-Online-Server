@@ -12,15 +12,19 @@ function Song() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [tablePage, setTablePage] = useState(0);
 
-    const fetchData = async () => {
+    const fetchData = async (page) => {
         try {
-            const response = await fetch(getHost() + '/api/network/top/song?song=' + song + "&strum=" + searchParams.get("strum"));
+            setLoading(true);
+            page = page ?? 0;
+            const response = await fetch(getHost() + '/api/network/top/song?song=' + song + "&strum=" + searchParams.get("strum") + "&page=" + page);
             if (!response.ok) {
                 throw new Error('Song not found.');
             }
             const data = await response.json();
             console.log(data);
+            setTablePage(page);
             setData(data);
             setLoading(false);
         } catch (error) {
@@ -46,27 +50,41 @@ function Song() {
                         <h1>{prettySong[0]}</h1>
                         <p>Difficulty: {prettySong[1]}</p>
                         {searchParams.get("strum") == 1 ? <span>Opponent Side</span> : <></>}
-                        {renderScores(song, data)}
+                        {renderScores(song, data, tablePage)}
+                        <br></br>
+                        {(tablePage > 0) ?
+                            <button className='SvgButton' style={{float: 'left'}} onClick={() => {
+                                fetchData(tablePage - 1);
+                            }}> <Icon width={20} icon="mdi:arrow-left" /> </button>
+                        : <></>}
+                        
+                        {(data.length === 15) ?
+                        <button className='SvgButton' style={{float: 'right'}} onClick={() => {
+                            fetchData(tablePage + 1);
+                        }}> <Icon width={20} icon="mdi:arrow-right" /> </button>
+                        : <></>}
                     </>
                 )}
+                <br></br>
+                <RenderComments songId={song}></RenderComments>
             </div>
         </div>
     )
 }
 
-function renderScores(song, scores) {
+function renderScores(song, scores, page) {
     var children = [];
 
     let i = 1;
     let leader = null; 
     for (const score of scores) {
-        if (i === 1) {
+        if (i === 1 && page === 0) {
             leader = score;
         }
         //const date = new Date(Date.parse(score.submitted));
         children.push(<tr key={score.submitted}>
             <td>
-                {ordinalNum(i)}
+                {ordinalNum(i + page * 15)}
             </td>
             <td>
                 <a href={"/user/" + encodeURIComponent(score.player)}> {score.player} </a>
@@ -99,17 +117,19 @@ function renderScores(song, scores) {
     }
 
     return (<>
-        <a href={"/user/" + encodeURIComponent(leader.player)} className='LeaderContainer'>
-            <AvatarImg src={getHost() + "/api/avatar/" + btoa(leader.player)}></AvatarImg>
-            <div className="FlexBox">
-                <br></br>
-                <span className="BigText">1st</span><span className="BiggerText"> {leader.player} </span>
-                <br></br><span>Score: {leader.score}</span>
-                <span>{leader.points}FP</span>
-                <br></br><span>Accuracy: {leader.accuracy}%</span>
-                <br></br><span>{timeAgo.format(Date.parse(leader.submitted))}</span>
-            </div>
-        </a>
+        {leader ?
+            <a href={"/user/" + encodeURIComponent(leader.player)} className='LeaderContainer'>
+                <AvatarImg src={getHost() + "/api/avatar/" + btoa(leader.player)}></AvatarImg>
+                <div className="FlexBox">
+                    <br></br>
+                    <span className="BigText">1st</span><span className="BiggerText"> {leader.player} </span>
+                    <br></br><span>Score: {leader.score}</span>
+                    <span>{leader.points}FP</span>
+                    <br></br><span>Accuracy: {leader.accuracy}%</span>
+                    <br></br><span>{timeAgo.format(Date.parse(leader.submitted))}</span>
+                </div>
+            </a>
+        : <></>}
         <table>
             <tbody>
                 <tr>
@@ -124,6 +144,70 @@ function renderScores(song, scores) {
             </tbody>
         </table>
     </>);
+}
+
+function RenderComments(props) {
+    const [comments, setComments] = useState([{
+        player: String,
+        content: String,
+        at: Number,
+    }]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const fetchComments = async () => {
+        try {
+            const response = await fetch(getHost() + '/api/network/song/comments?id=' + props.songId);
+            if (!response.ok) {
+                throw new Error('Could not load song comments.');
+            }
+            const data = await response.json();
+            setComments(data);
+            setLoading(false);
+        } catch (error) {
+            setError(error.message);
+            setLoading(false);
+        }
+    };
+    useEffect(() => {
+        fetchComments();
+    }, []);
+
+    if (loading)
+        return (<p>Loading...</p>)
+    if (error)
+        return (<p>Error: {error}</p>);
+
+    var commentsBody = [];
+    
+    for (const comment of comments) {
+        const at = Math.abs(Math.floor(comment.at / 1000));
+        let seconds = Math.floor(at / 60);
+        let milis = Math.floor(at % 60) + "";
+        if (milis.length == 1)
+            milis += "0";
+        commentsBody.push(
+            <div className="Comment">
+                <AvatarImg className="SmallerAvatar" src={getHost() + "/api/avatar/" + btoa(comment.player)}></AvatarImg>
+                <div>
+                    <a href={"/user/" + comment.player}>{comment.player}</a> <br></br>
+                    <span>{comment.content}</span> <br></br>
+                    <span className="SmallText"> at {seconds}:{milis}</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (commentsBody.length <= 0) {
+        return <></>;
+    }
+
+    return (
+        <div className="Comments">
+            <p> Song Comments: </p>
+            {commentsBody}
+        </div>
+    );
 }
 
 export default Song;

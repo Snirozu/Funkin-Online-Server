@@ -605,6 +605,7 @@ export default config({
                     if (!req.query.id)
                         return res.sendStatus(400);
 
+                    res.setHeader('content-type', 'application/json');
                     res.send((await getScore(req.query.id as string)).replayData);
                 }
                 catch (exc) {

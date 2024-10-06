@@ -45,10 +45,12 @@ function User() {
     const [error, setError] = useState(null);
     const [editBioMode, setBioEditMode] = useState(null);
     const [queryParams] = useSearchParams();
+    const [tablePage, setTablePage] = useState(0);
 
-    const fetchData = async () => {
+    const fetchData = async (page) => {
         try {
-            const response = await axios.get(getHost() + '/api/network/user/details?name=' + name, {
+            page = page ?? 0;
+            const response = await axios.get(getHost() + '/api/network/user/details?name=' + name + "&page=" + page, {
                 headers: {
                     'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
                 }
@@ -56,6 +58,7 @@ function User() {
             if (response.status !== 200) {
                 throw new Error('User not found.');
             }
+            setTablePage(page);
             setData(response.data);
             setLoading(false);
         } catch (error) {
@@ -172,9 +175,9 @@ function User() {
         );
     }
 
-    let index = 0;
+    let _pooindex = 0;
     function onColorChange(e) {
-        index = 0;
+        _pooindex = 0;
 
         const color = e?.target?.value ?? data.profileHue;
 
@@ -187,8 +190,12 @@ function User() {
             }
 
             if (ele.style && ele.tagName === "TR") {
-                index++;
-                ele.style.backgroundColor = textProfileRow(color, index % 2);
+                _pooindex++;
+                ele.style.backgroundColor = textProfileRow(color, _pooindex % 2);
+            }
+
+            if (ele.style && ele.tagName === "TABLE") {
+                ele.style.backgroundColor = textProfileRow(color);
             }
 
             if (ele.childNodes)
@@ -307,8 +314,22 @@ function User() {
                             <>
                                 <center> <b> Best Performances </b> </center>
                                 {renderScores(data.scores, queryParams.get('admin'))}
+                                <br></br>
+                                {(tablePage > 0) ?
+                                    <button className='SvgButton' style={{float: 'left'}} onClick={() => {
+                                        fetchData(tablePage - 1);
+                                    }}> <Icon width={20} icon="mdi:arrow-left" /> </button>
+                                : <></>}
+                                
+                                {(data.scores.length === 15) ?
+                                <button className='SvgButton' style={{float: 'right'}} onClick={() => {
+                                    fetchData(tablePage + 1);
+                                }}> <Icon width={20} icon="mdi:arrow-right" /> </button>
+                                : <></>}
                             </>
-                        ) : <></>}
+                        ) : 
+                            (tablePage > 0) ? fetchData(0) : <></>
+                        }
                     </div>
                 </>
             )}
