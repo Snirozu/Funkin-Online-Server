@@ -1079,7 +1079,14 @@ export default config({
                         refreshPlayers.push(pName);
                     }
                 };
+                let refreshPlayings:string[] = [];
+                for (const pName of Data.VERIFIED_PLAYING_PLAYERS) {
+                    if (refreshPlayers.includes(pName)) {
+                        refreshPlayings.push(pName);
+                    }
+                }
                 Data.ONLINE_PLAYERS = refreshPlayers;
+                Data.VERIFIED_PLAYING_PLAYERS = refreshPlayings;
             }, 1000 * 60 * 2);
         }
     },
