@@ -19,7 +19,7 @@ let service = "" +
 "WorkingDirectory = " + __dirname + "\n" +
 "ExecStart = npm start\n" +
 "[Install]\n" +
-"WantedBy = multi - user.target"
+"WantedBy = multi-user.target"
 ;
 
 fs.writeFileSync('/etc/systemd/system/funkin-online.service', service, function (err) {
@@ -28,5 +28,6 @@ fs.writeFileSync('/etc/systemd/system/funkin-online.service', service, function 
     try {
         cp.execSync("systemctl stop funkin-online.service");
     } catch (exc) {}
+    cp.execSync("systemctl enable funkin-online.service");
     cp.execSync("systemctl start funkin-online.service");
 });
