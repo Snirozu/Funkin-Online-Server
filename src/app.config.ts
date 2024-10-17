@@ -1101,7 +1101,12 @@ export default config({
 
 async function showIndex(req: { hostname: string; params: string[]; }, res: { send: (arg0: string) => void; sendStatus: (arg0: number) => void; }) {
     try {
-        let response = fs.readFileSync(process.cwd() + '/client/build/index.html', { encoding: 'utf8', flag: 'r' }).toString();
+        const indexPath = process.cwd() + '/client/build/index.html';
+        if (!fs.existsSync(indexPath)) {
+            res.sendStatus(200);
+            return;
+        }
+        let response = fs.readFileSync(indexPath, { encoding: 'utf8', flag: 'r' }).toString();
         let title = "Psych Online";
         let description = "The FNF Multiplayer mod based on Psych Engine!";
         let image = "https://" + req.hostname + "/fingerthumb.png";
