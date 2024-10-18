@@ -594,7 +594,7 @@ export default config({
                             });
                         }
                     };
-                    return jsonRooms;
+                    res.send(jsonRooms);
                 }
                 catch (exc) {
                     res.sendStatus(500);
