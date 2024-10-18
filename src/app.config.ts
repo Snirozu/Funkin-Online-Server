@@ -575,6 +575,32 @@ export default config({
                 }
             });
 
+            app.get("/api/network/admin/players", checkLogin, async (req, res) => {
+                try {
+                    const reqPlayer = await authPlayer(req);
+                    if (!reqPlayer || !reqPlayer.isMod)
+                        return res.sendStatus(403);
+
+                    let jsonRooms = {
+                        rooms: [] as any[],
+                        verified_playing: Data.VERIFIED_PLAYING_PLAYERS
+                    };
+                    for (const room of await matchMaker.query()) {
+                        if (room.roomId != networkRoom.roomId) {
+                            jsonRooms.rooms.push({
+                                id: room.roomId,
+                                meta: room.metadata,
+                                clients: room.clients
+                            });
+                        }
+                    };
+                    return jsonRooms;
+                }
+                catch (exc) {
+                    res.sendStatus(500);
+                }
+            });
+
             app.get("/api/network/song/comments", async (req, res) => {
                 try {
                     if (!req.query.id)
