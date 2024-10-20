@@ -535,7 +535,7 @@ export class GameRoom extends Room<RoomState> {
       });
 
       this.clientsDinner.forEach((pingas, clientSusID) => {
-        if (Date.now() - pingas > 1000 * 60 * 10) { // if the player wasnt active for 10 minutes
+        if (Date.now() - pingas > 1000 * 60 * 20) { // if the player wasnt active for 20 minutes
           if (process.env.DEBUG == "true")
             console.log(clientSusID + " wasn't active on " + this.roomId + "! disposing... ");
 
