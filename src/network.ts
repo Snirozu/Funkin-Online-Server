@@ -118,8 +118,13 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     try {
         leaderboardScore = (await prisma.score.findFirstOrThrow({ where: { songId: songId, player: submitter.id, strum: daStrum } }))
     } catch (exc) {}
+
     if (songId && leaderboardScore) {
-        if (leaderboardScore.score > replay.score && leaderboardScore.points > replay.points)
+        if (!(
+            replay.score > leaderboardScore.score ||
+            replay.points > leaderboardScore.points ||
+            replay.accuracy > leaderboardScore.accuracy
+        ))
             return { song: song.id }
 
         await prisma.score.delete({
