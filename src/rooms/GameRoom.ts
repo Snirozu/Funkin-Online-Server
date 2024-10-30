@@ -731,6 +731,8 @@ export class GameRoom extends Room<RoomState> {
     Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
 
     client.leave();
+    delete this.reservedSeats[client.sessionId];
+    delete this.reservedSeatTimeouts[client.sessionId];
     if (this.isOwner(client))
         this.disconnect(4000);
     else
