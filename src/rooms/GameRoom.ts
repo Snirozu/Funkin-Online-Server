@@ -505,7 +505,7 @@ export class GameRoom extends Room<RoomState> {
           if (!this.isOwner(client) || !this.clients.at(1) || this.clients.at(1) == client) {
             return;
           }
-          this.clients.at(1).leave(4100);
+          this.removePlayer(this.clients.at(1));
           break;
       }
     });
@@ -530,7 +530,7 @@ export class GameRoom extends Room<RoomState> {
 
           const kiclient = this.clients.getById(clientSusID);
           if (kiclient)
-            kiclient.leave();
+            this.removePlayer(kiclient);
         }
       });
 
@@ -541,7 +541,7 @@ export class GameRoom extends Room<RoomState> {
 
           const kiclient = this.clients.getById(clientSusID);
           if (kiclient)
-            kiclient.leave();
+            this.removePlayer(kiclient);
         }
       });
     }, 1000 * 60); //every minute
@@ -586,6 +586,11 @@ export class GameRoom extends Room<RoomState> {
         Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
     }
 
+    if (!this.ownerUUID)
+      this.ownerUUID = client.sessionId;
+    this.clientsPingas.set(client.sessionId, Date.now());
+    this.keepAliveClient(client);
+
     return true;
   }
 
@@ -597,14 +602,14 @@ export class GameRoom extends Room<RoomState> {
     if (options.networkId && options.networkToken && player) {
       if (player.isBanned) {
         client.error(418, "get fucked lmao");
-        client.leave();
+        this.removePlayer(client);
         return;
       }
 
       jwt.verify(options.networkToken, player.secret as string, (err: any, user: any) => {
         if (err) {
           client.error(401, "Couldn't authorize to the network!");
-          client.leave();
+          this.removePlayer(client);
           return;
         }
 
@@ -618,7 +623,7 @@ export class GameRoom extends Room<RoomState> {
 
     if (!isVerified && this.networkOnly) {
       client.error(400, "Only Registered Network players can join!");
-      client.leave();
+      this.removePlayer(client);
       return;
     }
 
@@ -626,7 +631,6 @@ export class GameRoom extends Room<RoomState> {
       console.log(client.sessionId + " has joined on " + this.roomId);
 
     if (this.clients.length == 1) {
-      this.ownerUUID = client.sessionId;
       this.metadata.points = playerPoints;
       this.metadata.verified = isVerified;
       
@@ -678,9 +682,6 @@ export class GameRoom extends Room<RoomState> {
     //   this.state.player3.name = options.name;
     // }
 
-    this.clientsPingas.set(client.sessionId, Date.now());
-    this.keepAliveClient(client);
-
     this.broadcast("log", this.getStatePlayer(client).name + " has joined the room!", { afterNextPatch: true });
 
     client.send("checkChart", "", { afterNextPatch: true });
@@ -719,16 +720,17 @@ export class GameRoom extends Room<RoomState> {
       this.state.player1.isReady = false;
       this.state.player2.isReady = false;
     }
-    
-    this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
 
     this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId))) - 1) + ""));
     this.clientsIP.delete(client.sessionId);
     this.clientsID.delete(client.sessionId);
     this.clientsPingas.delete(client.sessionId);
     this.clientsDinner.delete(client.sessionId);
+
+    this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
     Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
 
+    client.leave();
     if (this.isOwner(client))
         this.disconnect(4000);
     else
