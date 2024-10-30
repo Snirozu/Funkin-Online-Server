@@ -700,7 +700,7 @@ export class GameRoom extends Room<RoomState> {
       if (process.env.DEBUG == "true")
         console.log(client.sessionId + " is allowed to reconnect with token " + client._reconnectionToken + " " + this.roomId);
 
-      await this.allowReconnection(client, consented ? 0 : 20);
+      await this.allowReconnection(client, !consented && this.clients.includes(client) ? 20 : 0);
       if (process.env.DEBUG == "true")
         console.log(client.sessionId + " has reconnected on " + this.roomId);
     }
@@ -730,10 +730,10 @@ export class GameRoom extends Room<RoomState> {
     this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
     Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
 
+    this.clients.delete(client);
     client.leave();
-    delete this.reservedSeats[client.sessionId];
-    delete this.reservedSeatTimeouts[client.sessionId];
-    if (this.isOwner(client))
+
+    if (this.clients.length < 1 || this.isOwner(client))
         this.disconnect(4000);
     else
         this.state.player2 = new Player();
