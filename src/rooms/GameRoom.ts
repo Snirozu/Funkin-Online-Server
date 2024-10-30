@@ -698,7 +698,7 @@ export class GameRoom extends Room<RoomState> {
 
     try {
       if (process.env.DEBUG == "true")
-        console.log(client.sessionId + " is allowed to reconnect with token " + client._reconnectionToken + " " + this.roomId);
+        console.log(client.sessionId + " is " + (!consented && this.clientsIP.has(client.sessionId) ? 'allowed ' : 'not allowed') + " to reconnect with token " + client._reconnectionToken + " " + this.roomId);
 
       await this.allowReconnection(client, !consented && this.clientsIP.has(client.sessionId) ? 20 : 0);
       if (process.env.DEBUG == "true")
