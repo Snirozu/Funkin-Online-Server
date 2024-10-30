@@ -18,6 +18,7 @@ export class GameRoom extends Room<RoomState> {
   chartHash:string = null;
   clientsIP: Map<string, string> = new Map<string, string>(); // nvm don't use Client here, sessionId instead
   clientsID: Map<string, string> = new Map<string, string>();
+  clientsRemoved: string[] = [];
   clientsPingas: Map<string, number> = new Map<string, number>();
   clientsDinner: Map<string, number> = new Map<string, number>();
   ownerUUID:string = null;
@@ -698,9 +699,9 @@ export class GameRoom extends Room<RoomState> {
 
     try {
       if (process.env.DEBUG == "true")
-        console.log(client.sessionId + " is " + (!consented && this.clientsIP.has(client.sessionId) ? 'allowed ' : 'not allowed') + " to reconnect with token " + client._reconnectionToken + " " + this.roomId);
+        console.log(client.sessionId + " is " + (!consented && !this.clientsRemoved.includes(client.sessionId) ? 'allowed ' : 'not allowed') + " to reconnect with token " + client._reconnectionToken + " " + this.roomId);
 
-      await this.allowReconnection(client, !consented && this.clientsIP.has(client.sessionId) ? 20 : 0);
+      await this.allowReconnection(client, !consented && !this.clientsRemoved.includes(client.sessionId) ? 20 : 0);
       if (process.env.DEBUG == "true")
         console.log(client.sessionId + " has reconnected on " + this.roomId);
     }
@@ -708,7 +709,8 @@ export class GameRoom extends Room<RoomState> {
       if (process.env.DEBUG == "true")
         console.log(client.sessionId + " has failed to reconnect on " + this.roomId);
 
-      return this.removePlayer(client);
+      this.removePlayer(client);
+      delete this.clientsRemoved[this.clientsRemoved.indexOf(client.sessionId)];
     }
   }
 
@@ -730,6 +732,7 @@ export class GameRoom extends Room<RoomState> {
     this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
     Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
 
+    this.clientsRemoved.push(client.sessionId);
     this.clients.delete(client);
     client.leave();
 
