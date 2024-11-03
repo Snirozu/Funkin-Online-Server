@@ -524,6 +524,15 @@ export class GameRoom extends Room<RoomState> {
     }, 1000 * 3); //every 3 seconds
 
     this.clock.setInterval(() => {
+      for (const client of this.clients) {
+        if (!this.clientsPingas.has(client.sessionId)) {
+          this.clientsPingas.set(client.sessionId, Date.now());
+        }
+        if (!this.clientsDinner.has(client.sessionId)) {
+          this.keepAliveClient(client);
+        }
+      }
+
       this.clientsPingas.forEach((pingas, clientSusID) => {
         if (Date.now() - pingas > 1000 * 60) { // if the player wasnt active for 60 seconds
           if (process.env.DEBUG == "true")
