@@ -76,7 +76,11 @@ export class NetworkRoom extends Room<NetworkSchema> {
       }
       else if (message.startsWith('/')) {
         if (message.startsWith('/list')) {
-          client.send("log", formatLog('Online: ' + this.IDToName.values().toArray().join(', ')));
+          let onlines: String[] = [];
+          this.IDToName.forEach((v, k) => {
+            onlines.push(v);
+          });
+          client.send("log", formatLog('Online: ' + onlines.join(', ')));
         }
         else {
           client.send("log", formatLog("Command not found!"));
