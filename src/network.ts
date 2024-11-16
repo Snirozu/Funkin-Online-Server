@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
-import { filterSongName, filterUsername } from "./util";
-import { notifyPlayer } from "./rooms/NetworkRoom";
+import { filterSongName, filterUsername, formatLog } from "./util";
+import { logToAll, notifyPlayer } from "./rooms/NetworkRoom";
 import * as fs from 'fs';
 import sanitizeHtml from 'sanitize-html';
 
@@ -378,7 +378,7 @@ export async function renamePlayer(id: string, name: string) {
     if (player)
         throw { error_message: "Player with that username exists!" }
 
-    const oldName = player.name;
+    const oldName = (await getPlayerByID(id)).name;
 
     const data = (await prisma.user.update({
         data: {
@@ -449,7 +449,6 @@ export async function getPlayerByName(name: string) {
         });
     }
     catch (exc) {
-        console.log(exc);
         return null;
     }
 }
@@ -469,7 +468,6 @@ export async function getPlayerByEmail(email: string) {
         });
     }
     catch (exc) {
-        console.log(exc);
         return null;
     }
 }

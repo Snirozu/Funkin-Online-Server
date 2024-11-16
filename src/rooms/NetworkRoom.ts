@@ -19,6 +19,17 @@ export function notifyPlayer(toId:string, content:string) {
   catch (exc) {}
 }
 
+export function logToAll(content: string) {
+  try {
+    if (!networkRoom) {
+      return;
+    }
+
+    networkRoom.broadcast('log', content);
+  }
+  catch (exc) { }
+}
+
 export class NetworkRoom extends Room<NetworkSchema> {
   //at least it's fast /shrug
   SSIDtoID: Map<String, String> = new Map<String, String>();
@@ -26,6 +37,8 @@ export class NetworkRoom extends Room<NetworkSchema> {
   IDtoClient: Map<String, Client> = new Map<String, Client>();
   nameToClient: Map<String, Client> = new Map<String, Client>();
   nameToHue: Map<String, number> = new Map<String, number>();
+
+  notifyClients: Array<Client> = [];
 
   async onCreate (options: any) {
     if (networkRoom) {
@@ -67,7 +80,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
 
         if (this.nameToClient.has(player.toLowerCase())) {
           this.nameToClient.get(player.toLowerCase()).send("log", formatLog("[" + sender + "->YOU]: " + msg, 40));
-          this.nameToClient.get(player.toLowerCase()).send('notification', 'New Message from ' + sender + '!');
+          this.nameToClient.get(player.toLowerCase()).send('notification', 'New PM from ' + sender + '!');
           client.send("log", formatLog("[YOU->" + sender + "]: " + msg, 40));
         }
         else {
@@ -83,13 +96,31 @@ export class NetworkRoom extends Room<NetworkSchema> {
           });
           client.send("log", formatLog('Online: ' + onlines.join(', ')));
         }
+        else if (message.startsWith('/notify')) {
+          this.setNotifs(client, !this.notifyClients.includes(client));
+          if (this.notifyClients.includes(client)) {
+            client.send("log", formatLog('Enabled Notifications!'));
+          }
+          else {
+            client.send("log", formatLog('Disabled Notifications!'));
+          }
+        }
+        else if (message.startsWith('/help')) {
+          client.send("log", formatLog('DM players with the following format >{user} {message}\nSee the online player list with /list!\nIf you want to receive notifications for all messages then type /notify! (lasts until the end of a session)'));
+        }
         else {
-          client.send("log", formatLog("Command not found!"));
+          client.send("log", formatLog("Command not found! (Try /help)"));
         }
         return;
       }
 
       this.broadcast("log", formatLog(sender + ": " + message, this.nameToHue.get(sender.toLowerCase())));
+      this.notifyClients.forEach(client => {
+        try {
+          client.send("notification", 'New Chat Message from ' + sender);
+        }
+        catch (exc) {}
+      });
     });
   }
   
@@ -113,6 +144,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
     this.nameToClient.set(player.name.toLowerCase(), client);
     this.nameToHue.set(player.name.toLowerCase(), player.profileHue);
 
+    client.send("log", formatLog("Welcome, " + player.name + '!\nYou should check /help!'));
     return true;
   }
 
@@ -132,5 +164,23 @@ export class NetworkRoom extends Room<NetworkSchema> {
     this.nameToHue.delete(this.IDToName.get(clID).toLowerCase());
     this.IDToName.delete(clID);
     this.SSIDtoID.delete(client.sessionId);
+
+    const index = this.notifyClients.indexOf(client, 0);
+    if (index > -1) {
+      this.notifyClients.splice(index, 1);
+    }
+  }
+
+  setNotifs(client: Client, enable:boolean) {
+    if (enable) {
+      if (!this.notifyClients.includes(client)) {
+        this.notifyClients.push(client);
+      }
+      return;
+    }
+    const index = this.notifyClients.indexOf(client, 0);
+    if (index > -1) {
+      this.notifyClients.splice(index, 1);
+    }
   }
 }
