@@ -744,7 +744,8 @@ export async function requestFriendRequest(req:any) {
             }
         });
 
-        notifyPlayer(want.id, me.name + ' accepted your friend request!');
+        notifyPlayer(want.id, 'You are now friends with ' + me.name + '!');
+        notifyPlayer(me.id, 'You are now friends with ' + want.name + '!');
 
         return;
     }
