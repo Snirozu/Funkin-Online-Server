@@ -74,6 +74,17 @@ export async function authPlayer(req: any) {
 
 //DATABASE STUFF
 
+var baseSongs = [
+    'tutorial',
+    'bopeebo', 'fresh', 'dadbattle',
+    'spookeez', 'south', "monster",
+    'pico', 'philly', "blammed",
+    'satinpanties', "high", "milf",
+    'cocoa', 'eggnog', 'winterhorrorland',
+    'senpai', 'roses', 'thorns',
+    'ugh', 'guns', 'stress'
+];
+
 export async function submitScore(submitterID: string, replay: ReplayData) {
     if (replay.version != 2) {
         throw { error_message: "Replay version mismatch error, can't submit!" }
@@ -82,7 +93,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     if (!replay)
         throw { error_message: "Empty Replay Data!" }
 
-    if (!replay.mod_url || !replay.mod_url.startsWith('http'))
+    if (baseSongs.includes(replay.song.replaceAll('-', '').toLowerCase()) && (!replay.mod_url || !replay.mod_url.startsWith('http')))
         throw { error_message: "No Mod URL provided!" }
 
     const noteEvents = replay.shits + replay.bads + replay.goods + replay.sicks;
