@@ -153,7 +153,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
     this.nameToClient.set(player.name.toLowerCase(), client);
     this.nameToHue.set(player.name.toLowerCase(), player.profileHue);
 
-    client.send("log", formatLog("Welcome, " + player.name + '!\nYou should check /help!'));
+    client.send("log", formatLog("Welcome, " + player.name + '!\nYou should also check /help!'));
     return true;
   }
 
