@@ -93,7 +93,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     if (!replay)
         throw { error_message: "Empty Replay Data!" }
 
-    if (baseSongs.includes(replay.song.replaceAll('-', '').toLowerCase()) && (!replay.mod_url || !replay.mod_url.startsWith('http')))
+    if (!baseSongs.includes(replay.song.replaceAll('-', '').toLowerCase()) && (!replay.mod_url || !replay.mod_url.startsWith('http')))
         throw { error_message: "No Mod URL provided!" }
 
     const noteEvents = replay.shits + replay.bads + replay.goods + replay.sicks;
