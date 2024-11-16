@@ -744,7 +744,7 @@ export async function requestFriendRequest(req:any) {
             }
         });
 
-        // notifyFromPlayer(want.id, me.name, "friend_accepted");
+        notifyPlayer(want.id, me.name + ' sent you a friend request!');
 
         return;
     }
@@ -752,7 +752,7 @@ export async function requestFriendRequest(req:any) {
     if (!want.pendingFriends.includes(me.id)) {
         //send invite
 
-        //notifyFromPlayer(want.id, me.name, "friend_request");
+        notifyPlayer(me.id, want.name + ' accepted your friend request!');
 
         return await prisma.user.update({
             data: {

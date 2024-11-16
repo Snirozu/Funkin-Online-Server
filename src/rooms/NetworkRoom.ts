@@ -9,11 +9,11 @@ import { formatLog } from "../util";
 export let networkRoom: NetworkRoom; 
 
 export function notifyPlayer(toId:string, content:string) {
-  if (!networkRoom.IDtoClient.has(toId)) {
-    return;
-  }
-
   try {
+    if (!networkRoom || !networkRoom.IDtoClient || !networkRoom.IDtoClient.has(toId)) {
+      return;
+    }
+    
     networkRoom.IDtoClient.get(toId).send('notification', content);
   }
   catch (exc) {}
