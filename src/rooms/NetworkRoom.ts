@@ -67,6 +67,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
 
         if (this.nameToClient.has(player.toLowerCase())) {
           this.nameToClient.get(player.toLowerCase()).send("log", formatLog("[" + sender + "->YOU]: " + msg, 40));
+          this.nameToClient.get(player.toLowerCase()).send('notification', 'New Message from ' + sender + '!');
           client.send("log", formatLog("[YOU->" + sender + "]: " + msg, 40));
         }
         else {

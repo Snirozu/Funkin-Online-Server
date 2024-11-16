@@ -425,7 +425,7 @@ export default config({
                         lastActive: user.lastActive,
                         points: user.points,
                         isBanned: user.isBanned,
-                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSumAmount / user.avgAccSum : 0
+                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0
                     });
                 }
                 catch (exc) {
@@ -474,7 +474,7 @@ export default config({
                         points: user.points,
                         isBanned: user.isBanned,
                         profileHue: user.profileHue ?? 250,
-                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSumAmount / user.avgAccSum : 0
+                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0
                     });
                 }
                 catch (exc) {
@@ -522,7 +522,7 @@ export default config({
                         friends: await getUserFriends(user.friends),
                         canFriend: !auth.pendingFriends.includes(user?.id),
                         profileHue: user.profileHue,
-                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSumAmount / user.avgAccSum : 0
+                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0
                     });
                 }
                 catch (exc) {
@@ -722,7 +722,7 @@ export default config({
                     res.send({
                         name: player.name,
                         points: player.points,
-                        avgAccuracy: player.avgAccSumAmount > 0 ? player.avgAccSumAmount / player.avgAccSum : 0,
+                        avgAccuracy: player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0,
                         isMod: player.isMod,
                         profileHue: player.profileHue ?? 250
                     });
