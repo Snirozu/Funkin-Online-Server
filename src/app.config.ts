@@ -1074,6 +1074,23 @@ export default config({
                     });
                 }
             });
+
+            // app.all("/perish_all", checkLogin, async (req, res) => {
+            //     try {
+            //         const reqPlayer = await authPlayer(req);
+            //         if (!reqPlayer || !reqPlayer.isMod)
+            //             return res.sendStatus(403);
+
+            //         await perishScores();
+            //         res.sendStatus(200);
+            //     }
+            //     catch (exc: any) {
+            //         console.error(exc);
+            //         res.status(400).json({
+            //             error: exc.error_message ?? "couldn't perish shit"
+            //         });
+            //     }
+            // });
         }
         else {
             app.all("/api/network*", async (req, res) => {

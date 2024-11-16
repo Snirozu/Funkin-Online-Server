@@ -31,19 +31,7 @@ function Network() {
                 throw new Error('Messages not found.');
             }
             const data = await response.json();
-            let messages = [];
-            for (const msg of data) {
-                messages.push(
-                    <div className="Comment">
-                        <AvatarImg className="SmallerAvatar" src={getHost() + "/api/avatar/" + btoa(msg.player)}></AvatarImg>
-                        <div>
-                            <a href={"/user/" + msg.player}>{msg.player}</a> <br></br>
-                            <span>{msg.message}</span> <br></br>
-                        </div>
-                    </div>
-                );
-            }
-            setSezData(messages);
+            setSezData(data);
             setSezLoading(false);
         } catch (error) {
             setSezError(error.message);
@@ -85,12 +73,32 @@ function Network() {
                     ) : sezError ? (
                         <p>Error: {sezError}</p>
                     ) : (
-                        { sezData }
+                        renderSezs(sezData)
                     )}
                 </div>
             </div>
         </div>
     )
+}
+
+function renderSezs(msgs) {
+    let render = [];
+
+    for (const msg of msgs) {
+        render.push(<div className="Comment" style={{maxWidth: '70%'}}>
+            <AvatarImg className="SmallerAvatar" src={getHost() + "/api/avatar/" + btoa(msg.player)}></AvatarImg>
+            <div>
+                <a href={"/user/" + msg.player}>{msg.player}</a> <br></br>
+                <span>{msg.message}</span> <br></br>
+            </div>
+        </div>);
+    }
+
+    if (render.length < 1) {
+        render.push(<p>No yappers...</p>);
+    }
+    
+    return render;
 }
 
 function renderPlayers(players) {
@@ -108,7 +116,7 @@ function renderPlayers(players) {
     }
 
     if (render.length < 1) {
-
+        render.push(<p>No players...</p>);
     }
 
     return render;
