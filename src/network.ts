@@ -78,7 +78,7 @@ var baseSongs = [
     'tutorial',
     'bopeebo', 'fresh', 'dadbattle',
     'spookeez', 'south', "monster",
-    'pico', 'philly', "blammed",
+    'pico', 'philly', 'phillynice', "blammed",
     'satinpanties', "high", "milf",
     'cocoa', 'eggnog', 'winterhorrorland',
     'senpai', 'roses', 'thorns',
