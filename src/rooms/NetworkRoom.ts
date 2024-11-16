@@ -50,7 +50,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
 
     this.autoDispose = false;
 
-    this.onMessage("chat", (client, message:string) => {
+    this.onMessage("chat", async (client, message:string) => {
       if (message.length > 300) {
         client.send("log", formatLog("Message length reached!"));
         return;
@@ -107,6 +107,15 @@ export class NetworkRoom extends Room<NetworkSchema> {
         }
         else if (message.startsWith('/help')) {
           client.send("log", formatLog('DM players with the following format >{user} {message}\nSee the online player list with /list!\nIf you want to receive notifications for all messages then type /notify! (lasts until the end of a session)'));
+        }
+        else if (message.startsWith('/announce')) {
+          const playAdm = await getPlayerByID(this.SSIDtoID.get(client.sessionId) + '');
+          
+          if (playAdm && playAdm.isMod) {
+            this.clients.forEach(client => {
+              client.send("notification", message.substring('/announce '.length));
+            });
+          }
         }
         else {
           client.send("log", formatLog("Command not found! (Try /help)"));
@@ -165,10 +174,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
     this.IDToName.delete(clID);
     this.SSIDtoID.delete(client.sessionId);
 
-    const index = this.notifyClients.indexOf(client, 0);
-    if (index > -1) {
-      this.notifyClients.splice(index, 1);
-    }
+    this.setNotifs(client, false);
   }
 
   setNotifs(client: Client, enable:boolean) {
