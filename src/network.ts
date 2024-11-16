@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
 import { filterSongName, filterUsername } from "./util";
-import { notifyFromPlayer } from "./rooms/NetworkRoom";
+import { notifyPlayer } from "./rooms/NetworkRoom";
 import * as fs from 'fs';
 import sanitizeHtml from 'sanitize-html';
 
@@ -75,20 +75,23 @@ export async function authPlayer(req: any) {
 //DATABASE STUFF
 
 export async function submitScore(submitterID: string, replay: ReplayData) {
-    if (replay.version < 1) {
-        throw { error_message: "Outdated Client, can't submit!" }
+    if (replay.version != 2) {
+        throw { error_message: "Replay version mismatch error, can't submit!" }
     }
 
     if (!replay)
         throw { error_message: "Empty Replay Data!" }
+
+    if (!replay.mod_url || !replay.mod_url.startsWith('http'))
+        throw { error_message: "No Mod URL provided!" }
 
     const noteEvents = replay.shits + replay.bads + replay.goods + replay.sicks;
     if (noteEvents <= 0 || replay.inputs.length <= 0) {
         throw { error_message: "Empty Replay" }
     }
 
-    if (replay.points < 0 || replay.points > 10000 || replay.score > 10000000 || replay.inputs.length < noteEvents)
-        throw { error_message: "Invalid Replay Data" }
+    if (replay.points < 0 || replay.points > 10000 || replay.score > 100000000 || replay.inputs.length < noteEvents)
+        throw { error_message: "Illegal Values in the Replay Data" }
 
     const submitter = await getPlayerByID(submitterID);
     if (!submitter)
@@ -160,7 +163,13 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
                     id: score.id,
                 },
             },
-            points: (submitter.points - (leaderboardScore?.points ?? 0)) + replay.points
+            points: (submitter.points - (leaderboardScore?.points ?? 0)) + replay.points,
+            avgAccSumAmount: {
+                increment: 1
+            },
+            avgAccSum: {
+                increment: replay.accuracy / 100
+            }
         },
     })
 
@@ -503,7 +512,9 @@ export async function pingPlayer(id: string) {
                 joined: true,
                 lastActive: true,
                 isBanned: true,
-                profileHue: true
+                profileHue: true,
+                avgAccSum: true,
+                avgAccSumAmount: true,
             }
         }));
     }
@@ -850,10 +861,12 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
 
 export async function perishScores() {
     console.log("deleting rankings");
-    prisma.score.deleteMany();
-    prisma.report.deleteMany();
+    await prisma.score.deleteMany();
+    console.log("deleting reports");
+    await prisma.report.deleteMany();
     
-    prisma.user.updateMany({
+    console.log("zeroing players");
+    await prisma.user.updateMany({
         data: {
             points: 0
         }

@@ -6,7 +6,7 @@ import { ServerError } from "colyseus";
 import { MapSchema } from "@colyseus/schema";
 import { getPlayerByID } from "../network";
 import jwt from "jsonwebtoken";
-import { filterUsername } from "../util";
+import { filterUsername, formatLog } from "../util";
 import { Data } from "../Data";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -18,6 +18,7 @@ export class GameRoom extends Room<RoomState> {
   chartHash:string = null;
   clientsIP: Map<string, string> = new Map<string, string>(); // nvm don't use Client here, sessionId instead
   clientsID: Map<string, string> = new Map<string, string>();
+  clientsHue: Map<string, number> = new Map<string, number>();
   clientsRemoved: string[] = [];
   clientsPingas: Map<string, number> = new Map<string, number>();
   clientsDinner: Map<string, number> = new Map<string, number>();
@@ -308,13 +309,13 @@ export class GameRoom extends Room<RoomState> {
 
       if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
       if (message.length >= 300) {
-        client.send("log", "The message is too long!");
+        client.send("log", formatLog("The message is too long!"));
         return;
       }
       if ((message as String).trim() == "") {
         return;
       }
-      this.broadcast("log", "<" + this.getStatePlayer(client).name + ">: " + message);
+      this.broadcast("log", formatLog(this.getStatePlayer(client).name + ": " + message, this.clientsHue.get(client.sessionId)));
     });
 
     this.onMessage("swapSides", (client, message) => {
@@ -500,7 +501,7 @@ export class GameRoom extends Room<RoomState> {
 
       switch (message[0]) {
         case "roll":
-          this.broadcast("log", "> " + this.getStatePlayer(client).name + " has rolled " + Math.floor(Math.random() * (6 - 1 + 1) + 1));
+          this.broadcast("log", formatLog("> " + this.getStatePlayer(client).name + " has rolled " + Math.floor(Math.random() * (6 - 1 + 1) + 1)));
           break;
         case "kick":
           if (!this.isOwner(client) || !this.clients.at(1) || this.clients.at(1) == client) {
@@ -524,6 +525,10 @@ export class GameRoom extends Room<RoomState> {
     }, 1000 * 3); //every 3 seconds
 
     this.clock.setInterval(() => {
+      if (this.clients.length < 1 || !this.metadata.ping) {
+        this.destroy();
+      }
+      
       for (const client of this.clients) {
         if (!this.clientsPingas.has(client.sessionId)) {
           this.clientsPingas.set(client.sessionId, Date.now());
@@ -534,9 +539,9 @@ export class GameRoom extends Room<RoomState> {
       }
 
       this.clientsPingas.forEach((pingas, clientSusID) => {
-        if (Date.now() - pingas > 1000 * 60) { // if the player wasnt active for 60 seconds
+        if (Date.now() - pingas > 1000 * 60) { // if the player wasnt responding for 60 seconds
           if (process.env.DEBUG == "true")
-            console.log(clientSusID + " wasn't pinging on " + this.roomId + "! disposing... ");
+            console.log(clientSusID + " wasn't pinging on " + this.roomId + "! kicking... ");
 
           const kiclient = this.clients.getById(clientSusID);
           if (kiclient)
@@ -547,7 +552,7 @@ export class GameRoom extends Room<RoomState> {
       this.clientsDinner.forEach((pingas, clientSusID) => {
         if (Date.now() - pingas > 1000 * 60 * 20) { // if the player wasnt active for 20 minutes
           if (process.env.DEBUG == "true")
-            console.log(clientSusID + " wasn't active on " + this.roomId + "! disposing... ");
+            console.log(clientSusID + " wasn't active on " + this.roomId + "! kicking... ");
 
           const kiclient = this.clients.getById(clientSusID);
           if (kiclient)
@@ -568,43 +573,50 @@ export class GameRoom extends Room<RoomState> {
     this.broadcast("endSong", "", { afterNextPatch: true });
   }
 
+  //why does this function exist
   async onAuth(client: Client, options: any, request: IncomingMessage) {
-    const latestVersion = Data.PROTOCOL_VERSION;
-    if (options == null || options.name == null || (options.name + "").trim().length < 3) {
-      throw new ServerError(5000, "Too short name!"); // too short name error
-    }
-    else if (filterUsername(options.name) != options.name) {
-      throw new ServerError(5004, "Username contains invalid characters!");
-    }
-    else if (latestVersion != options.protocol) {
-      throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
-    }
-    else if (options.name.length > 14) {
-      throw new ServerError(5001, "Too long name!"); 
-    }
-    else if (!await this.isClientAllowed(client, request)) {
-      throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
-    }
+    try {
+      const latestVersion = Data.PROTOCOL_VERSION;
+      if (options == null || options.name == null || (options.name + "").trim().length < 3) {
+        throw new ServerError(5000, "Too short name!"); // too short name error
+      }
+      else if (filterUsername(options.name) != options.name) {
+        throw new ServerError(5004, "Username contains invalid characters!");
+      }
+      else if (latestVersion != options.protocol) {
+        throw new ServerError(5003, "This client version is not supported on this server!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
+      }
+      else if (options.name.length > 14) {
+        throw new ServerError(5001, "Too long name!");
+      }
+      else if (!await this.isClientAllowed(client, request)) {
+        throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
+      }
 
-    const playerIp = this.getRequestIP(request);
-    const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
-    if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
-      if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
-        Data.COUNTRY_PLAYERS[ipInfo.country] = [];
+      const playerIp = this.getRequestIP(request);
+      const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
+      if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
+        if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
+          Data.COUNTRY_PLAYERS[ipInfo.country] = [];
 
-      if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
-        Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
+        if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
+          Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
+      }
     }
-
-    if (!this.ownerUUID)
-      this.ownerUUID = client.sessionId;
-    this.clientsPingas.set(client.sessionId, Date.now());
-    this.keepAliveClient(client);
+    catch (exc) {
+      this.removePlayer(client); // thanks colyseus
+      throw exc;
+    }
 
     return true;
   }
 
   async onJoin (client: Client, options: any) {
+    if (!this.ownerUUID)
+      this.ownerUUID = client.sessionId;
+    this.clientsPingas.set(client.sessionId, Date.now());
+    this.keepAliveClient(client);
+
     let playerName = options.name;
     let playerPoints = options.points;
     let isVerified = false;
@@ -625,6 +637,7 @@ export class GameRoom extends Room<RoomState> {
 
         isVerified = true;
         this.clientsID.set(client.sessionId, options.networkId);
+        this.clientsHue.set(client.sessionId, player.profileHue);
         Data.VERIFIED_PLAYING_PLAYERS.push(player.name);
         playerName = player.name;
         playerPoints = player.points;
@@ -692,7 +705,7 @@ export class GameRoom extends Room<RoomState> {
     //   this.state.player3.name = options.name;
     // }
 
-    this.broadcast("log", this.getStatePlayer(client).name + " has joined the room!", { afterNextPatch: true });
+    this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has joined the room!"), { afterNextPatch: true });
 
     client.send("checkChart", "", { afterNextPatch: true });
 
@@ -735,10 +748,11 @@ export class GameRoom extends Room<RoomState> {
     this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId))) - 1) + ""));
     this.clientsIP.delete(client.sessionId);
     this.clientsID.delete(client.sessionId);
+    this.clientsHue.delete(client.sessionId);
     this.clientsPingas.delete(client.sessionId);
     this.clientsDinner.delete(client.sessionId);
 
-    this.broadcast("log", this.getStatePlayer(client).name + " has left the room!");
+    this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has left the room!"));
     Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
 
     this.clientsRemoved.push(client.sessionId);
@@ -746,7 +760,7 @@ export class GameRoom extends Room<RoomState> {
     client.leave();
 
     if (this.clients.length < 1 || this.isOwner(client))
-        this.disconnect(4000);
+        this.destroy();
     else
         this.state.player2 = new Player();
   }
@@ -755,10 +769,17 @@ export class GameRoom extends Room<RoomState> {
     if (process.env.DEBUG == "true")
       console.log("room has been disposed: " + this.roomId);
 
+    this.destroy(true);
+    this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
+  }
+
+  destroy(ing?:boolean) {
     for (const client of this.clients) {
       this.removePlayer(client);
     }
-    this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
+    if (!ing) {
+      this.disconnect();
+    }
   }
 
   hasPerms(client: Client) {

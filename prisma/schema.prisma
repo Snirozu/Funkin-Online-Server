@@ -30,6 +30,8 @@ model User {
   isBanned Boolean?
   bio String?
   profileHue Int?
+  avgAccSum Float?
+  avgAccSumAmount Int?
 }
 
 model Song {

@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, perishScores } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -52,12 +52,12 @@ export default config({
         app.get("/api/front", async (req, res) => {
             try {
                 const [playerCount, roomFreeCount] = await countPlayers();
-                const player = await getPlayerByID(Data.FRONT_MESSAGE_PLAYER);
+                const player = Data.FRONT_MESSAGES[0] ? await getPlayerByID(Data.FRONT_MESSAGES[0].player) : undefined;
 
                 res.send({
                     online: playerCount,
                     rooms: roomFreeCount,
-                    sez: (player && Data.FRONT_MESSAGE && Data.FRONT_MESSAGE_PLAYER ? player.name + ' sez: "' + Data.FRONT_MESSAGE + '"' : null)
+                    sez: (player ? player.name + ' sez: "' + Data.FRONT_MESSAGES[0].message + '"' : null)
                 });
             }
             catch (exc) {
@@ -368,6 +368,24 @@ export default config({
 
             //GET
 
+            app.get("/api/network/sezdetal", async (req, res) => {
+                try {
+                    let sezlist = [];
+                    for (const msg of Data.FRONT_MESSAGES) {
+                        const player = await getPlayerByID(msg.player);
+                        sezlist.push({
+                            player: player.name,
+                            message: msg.message
+                        });
+                    }
+                    res.send(sezlist);
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
             app.get("/api/network/online", async (req, res) => {
                 try {
                     let roomArray:any = [];
@@ -406,7 +424,8 @@ export default config({
                         joined: user.joined,
                         lastActive: user.lastActive,
                         points: user.points,
-                        isBanned: user.isBanned
+                        isBanned: user.isBanned,
+                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSumAmount / user.avgAccSum : 0
                     });
                 }
                 catch (exc) {
@@ -454,7 +473,8 @@ export default config({
                         lastActive: user.lastActive,
                         points: user.points,
                         isBanned: user.isBanned,
-                        profileHue: user.profileHue ?? 250
+                        profileHue: user.profileHue ?? 250,
+                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSumAmount / user.avgAccSum : 0
                     });
                 }
                 catch (exc) {
@@ -501,7 +521,8 @@ export default config({
                         bio: user.bio,
                         friends: await getUserFriends(user.friends),
                         canFriend: !auth.pendingFriends.includes(user?.id),
-                        profileHue: user.profileHue
+                        profileHue: user.profileHue,
+                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSumAmount / user.avgAccSum : 0
                     });
                 }
                 catch (exc) {
@@ -701,6 +722,7 @@ export default config({
                     res.send({
                         name: player.name,
                         points: player.points,
+                        avgAccuracy: player.avgAccSumAmount > 0 ? player.avgAccSumAmount / player.avgAccSum : 0,
                         isMod: player.isMod,
                         profileHue: player.profileHue ?? 250
                     });
@@ -792,7 +814,7 @@ export default config({
                     const player = await getPlayerByID(id);
 
                     const file = req.files.file as UploadedFile;
-                    if (file.size > 512 * 1024) {
+                    if (file.size > 1024 * 100) {
                         return res.sendStatus(413);
                     }
                     await file.mv('database/avatars/' + btoa(player.name));
@@ -826,8 +848,13 @@ export default config({
                         const [id, _] = getIDToken(req);
                         const player = await getPlayerByID(id);
                         
-                        Data.FRONT_MESSAGE = req.body.message;
-                        Data.FRONT_MESSAGE_PLAYER = player.id;
+                        Data.FRONT_MESSAGES.push({
+                            player: player.id,
+                            message: req.body.message
+                        });
+                        if (Data.FRONT_MESSAGES.length > 5) {
+                            Data.FRONT_MESSAGES.pop();
+                        }
                         res.sendStatus(200);
                         return;
                     }
@@ -873,8 +900,11 @@ export default config({
                     res.send(renameAction.new);
                 }
                 catch (exc: any) {
+                    if (!exc?.error_message)
+                        console.error(exc);
+
                     res.status(400).json({
-                        error: exc.error_message ?? "Couldn't report..."
+                        error: exc.error_message ?? "Couldn't change your handle..."
                     });
                 }
             });

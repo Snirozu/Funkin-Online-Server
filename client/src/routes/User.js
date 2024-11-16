@@ -27,6 +27,7 @@ function User() {
         friends: [],
         canFriend: false,
         profileHue: 250,
+        avgAccuracy: 0,
         scores: [
             {
                 name: "?",
@@ -242,6 +243,7 @@ function User() {
                             ) : <></>}
                         </>}
                         <b>Points: </b> {data.points} <br />
+                        <b>Avg Accuracy: </b> {data.avgAccuracy}% <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
                         <b>Joined: </b> {ReturnDate(Date.parse(data.joined))} <br />
                         {
@@ -356,8 +358,8 @@ const AvatarUpload = () => {
 
     const upload = (event) => {
         const file = event.target.files[0];
-        if (file.size > 512 * 1024) {
-            alert("Image cannot exceed 512kB!");
+        if (file.size > 1024 * 100) {
+            alert("Image cannot exceed 100kB!");
             return;
         }
         const formData = new FormData();

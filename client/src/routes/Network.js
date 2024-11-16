@@ -7,6 +7,10 @@ function Network() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const [sezData, setSezData] = useState([]);
+    const [sezLoading, setSezLoading] = useState(true);
+    const [sezError, setSezError] = useState(null);
+
     const fetchData = async () => {
         try {
             const response = await fetch(getHost() + '/api/network/online');
@@ -19,6 +23,31 @@ function Network() {
         } catch (error) {
             setError(error.message);
             setLoading(false);
+        }
+
+        try {
+            const response = await fetch(getHost() + '/api/network/sezdetal');
+            if (!response.ok) {
+                throw new Error('Messages not found.');
+            }
+            const data = await response.json();
+            let messages = [];
+            for (const msg of data) {
+                messages.push(
+                    <div className="Comment">
+                        <AvatarImg className="SmallerAvatar" src={getHost() + "/api/avatar/" + btoa(msg.player)}></AvatarImg>
+                        <div>
+                            <a href={"/user/" + msg.player}>{msg.player}</a> <br></br>
+                            <span>{msg.message}</span> <br></br>
+                        </div>
+                    </div>
+                );
+            }
+            setSezData(messages);
+            setSezLoading(false);
+        } catch (error) {
+            setSezError(error.message);
+            setSezLoading(false);
         }
     };
     useEffect(() => {
@@ -47,6 +76,16 @@ function Network() {
                         <p>Error: {error}</p>
                     ) : (
                         renderRooms(data.rooms)
+                    )}
+                </div>
+                <p> Last Global Messages </p>
+                <div className="Comments">
+                    {sezLoading ? (
+                        <p>Loading...</p>
+                    ) : sezError ? (
+                        <p>Error: {sezError}</p>
+                    ) : (
+                        { sezData }
                     )}
                 </div>
             </div>
