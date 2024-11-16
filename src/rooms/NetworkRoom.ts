@@ -74,6 +74,15 @@ export class NetworkRoom extends Room<NetworkSchema> {
         }
         return;
       }
+      else if (message.startsWith('/')) {
+        if (message.startsWith('/list')) {
+          client.send("log", formatLog('Online: ' + this.IDToName.values().toArray().join(', ')));
+        }
+        else {
+          client.send("log", formatLog("Command not found!"));
+        }
+        return;
+      }
 
       this.broadcast("log", formatLog(sender + ": " + message, this.nameToHue.get(sender.toLowerCase())));
     });

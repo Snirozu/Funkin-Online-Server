@@ -164,12 +164,8 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
                 },
             },
             points: (submitter.points - (leaderboardScore?.points ?? 0)) + replay.points,
-            avgAccSumAmount: {
-                increment: 1
-            },
-            avgAccSum: {
-                increment: replay.accuracy / 100
-            }
+            avgAccSumAmount: (submitter.avgAccSumAmount ?? 0) + 1,
+            avgAccSum: (submitter.avgAccSum ?? 0) + replay.accuracy / 100
         },
     })
 
