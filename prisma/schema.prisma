@@ -53,6 +53,7 @@ model Score {
   shits    Float
   misses    Float
 
+  playbackRate Float
   strum    Int
 
   submitted DateTime @default(now())

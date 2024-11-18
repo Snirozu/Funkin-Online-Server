@@ -817,6 +817,9 @@ export default config({
                     if (file.size > 1024 * 100) {
                         return res.sendStatus(413);
                     }
+                    if (file.mimetype != 'image/png') {
+                        return res.sendStatus(415);
+                    }
                     await file.mv('database/avatars/' + btoa(player.name));
                     res.sendStatus(200);
                 }

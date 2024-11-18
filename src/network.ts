@@ -75,8 +75,8 @@ export async function authPlayer(req: any) {
 //DATABASE STUFF
 
 export async function submitScore(submitterID: string, replay: ReplayData) {
-    if (replay.version != 2) {
-        throw { error_message: "Replay version mismatch error, can't submit!" }
+    if (replay.version != 3) {
+        throw { error_message: "Replay version mismatch error, can't submit!\nPlease update!" }
     }
 
     if (!replay)
@@ -137,6 +137,12 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
         });
     }
 
+    let playbackRate = 1;
+    try {
+        playbackRate = replay.gameplay_modifiers.get('songspeed');
+    }
+    catch (_) {}
+
     const score = await prisma.score.create({
         data: {
             accuracy: replay.accuracy,
@@ -149,7 +155,8 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
             sicks: replay.sicks,
             misses: replay.misses,
             strum: daStrum,
-            modURL: replay.mod_url
+            modURL: replay.mod_url,
+            playbackRate: playbackRate
         }
     });
 
@@ -863,7 +870,9 @@ export async function perishScores() {
     console.log("zeroing players");
     await prisma.user.updateMany({
         data: {
-            points: 0
+            points: 0,
+            avgAccSum: 0,
+            avgAccSumAmount: 0
         }
     })
     console.log("deleted ranking shit");

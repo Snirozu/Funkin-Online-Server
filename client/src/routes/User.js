@@ -374,8 +374,10 @@ const AvatarUpload = () => {
             },
         };
         axios.post(getHost() + '/api/network/account/avatar', formData, config).then((response) => {
+            if (response.status === 415) {
+                alert('Image should be a PNG type!');
+            }
             console.log(response.data);
-            window.location.reload();
         }).catch(exc => {
             document.body.innerHTML = exc;
             console.error(exc);
@@ -384,7 +386,7 @@ const AvatarUpload = () => {
 
     return (
         <>
-            <input accept="image/*" type="file" id="upload-avatar" hidden ref={actualBtnRef} onChange={upload} />
+            <input accept="image/png" type="file" id="upload-avatar" hidden ref={actualBtnRef} onChange={upload} />
             <button className='SvgButton' title='Upload Avatar' onClick={() => {
                 document.getElementById('upload-avatar').click();
             }}>
