@@ -243,7 +243,7 @@ function User() {
                             ) : <></>}
                         </>}
                         <b>Points: </b> {data.points} <br />
-                        <b>Avg Accuracy: </b> {data.avgAccuracy.toFixed(2)}% <br />
+                        <b>Avg Accuracy: </b> {(data.avgAccuracy * 100).toFixed(2)}% <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
                         <b>Joined: </b> {ReturnDate(Date.parse(data.joined))} <br />
                         {
