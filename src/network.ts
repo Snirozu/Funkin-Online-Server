@@ -290,6 +290,12 @@ export async function removeScore(id: string, checkPlayer?: string) {
             data: {
                 points: {
                     decrement: score.points
+                },
+                avgAccSumAmount: {
+                    decrement: 1
+                },
+                avgAccSum: {
+                    decrement: score.accuracy / 100
                 }
             },
             where: {
