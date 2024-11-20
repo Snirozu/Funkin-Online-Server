@@ -680,7 +680,12 @@ export default config({
                             submitted: score.submitted,
                             id: score.id,
                             misses: score.misses,
-                            modURL: score.modURL
+                            modURL: score.modURL,
+                            sicks: score.sicks,
+                            goods: score.goods,
+                            bads: score.bads,
+                            shits: score.shits,
+                            playbackRate: score.playbackRate,
                         });
                     }
                     res.send(top);

@@ -544,7 +544,12 @@ export async function topScores(id: string, strum:number, page: number) {
                 submitted: true,
                 id: true,
                 misses: true,
-                modURL: true
+                modURL: true,
+                sicks: true,
+                goods: true,
+                bads: true,
+                shits: true,
+                playbackRate: true,
             },
             take: 15,
             skip: 15 * page
