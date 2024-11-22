@@ -875,7 +875,7 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
 export async function updateScores() {
     console.log("updating...");
     let daJson:ReplayData = null;
-    let i = 1;
+    let i = 0;
     const scores = await prisma.score.findMany({
         select: {
             id: true,
@@ -883,17 +883,18 @@ export async function updateScores() {
         }
     });
     for (const score of scores) {
-        daJson = JSON.parse(score.replayData);
-        console.log(i + '/' + scores.length + " updating score: " + score.id);
-        await prisma.score.update({
-            where: {
-                id: score.id
-            },
-            data: {
-                playbackRate: daJson.gameplay_modifiers.songspeed 
-            }
-        })
         i++;
+        daJson = JSON.parse(score.replayData);
+        console.log(i + '/' + scores.length + " updating score: " + score.id + " -> " + daJson.gameplay_modifiers.songspeed);
+        if (daJson.gameplay_modifiers.songspeed != 1)
+            await prisma.score.update({
+                where: {
+                    id: score.id
+                },
+                data: {
+                    playbackRate: daJson.gameplay_modifiers.songspeed 
+                }
+            })
     }
     console.log("done!");
 }
