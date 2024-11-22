@@ -139,7 +139,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
 
     let playbackRate = 1;
     try {
-        playbackRate = replay.gameplay_modifiers.get('songspeed');
+        playbackRate = replay.gameplay_modifiers.songspeed;
     }
     catch (_) {}
 
@@ -872,6 +872,32 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
     console.log("Set " + id + "'s ban status to " + to);
 }
 
+export async function updateScores() {
+    console.log("updating...");
+    let daJson:ReplayData = null;
+    let i = 1;
+    const scores = await prisma.score.findMany({
+        select: {
+            id: true,
+            replayData: true
+        }
+    });
+    for (const score of scores) {
+        daJson = JSON.parse(score.replayData);
+        console.log(i + '/' + scores.length + " updating score: " + score.id);
+        await prisma.score.update({
+            where: {
+                id: score.id
+            },
+            data: {
+                playbackRate: daJson.gameplay_modifiers.songspeed 
+            }
+        })
+        i++;
+    }
+    console.log("done!");
+}
+
 export async function perishScores() {
     console.log("deleting rankings");
     await prisma.score.deleteMany();
@@ -908,7 +934,7 @@ class ReplayData {
     chart_hash: string;
 
     note_offset: number;
-	gameplay_modifiers: Map<string, any>;
+	gameplay_modifiers: any;
 	ghost_tapping: boolean;
     rating_offset: number;
     safe_frames: number;
