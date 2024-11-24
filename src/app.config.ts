@@ -856,7 +856,7 @@ export default config({
                         const [id, _] = getIDToken(req);
                         const player = await getPlayerByID(id);
                         
-                        Data.FRONT_MESSAGES.push({
+                        Data.FRONT_MESSAGES.unshift({
                             player: player.id,
                             message: req.body.message
                         });
