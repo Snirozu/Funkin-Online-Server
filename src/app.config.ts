@@ -510,7 +510,7 @@ export default config({
                         });
                     });
 
-                    const pingasFriends = auth.pendingFriends ?? [];
+                    const pingasFriends = auth?.pendingFriends ?? [];
 
                     res.send({
                         isMod: user.isMod,
