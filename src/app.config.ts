@@ -510,6 +510,8 @@ export default config({
                         });
                     });
 
+                    const pingasFriends = auth.pendingFriends ?? [];
+
                     res.send({
                         isMod: user.isMod,
                         joined: user.joined,
@@ -520,7 +522,7 @@ export default config({
                         isBanned: user.isBanned,
                         bio: user.bio,
                         friends: await getUserFriends(user.friends),
-                        canFriend: !auth.pendingFriends.includes(user?.id),
+                        canFriend: !pingasFriends.includes(user?.id),
                         profileHue: user.profileHue,
                         avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0
                     });
@@ -788,7 +790,7 @@ export default config({
                         expires: new Date(253402300000000)
                     });
 
-                    const user = await getPlayerByID(String(req.query.id));
+                    const user = await getPlayerByID(req.query.id + "");
 
                     res.redirect('/user/' + user.name);
                 }

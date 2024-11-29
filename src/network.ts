@@ -818,6 +818,8 @@ export async function deleteUser(id:string):Promise<any> {
     const player = await getPlayerByID(id);
     if (player.isMod)
         return null;
+
+    await setUserBanStatus(id, true);
     
     await prisma.score.deleteMany({
         where: {
@@ -866,10 +868,15 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
             }
         }
     })
-    if (to && fs.existsSync('database/avatars/' + btoa(player.name)))
-        fs.unlinkSync('database/avatars/' + btoa(player.name));
+    if (to)
+        deleteUserAvatar(player.name);
 
     console.log("Set " + id + "'s ban status to " + to);
+}
+
+export async function deleteUserAvatar(username:string) {
+    if (fs.existsSync('database/avatars/' + btoa(username)))
+        fs.unlinkSync('database/avatars/' + btoa(username));
 }
 
 export async function updateScores() {
