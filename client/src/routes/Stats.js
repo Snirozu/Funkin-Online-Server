@@ -35,7 +35,9 @@ function RenderOnlineChart() {
             data.forEach(element => {
                 const date = new Date(element[1]);
                 counts.push(element[0]);
-                timestamps.push((date.getMonth() + 1) + "/" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes());
+                const h = date.getHours();
+                const m = date.getMinutes();
+                timestamps.push(((h < 10 ? '0' : '') + h) + ":" + ((m < 10 ? '0' : '') + m) + " " + date.getDate() + "/" + (date.getMonth() + 1));
             });
 
             setDataOnline({
