@@ -23,4 +23,5 @@ export class RoomState extends Schema {
   @type({ map: "string" }) gameplaySettings = new MapSchema<string>();
   @type("boolean") permitModifiers: boolean = false;
   @type("boolean") hideGF: boolean = false;
+  @type("number") winCondition: number = 0;
 }

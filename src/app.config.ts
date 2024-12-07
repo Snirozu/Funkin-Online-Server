@@ -466,6 +466,9 @@ export default config({
                         return res.sendStatus(400);
 
                     const user = await getPlayerByName(req.query.name as string);
+                    
+                    if (!user)
+                        return res.sendStatus(404);
 
                     res.send({
                         isMod: user.isMod,
@@ -824,7 +827,7 @@ export default config({
                     if (file.size > 1024 * 100) {
                         return res.sendStatus(413);
                     }
-                    if (file.mimetype != 'image/png') {
+                    if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg') {
                         return res.sendStatus(415);
                     }
                     await file.mv('database/avatars/' + btoa(player.name));

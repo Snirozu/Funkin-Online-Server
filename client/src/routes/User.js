@@ -386,7 +386,7 @@ const AvatarUpload = () => {
 
     return (
         <>
-            <input accept="image/png" type="file" id="upload-avatar" hidden ref={actualBtnRef} onChange={upload} />
+            <input accept="image/png, image/jpeg" type="file" id="upload-avatar" hidden ref={actualBtnRef} onChange={upload} />
             <button className='SvgButton' title='Upload Avatar' onClick={() => {
                 document.getElementById('upload-avatar').click();
             }}>

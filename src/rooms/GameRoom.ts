@@ -83,6 +83,7 @@ export class GameRoom extends Room<RoomState> {
         this.state.player1.goods = 0;
         this.state.player1.bads = 0;
         this.state.player1.shits = 0;
+        this.state.player1.songPoints = 0;
         this.state.player1.hasLoaded = false;
         this.state.player1.hasEnded = false;
         this.state.player1.isReady = false;
@@ -93,6 +94,7 @@ export class GameRoom extends Room<RoomState> {
         this.state.player2.goods = 0;
         this.state.player2.bads = 0;
         this.state.player2.shits = 0;
+        this.state.player2.songPoints = 0;
         this.state.player2.hasLoaded = false;
         this.state.player2.hasEnded = false;
         this.state.player2.isReady = false;
@@ -304,6 +306,19 @@ export class GameRoom extends Room<RoomState> {
       this.broadcast("noteHold", message, { except: client });
     });
 
+    this.onMessage("updateSongFP", (client, message) => {
+      this.keepAliveClient(client);
+
+      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
+
+      if (this.isOwner(client)) {
+        this.state.player1.songPoints = message;
+      }
+      else {
+        this.state.player2.songPoints = message;
+      }
+    });
+
     this.onMessage("chat", (client, message) => {
       this.keepAliveClient(client);
 
@@ -339,6 +354,22 @@ export class GameRoom extends Room<RoomState> {
 
       if (this.hasPerms(client)) {
         this.state.hideGF = !this.state.hideGF;
+      }
+    });
+
+    this.onMessage("nextWinCondition", (client, message) => {
+      this.keepAliveClient(client);
+
+      if (this.hasPerms(client)) {
+        // 0 - score
+        // 1 - accuracy
+        // 2 - misses
+        // 3 - points
+        let newCond = this.state.winCondition + 1;
+        if (newCond > 3) {
+          newCond = 0;
+        }
+        this.state.winCondition = Math.max(0, newCond);
       }
     });
 

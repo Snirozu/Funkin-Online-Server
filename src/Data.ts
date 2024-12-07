@@ -1,5 +1,5 @@
 export class Data {
-    public static PROTOCOL_VERSION = 5;
+    public static PROTOCOL_VERSION = 6;
     public static DAY_PLAYERS: any[] = [];
     public static COUNTRY_PLAYERS: any = {};
     public static ONLINE_PLAYERS: string[] = [];

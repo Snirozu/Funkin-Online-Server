@@ -7,6 +7,7 @@ export class Player extends Schema {
     @type("number") goods: number = 0;
     @type("number") bads: number = 0;
     @type("number") shits: number = 0;
+    @type("number") songPoints: number = 0;
     @type("string") name: string = "";
     @type("boolean") hasSong: boolean = false;
     @type("boolean") hasLoaded: boolean = false;
