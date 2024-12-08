@@ -606,37 +606,32 @@ export class GameRoom extends Room<RoomState> {
 
   //why does this function exist
   async onAuth(client: Client, options: any, request: IncomingMessage) {
-    try {
-      const latestVersion = Data.PROTOCOL_VERSION;
-      if (options == null || options.name == null || (options.name + "").trim().length < 3) {
-        throw new ServerError(5000, "Too short name!"); // too short name error
-      }
-      else if (filterUsername(options.name) != options.name) {
-        throw new ServerError(5004, "Username contains invalid characters!");
-      }
-      else if (latestVersion != options.protocol) {
-        throw new ServerError(5003, "This client version is not supported on this server!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
-      }
-      else if (options.name.length > 14) {
-        throw new ServerError(5001, "Too long name!");
-      }
-      else if (!await this.isClientAllowed(client, request)) {
-        throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
-      }
-
-      const playerIp = this.getRequestIP(request);
-      const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
-      if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
-        if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
-          Data.COUNTRY_PLAYERS[ipInfo.country] = [];
-
-        if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
-          Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
-      }
+    const latestVersion = Data.PROTOCOL_VERSION;
+    if (options == null || options.name == null || (options.name + "").trim().length < 3) {
+      throw new ServerError(5000, "Too short name!"); // too short name error
     }
-    catch (exc) {
-      this.removePlayer(client); // thanks colyseus
-      throw exc;
+    else if (filterUsername(options.name) != options.name) {
+      throw new ServerError(5004, "Username contains invalid characters!");
+    }
+    else if (latestVersion != options.protocol) {
+      throw new ServerError(5003, "This client version is not supported on this server!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
+    }
+    else if (options.name.length > 14) {
+      throw new ServerError(5001, "Too long name!");
+    }
+    
+    if (!await this.isClientAllowed(client, request)) {
+      throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
+    }
+
+    const playerIp = this.getRequestIP(request);
+    const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
+    if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
+      if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
+        Data.COUNTRY_PLAYERS[ipInfo.country] = [];
+
+      if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
+        Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
     }
 
     return true;
