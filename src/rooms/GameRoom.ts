@@ -357,6 +357,14 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
+    this.onMessage("toggleSkins", (client, message) => {
+      this.keepAliveClient(client);
+
+      if (this.hasPerms(client)) {
+        this.state.disableSkins = !this.state.disableSkins;
+      }
+    });
+
     this.onMessage("nextWinCondition", (client, message) => {
       this.keepAliveClient(client);
 
