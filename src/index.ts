@@ -21,6 +21,9 @@ dotenv.config();
 
 sanitizeHtml.defaults.allowedTags.push('img');
 
+// load email blacklist
+Data.EMAIL_BLACKLIST = fs.readFileSync("EMAIL_BLACKLIST", 'utf8').split('\n');
+
 // Create and listen on 2567 (or PORT environment variable.)
 listen(app)
     .then(async server => {

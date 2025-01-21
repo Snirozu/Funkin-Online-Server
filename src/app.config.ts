@@ -961,6 +961,12 @@ export default config({
                     if (!req.body.email || !(req.body.email as string).includes('@'))
                         throw { error_message: 'Invalid Email Address!' }
 
+                    const emailHost = (req.body.email as string).split('@')[1];
+                    for (const v of Data.EMAIL_BLACKLIST) {
+                        if (v.trim().length > 0 && emailHost.endsWith(v.split(' ')[0]))
+                            throw { error_message: 'This Email Host is Blocked!' }
+                    }
+
                     if (req.body.code) {
                         if (req.body.code != emailCodes.get(req.body.email)) {
                             emailCodes.delete(req.body.email);

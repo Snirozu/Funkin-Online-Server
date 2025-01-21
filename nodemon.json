@@ -3,7 +3,8 @@
         "src/",
         "assets/",
         "nodemon.json",
-        ".env"
+        ".env",
+        "EMAIL_BLACKLIST"
     ],
     "ext": "ts, html, css, json"
 }

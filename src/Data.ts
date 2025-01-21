@@ -5,6 +5,7 @@ export class Data {
     public static ONLINE_PLAYERS: string[] = [];
     public static VERIFIED_PLAYING_PLAYERS: string[] = [];
     public static FRONT_MESSAGES: SezData[] = [];
+    public static EMAIL_BLACKLIST: string[] = [];
 }
 
 class SezData {
