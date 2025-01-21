@@ -1127,7 +1127,7 @@ export default config({
             //         });
             //     }
             // });
-            app.all('banagain', async (req, res) => {
+            app.all('/banagain', async (req, res) => {
                 try {
                     const reqPlayer = await authPlayer(req);
                     if (!reqPlayer || !reqPlayer.isMod)
