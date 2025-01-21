@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, perishScores, updateScores } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, banAgain } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -1127,6 +1127,22 @@ export default config({
             //         });
             //     }
             // });
+            app.all('banagain', async (req, res) => {
+                try {
+                    const reqPlayer = await authPlayer(req);
+                    if (!reqPlayer || !reqPlayer.isMod)
+                        return res.sendStatus(403);
+                    
+                    await banAgain();
+                    res.sendStatus(200);
+                }
+                catch (exc: any) {
+                    console.error(exc);
+                    res.status(400).json({
+                        error: exc.error_message ?? "couldn't ban"
+                    });
+                }
+            });
         }
         else {
             app.all("/api/network*", async (req, res) => {

@@ -6,7 +6,7 @@ import { logToAll, notifyPlayer } from "./rooms/NetworkRoom";
 import * as fs from 'fs';
 import sanitizeHtml from 'sanitize-html';
 
-const prisma = new PrismaClient()
+export const prisma = new PrismaClient()
 
 export async function genAccessToken(id: string) {
     return jwt.sign(id, (await getPlayerByID(id)).secret);
@@ -925,6 +925,19 @@ export async function perishScores() {
         }
     })
     console.log("deleted ranking shit");
+}
+
+export async function banAgain() {
+    console.log("banning again");
+    for (const user of await prisma.user.findMany({
+        where: {
+            isBanned: true
+        }
+    })) {
+        console.log(user.name + ' has been banned (again)');
+        await setUserBanStatus(user.id, true);
+    }
+    console.log('done banning again');
 }
 
 class ReplayData {
