@@ -847,6 +847,7 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
             id: id
         },
         data: {
+            points: 0,
             isBanned: to,
             bio: {
                 unset: true
