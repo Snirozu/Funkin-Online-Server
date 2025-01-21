@@ -821,21 +821,6 @@ export async function deleteUser(id:string):Promise<any> {
 
     await setUserBanStatus(id, true);
     
-    await prisma.score.deleteMany({
-        where: {
-            player: id
-        }
-    })
-    await prisma.report.deleteMany({
-        where: {
-            by: id
-        }
-    })
-    await prisma.songComment.deleteMany({
-        where: {
-            by: id
-        }
-    })
     const user = await prisma.user.delete({
         where: {
             id: id
@@ -868,8 +853,26 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
             }
         }
     })
-    if (to)
+
+    if (to) {
         deleteUserAvatar(player.name);
+
+        await prisma.score.deleteMany({
+            where: {
+                player: id
+            }
+        })
+        await prisma.report.deleteMany({
+            where: {
+                by: id
+            }
+        })
+        await prisma.songComment.deleteMany({
+            where: {
+                by: id
+            }
+        })
+    }
 
     console.log("Set " + id + "'s ban status to " + to);
 }
