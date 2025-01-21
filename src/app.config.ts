@@ -1127,22 +1127,22 @@ export default config({
             //         });
             //     }
             // });
-            app.all('/banagain', async (req, res) => {
-                try {
-                    const reqPlayer = await authPlayer(req);
-                    if (!reqPlayer || !reqPlayer.isMod)
-                        return res.sendStatus(403);
+            // app.all('/banagain', async (req, res) => {
+            //     try {
+            //         const reqPlayer = await authPlayer(req);
+            //         if (!reqPlayer || !reqPlayer.isMod)
+            //             return res.sendStatus(403);
                     
-                    await banAgain();
-                    res.sendStatus(200);
-                }
-                catch (exc: any) {
-                    console.error(exc);
-                    res.status(400).json({
-                        error: exc.error_message ?? "couldn't ban"
-                    });
-                }
-            });
+            //         await banAgain();
+            //         res.sendStatus(200);
+            //     }
+            //     catch (exc: any) {
+            //         console.error(exc);
+            //         res.status(400).json({
+            //             error: exc.error_message ?? "couldn't ban"
+            //         });
+            //     }
+            // });
         }
         else {
             app.all("/api/network*", async (req, res) => {
