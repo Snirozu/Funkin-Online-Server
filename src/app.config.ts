@@ -661,7 +661,10 @@ export default config({
                         return res.sendStatus(400);
 
                     res.setHeader('content-type', 'application/json');
-                    res.send((await getScore(req.query.id as string)).replayData);
+                    const score = await getScore(req.query.id as string);
+                    if (!score)
+                        return res.sendStatus(404);
+                    res.send(score.replayData);
                 }
                 catch (exc) {
                     console.error(exc);
@@ -794,7 +797,9 @@ export default config({
                     });
 
                     const user = await getPlayerByID(req.query.id + "");
-
+                    if (!user)
+                        res.sendStatus(400);
+                    
                     res.redirect('/user/' + user.name);
                 }
                 catch (exc) {
@@ -1243,6 +1248,8 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
         switch (params[0]) {
             case "user":
                 const player = await getPlayerByName(params[1]);
+                if (!player)
+                    break;
                 title = player.name + "'s Profile - Psych Online";
                 description = player.points + "FP";
                 if (fs.existsSync(process.cwd() + '/database/avatars'))
