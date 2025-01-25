@@ -48,6 +48,7 @@
     "colyseus": "^0.15.15",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "cross-spawn": "^7.0.6",
     "elliptic": "^6.6.1",
     "express": "^4.21.0",
     "express-fileupload": "^1.5.1",
@@ -56,6 +57,7 @@
     "jsonwebtoken": "^9.0.2",
     "micromatch": "^4.0.8",
     "nodemailer": "^6.9.15",
+    "path-to-regexp": "^8.2.0",
     "sanitize-html": "^2.13.0",
     "ws": "^8.18.0"
   }
