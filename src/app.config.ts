@@ -494,6 +494,9 @@ export default config({
                     const auth = await authPlayer(req);
                     const user = await getPlayerByName(req.query.name as string);
 
+                    if (!user)
+                        return res.sendStatus(404);
+
                     let coolScores:any[] = [];
 
                     const scores = await getScoresPlayer(user.id, Number.parseInt(req.query.page as string ?? "0"));
@@ -798,7 +801,7 @@ export default config({
 
                     const user = await getPlayerByID(req.query.id + "");
                     if (!user)
-                        res.sendStatus(400);
+                        return res.sendStatus(400);
                     
                     res.redirect('/user/' + user.name);
                 }
