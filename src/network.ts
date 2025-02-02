@@ -940,6 +940,25 @@ export async function banAgain() {
     console.log('done banning again');
 }
 
+export async function getPlayerRank(name: string): Promise<number> {
+    try {
+        const everyone = await prisma.user.findMany({
+            orderBy: [
+                {
+                    points: 'desc'
+                }
+            ],
+            select: {
+                name: true,
+            }
+        });
+        return everyone.findIndex(user => user.name == name) + 1;
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
 class ReplayData {
     player: string;
 

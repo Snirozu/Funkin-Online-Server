@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, banAgain } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -477,7 +477,8 @@ export default config({
                         points: user.points,
                         isBanned: user.isBanned,
                         profileHue: user.profileHue ?? 250,
-                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0
+                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
+                        rank: await getPlayerRank(user.name)
                     });
                 }
                 catch (exc) {
@@ -530,7 +531,8 @@ export default config({
                         friends: await getUserFriends(user.friends),
                         canFriend: !pingasFriends.includes(user?.id),
                         profileHue: user.profileHue,
-                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0
+                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
+                        rank: await getPlayerRank(user.name)
                     });
                 }
                 catch (exc) {
@@ -1099,6 +1101,18 @@ export default config({
                     console.error(exc);
                     res.status(400).json({
                         error: exc.error_message ?? "Couldn't delete your account..."
+                    });
+                }
+            });
+
+            app.all("/dev/test", async (req, res) => {
+                try {
+                    res.send(await getPlayerRank(req.query.name as string) + "");
+                }
+                catch (exc: any) {
+                    console.error(exc);
+                    res.status(400).json({
+                        error: exc.error_message ?? "Error has accured..."
                     });
                 }
             });

@@ -319,6 +319,19 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
+    this.onMessage("updateMaxCombo", (client, message) => {
+      this.keepAliveClient(client);
+
+      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
+
+      if (this.isOwner(client)) {
+        this.state.player1.maxCombo = message;
+      }
+      else {
+        this.state.player2.maxCombo = message;
+      }
+    });
+
     this.onMessage("chat", (client, message) => {
       this.keepAliveClient(client);
 
@@ -357,16 +370,37 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
+    this.onMessage("toggleSkins", (client, message) => {
+      this.keepAliveClient(client);
+
+      if (this.hasPerms(client)) {
+        this.state.disableSkins = !this.state.disableSkins;
+
+        if (this.state.disableSkins) {
+          this.state.player1.skinMod = null;
+          this.state.player1.skinName = null;
+          this.state.player1.skinURL = null;
+          this.state.player2.skinMod = null;
+          this.state.player2.skinName = null;
+          this.state.player2.skinURL = null;
+        }
+        else {
+          this.broadcast("requestSkin", null, { afterNextPatch: true });
+        }
+      }
+    });
+
     this.onMessage("nextWinCondition", (client, message) => {
       this.keepAliveClient(client);
 
       if (this.hasPerms(client)) {
-        // 0 - score
-        // 1 - accuracy
+        // 0 - accuracy
+        // 1 - score
         // 2 - misses
         // 3 - points
+        // 4 - (max) combo
         let newCond = this.state.winCondition + 1;
-        if (newCond > 3) {
+        if (newCond > 4) {
           newCond = 0;
         }
         this.state.winCondition = Math.max(0, newCond);
@@ -431,6 +465,10 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("setSkin", (client, message) => {
+      if (this.state.disableSkins) {
+        return;
+      }
+
       this.keepAliveClient(client);
 
       if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) {
@@ -685,9 +723,11 @@ export class GameRoom extends Room<RoomState> {
       
       this.state.player1 = new Player();
       this.state.player1.name = playerName;
-      this.state.player1.skinMod = options.skinMod;
-      this.state.player1.skinName = options.skinName;
-      this.state.player1.skinURL = options.skinURL;
+      if (!this.state.disableSkins) {
+        this.state.player1.skinMod = options.skinMod;
+        this.state.player1.skinName = options.skinName;
+        this.state.player1.skinURL = options.skinURL;
+      }
       this.state.player1.points = playerPoints;
       this.state.player1.verified = isVerified;
 
@@ -707,9 +747,11 @@ export class GameRoom extends Room<RoomState> {
         playerName += "(2)";
       }
       this.state.player2.name = playerName;
-      this.state.player2.skinMod = options.skinMod;
-      this.state.player2.skinName = options.skinName;
-      this.state.player2.skinURL = options.skinURL;
+      if (!this.state.disableSkins) {
+        this.state.player2.skinMod = options.skinMod;
+        this.state.player2.skinName = options.skinName;
+        this.state.player2.skinURL = options.skinURL;
+      }
       this.state.player2.points = playerPoints;
       this.state.player2.verified = isVerified;
 

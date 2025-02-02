@@ -24,4 +24,5 @@ export class RoomState extends Schema {
   @type("boolean") permitModifiers: boolean = false;
   @type("boolean") hideGF: boolean = false;
   @type("number") winCondition: number = 0;
+  @type("boolean") disableSkins: boolean = false;
 }

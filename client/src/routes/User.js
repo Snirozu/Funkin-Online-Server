@@ -4,7 +4,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { contentProfileColor, getHost, headProfileColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
+import { contentProfileColor, getHost, headProfileColor, ordinalNum, textProfileColor, textProfileRow, timeAgo } from '../Util';
 import { Icon } from '@iconify/react';
 
 function ReturnDate(time) {
@@ -40,7 +40,8 @@ function User() {
                 id: '',
                 modURL: ''
             }
-        ]
+        ],
+        rank: -1,
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -242,6 +243,7 @@ function User() {
                                 <center> <b> Moderator </b> </center>
                             ) : <></>}
                         </>}
+                        <b>Rank: </b> {ordinalNum(data.rank)} <br />
                         <b>Points: </b> {data.points} <br />
                         <b>Accuracy: </b> {(data.avgAccuracy * 100).toFixed(2)}% <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
