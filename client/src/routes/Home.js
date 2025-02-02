@@ -22,18 +22,18 @@ function Home() {
                     </a>
                 </div>
                 <br></br>
-                <span className="BigText" >Unofficial Ports</span> <br />
+                {/* <span className="BigText" >Unofficial Ports</span> <br />
                 <div className="Downloads">
-                    <a href='https://github.com/MobilePorting/Funkin-Psych-Online-Mobile/releases/latest/download/PsychOnline-Android.apk'>
+                    <a href=''>
                         <img alt="Android" width={150} src='/images/android_logo.png'></img>
                         <p>Android</p>
                     </a>
-                    <a href='https://github.com/MobilePorting/Funkin-Psych-Online-Mobile/releases/latest/download/PsychOnline-iOS.zip'>
+                    <a href=''>
                         <img alt="iOS" width={150} src='/images/apfel_logo.png'></img>
                         <p>iOS</p>
                     </a>
                 </div>
-                <br></br>
+                <br></br> */}
                 <hr/>
                 <p> Also check out the GameBanana page!</p>
                 <a href="https://gamebanana.com/mods/479714"><img className="CumBigImage" alt='' src="https://gamebanana.com/mods/embeddables/479714?type=sd_image" /></a>
