@@ -23,6 +23,9 @@ export class Player extends Schema {
     @type("boolean") botplay: boolean = false;
     @type("boolean") verified: boolean = false;
 
+    @type("string") noteSkin: string = null;
+    @type("string") splashSkin: string = null;
+
     @type({ array: "number" }) arrowColor0: number[] = [];
     @type({ array: "number" }) arrowColor1: number[] = [];
     @type({ array: "number" }) arrowColor2: number[] = [];
