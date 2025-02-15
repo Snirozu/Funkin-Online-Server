@@ -563,18 +563,20 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
-    this.onMessage("updateNoteSkins", (client, message) => {
+    this.onMessage("updateNoteSkinData", (client, message) => {
       this.keepAliveClient(client);
 
       if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
 
       if (this.isOwner(client)) {
         this.state.player1.noteSkin = message[0];
-        this.state.player1.splashSkin = message[1];
+        this.state.player1.noteSkinMod = message[1];
+        this.state.player1.noteSkinURL = message[2];
       }
       else {
         this.state.player2.noteSkin = message[0];
-        this.state.player2.splashSkin = message[1];
+        this.state.player2.noteSkinMod = message[1];
+        this.state.player2.noteSkinURL = message[2];
       }
     });
 
@@ -756,8 +758,9 @@ export class GameRoom extends Room<RoomState> {
       this.state.player1.arrowColorP2 = options.arrowRGBP[2];
       this.state.player1.arrowColorP3 = options.arrowRGBP[3];
 
-      this.state.player1.noteSkin = options.noteSkins[0];
-      this.state.player1.splashSkin = options.noteSkins[1];
+      this.state.player1.noteSkin = options.noteSkin;
+      this.state.player1.noteSkinMod = options.noteSkinMod;
+      this.state.player1.noteSkinURL = options.noteSkinURL;
     }
     else if (this.clients.length == 2) {
       this.state.player2 = new Player();
@@ -783,8 +786,9 @@ export class GameRoom extends Room<RoomState> {
       this.state.player2.arrowColorP2 = options.arrowRGBP[2];
       this.state.player2.arrowColorP3 = options.arrowRGBP[3];
 
-      this.state.player2.noteSkin = options.noteSkins[0];
-      this.state.player2.splashSkin = options.noteSkins[1];
+      this.state.player2.noteSkin = options.noteSkin;
+      this.state.player2.noteSkinMod = options.noteSkinMod;
+      this.state.player2.noteSkinURL = options.noteSkinURL;
     }
     // else if (this.clients.length == 3) {
     //   this.state.player3 = new Player();
