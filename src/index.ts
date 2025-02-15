@@ -45,6 +45,10 @@ listen(app)
                 }
             }
         }
+
+        process.on('uncaughtException', function (exception) {
+            console.error(exception);
+        });
     })
     .catch(reason => {
         console.log("Server failed to start!");
