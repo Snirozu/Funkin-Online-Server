@@ -566,7 +566,7 @@ export class GameRoom extends Room<RoomState> {
     this.onMessage("updateNoteSkinData", (client, message) => {
       this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
+      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
 
       if (this.isOwner(client)) {
         this.state.player1.noteSkin = message[0];
