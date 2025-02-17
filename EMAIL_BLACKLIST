@@ -1,4 +1,27 @@
-tohru.org --- open api spammer
+ --- BELOW ARE ALL DOMAINS BY 'smtp.dev'
+tohru.org
+edny.net
+talemarketing.com
+pretreer.com
+e-record.com
+soscandia.org
+desertsundesigns.com
+wsypc.com
+maxresistance.com
+trythe.net
+solarunited.org
+hldrive.com
+livinitlarge.net
+scpulse.com
+eurokool.com
+pussport.com
+mitico.org
+awgarstone.com
+spacehotline.com
+workingtall.com
+wireconnected.com
+ --- BLOCK OVH VPS BECAUSE ITS EASY TO ABUSE
+ovh.net
  --- BELOW FROM https://github.com/disposable-email-domains/disposable-email-domains/blob/main/disposable_email_blocklist.conf
 0-mail.com
 027168.com
