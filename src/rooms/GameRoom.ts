@@ -494,21 +494,21 @@ export class GameRoom extends Room<RoomState> {
       
       if (this.isOwner(client)) {
         if (this.state.player1.verified && player) {
-          this.state.player1.points = player.points;
+          this.setPlayerPoints(this.state.player1, player.points);
           this.state.player1.name = player.name;
         }
         else
-          this.state.player1.points = message;
+          this.setPlayerPoints(this.state.player1, message);
 
         this.metadata.points = this.state.player1.points;
       }
       else {
         if (this.state.player2.verified) {
-          this.state.player2.points = player.points;
+          this.setPlayerPoints(this.state.player2, player.points);
           this.state.player2.name = player.name;
         }
         else
-          this.state.player2.points = message;
+          this.setPlayerPoints(this.state.player2, message);
       }
     });
 
@@ -745,7 +745,7 @@ export class GameRoom extends Room<RoomState> {
         this.state.player1.skinName = options.skinName;
         this.state.player1.skinURL = options.skinURL;
       }
-      this.state.player1.points = playerPoints;
+      this.setPlayerPoints(this.state.player1, playerPoints);
       this.state.player1.verified = isVerified;
 
       this.state.player1.arrowColor0 = options.arrowRGBT[0];
@@ -773,7 +773,7 @@ export class GameRoom extends Room<RoomState> {
         this.state.player2.skinName = options.skinName;
         this.state.player2.skinURL = options.skinURL;
       }
-      this.state.player2.points = playerPoints;
+      this.setPlayerPoints(this.state.player2, playerPoints);
       this.state.player2.verified = isVerified;
 
       this.state.player2.arrowColor0 = options.arrowRGBT[0];
@@ -921,6 +921,11 @@ export class GameRoom extends Room<RoomState> {
       result += LETTERS.charAt(Math.floor(Math.random() * LETTERS.length));
     }
     return result;
+  }
+
+  setPlayerPoints(player:any, v: number): void {
+    if (this.checkInvalid(v, VerifyTypes.NUMBER)) return;
+    player.points = v;
   }
 
   // 1. Get room IDs already registered with the Presence API.
