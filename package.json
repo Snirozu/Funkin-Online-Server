@@ -16,7 +16,7 @@
     "servsetup": "node setupservice.js",
     "servrestart": "systemctl restart funkin-online.service",
     "servlogs": "journalctl -u funkin-online.service",
-    "postinstall": "npm install -g nodemon && npm install -g ts-node && prisma generate",
+    "postinstall": "npm install pm2 -g && npm install -g ts-node && prisma generate",
     "installclient": "cd client && npm install && npm run build && cd .."
   },
   "author": "Snirozu",
