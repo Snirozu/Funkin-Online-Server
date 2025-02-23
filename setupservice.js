@@ -17,7 +17,7 @@ let service = "" +
 "Restart = always\n" +
 "RestartSec = 1\n" +
 "WorkingDirectory = " + __dirname + "\n" +
-"ExecStart = npm run pstart\n" +
+"ExecStart = npm start\n" +
 "[Install]\n" +
 "WantedBy = multi-user.target"
 ;
