@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { getHost, ordinalNum, timeAgo } from "../Util";
+import { getHost, moneyFormatter, ordinalNum, timeAgo } from "../Util";
 import AvatarImg from "../AvatarImg";
 import { Icon } from "@iconify/react/dist/iconify.js";
 
@@ -25,6 +25,7 @@ function Song() {
             const data = await response.json();
             console.log(data);
             setTablePage(page);
+            setError(null);
             setData(data);
             setLoading(false);
         } catch (error) {
@@ -101,7 +102,7 @@ function renderScores(song, scores, page) {
                 }
             </td>
             <td>
-                {score.score}
+                {moneyFormatter.format(score.score)}
             </td>
             <td>
                 {score.accuracy}%
@@ -123,7 +124,7 @@ function renderScores(song, scores, page) {
                 <div className="FlexBox">
                     <br></br>
                     <span className="BigText">1st</span><span className="BiggerText"> {leader.player} </span>
-                    <br></br><span>Score: {leader.score}</span>
+                    <br></br><span>Score: {moneyFormatter.format(leader.score)}</span>
                     <span>{leader.points}FP</span>
                     <br></br><span>Accuracy: {leader.accuracy}%</span>
                     <br></br><span>{timeAgo.format(Date.parse(leader.submitted))}</span>
@@ -162,6 +163,7 @@ function RenderComments(props) {
                 throw new Error('Could not load song comments.');
             }
             const data = await response.json();
+            setError(null);
             setComments(data);
             setLoading(false);
         } catch (error) {

@@ -3,6 +3,11 @@ import en from 'javascript-time-ago/locale/en'
 
 TimeAgo.addDefaultLocale(en);
 export const timeAgo = new TimeAgo('en-US')
+export const moneyFormatter = new Intl.NumberFormat();
+
+export function getResError(response) {
+    return response.data ?? 'HTTP ' + response.status;
+}
 
 export function ordinalNum(num) {
     if (num % 10 === 1 && num !== 11)

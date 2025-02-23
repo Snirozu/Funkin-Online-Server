@@ -25,6 +25,23 @@ a:hover {
   text-decoration: underline;
 }
 
+.TopContainer {
+  background-color: #475063;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  margin-top: 10px;
+  background-color: rgb(153, 100, 65);
+  display: flex;
+  color: white;
+  align-items: center;
+  padding: 6px;
+  padding-left: 7px;
+}
+
+.TopContainer div {
+  margin-left: 15px;
+}
+
 .LeaderContainer {
   background-color: #475063;
   border-radius: 20px;
@@ -115,6 +132,16 @@ a:hover {
 
   height: 50px;
   max-height: 50px;
+}
+
+.TopAvatar {
+  width: 90px;
+  max-width: 90px;
+
+  height: 90px;
+  max-height: 90px;
+
+  border-radius: 20%;
 }
 
 .FrenAvatar {
@@ -258,7 +285,7 @@ a:hover {
   padding: 4px;
 }
 
-.Content div {
+.Content > div { /* ">" only includes the first child */
   width: 100%;
 }
 
@@ -401,4 +428,14 @@ tbody tr:nth-child(even) {
 #ProfileColorSlider {
   margin-top: 10px;
   width: 90%;
+}
+
+#BioEditor {
+  color: white;
+}
+
+.PixelImg {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }

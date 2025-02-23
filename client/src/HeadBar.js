@@ -28,6 +28,7 @@ function HeadBar() {
             if (data.isMod) {
                 Cookies.set('modmode', true, { sameSite: 'strict'});
             }
+            setError(null);
             setData(data);
             setLoading(false);
         } catch (error) {
@@ -36,6 +37,7 @@ function HeadBar() {
         }
     };
     useEffect(() => {
+        setLoading(true);
         fetchData();
     }, []);
 
@@ -45,6 +47,8 @@ function HeadBar() {
                 <a href="/">HOME</a>
                 <a href="/network">NETWORK</a>
                 <a href="/stats">STATS</a>
+                <a href="/search">SEARCH</a>
+                <a href="/top">TOP</a>
                 {loading ? (
                     <></>
                 ) : error ? (

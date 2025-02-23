@@ -40,6 +40,7 @@ function RenderOnlineChart() {
                 timestamps.push(((h < 10 ? '0' : '') + h) + ":" + ((m < 10 ? '0' : '') + m) + " " + date.getDate() + "/" + (date.getMonth() + 1));
             });
 
+            setErrorOnline(null);
             setDataOnline({
                 labels: timestamps,
                 datasets: [{
@@ -104,6 +105,7 @@ function RenderCountryChart() {
 
             unsortedData.sort((from, to) => from.count - to.count);
 
+            setErrorOnline(null);
             setDataOnline({
                 labels: unsortedData.map(e => e.label),
                 datasets: [{

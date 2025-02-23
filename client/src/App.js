@@ -8,6 +8,9 @@ import Song from './routes/Song';
 import Network from './routes/Network';
 import Stats from './routes/Stats';
 import FriendArea from './routes/FriendArea';
+import NotFound from './routes/NotFound';
+import Search from './routes/Search';
+import Leaderboard from './routes/Leaderboard';
 
 const App = () => {
   useEffect(() => {
@@ -24,6 +27,9 @@ const App = () => {
         <Route path="/network" element={<Network />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/friends" element={<FriendArea />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/top" element={<Leaderboard />} />
+        <Route path='*' element={<NotFound />} />
       </Routes>
     </div>
   );

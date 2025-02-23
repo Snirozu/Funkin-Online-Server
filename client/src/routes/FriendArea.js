@@ -24,6 +24,7 @@ function FriendArea() {
                 throw new Error('Friends not found.');
             }
             const data = response.data;
+            setError(null);
             setData(data);
             setLoading(false);
         } catch (error) {
@@ -32,6 +33,7 @@ function FriendArea() {
         }
     };
     useEffect(() => {
+        setLoading(true);
         fetchData();
     }, []);
 

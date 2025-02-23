@@ -716,7 +716,8 @@ export default config({
                     for (const score of _top) {
                         top.push({
                             player: score.name,
-                            points: score.points
+                            points: score.points,
+                            profileHue: score.profileHue,
                         });
                     }
                     res.send(top);
@@ -726,6 +727,33 @@ export default config({
                     res.sendStatus(500);
                 }
             });
+
+            app.get("/api/network/search/songs", async (req, res) => {
+                try {
+                    res.send(await searchSongs(req.query.q as string));
+                }
+                catch (exc: any) {
+                    res.status(400).send(exc?.error_message ?? "None found...");
+                }
+            });
+
+            app.get("/api/network/search/users", async (req, res) => {
+                try {
+                    res.send(await searchUsers(req.query.q as string));
+                }
+                catch (exc: any) {
+                    res.status(400).send(exc?.error_message ?? "None found...");
+                }
+            });
+
+            /*
+            for (const song of (await searchSongs(req.query.q as string))) {
+                resp += '<a href="/old_network/song/' + song.id + '"> ' + song.id + '</a><hr>';
+            }
+            for (const user of (await searchUsers(req.query.q as string))) {
+                resp += '<a href="/old_network/user/' + user.name + '"> ' + user.name + '</a><hr>';
+            }
+            */
 
             // ping for successful authorization
             app.get("/api/network/account/me", checkLogin, async (req, res) => {

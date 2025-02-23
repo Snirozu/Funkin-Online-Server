@@ -4,8 +4,9 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { contentProfileColor, getHost, headProfileColor, ordinalNum, textProfileColor, textProfileRow, timeAgo } from '../Util';
+import { contentProfileColor, getHost, headProfileColor, moneyFormatter, ordinalNum, textProfileColor, textProfileRow, timeAgo } from '../Util';
 import { Icon } from '@iconify/react';
+import Editor from 'react-simple-wysiwyg';
 
 function ReturnDate(time) {
     const date = new Date(time);
@@ -48,6 +49,12 @@ function User() {
     const [editBioMode, setBioEditMode] = useState(null);
     const [queryParams] = useSearchParams();
     const [tablePage, setTablePage] = useState(0);
+    const [bioHTML, setHTML] = useState(null);
+    const [adminMode, setAdminMode] = useState(Cookies.get('admin') ?? undefined);
+
+    function onChange(e) {
+        setHTML(e.target.value);
+    }
 
     const fetchData = async (page) => {
         try {
@@ -61,6 +68,7 @@ function User() {
                 throw new Error('User not found.');
             }
             setTablePage(page);
+            setError(null);
             setData(response.data);
             setLoading(false);
         } catch (error) {
@@ -73,7 +81,7 @@ function User() {
         if (editBioMode) {
             try {
                 const response = await axios.post(getHost() + '/api/network/account/profile/set', {
-                    bio: document.getElementById('bioInput').value,
+                    bio: bioHTML,
                     hue: document.getElementById('ProfileColorSlider').value
                 }, {
                     headers: {
@@ -151,7 +159,7 @@ function User() {
                     }
                 </td>
                 <td>
-                    {score.score}
+                    {moneyFormatter.format(score.score)}
                 </td>
                 <td>
                     {score.accuracy}%
@@ -222,6 +230,16 @@ function User() {
         } catch (exc) { }
     }, [data, setData, setLoading])
 
+    function toggleAdmin() {
+        if (Cookies.get('admin')) {
+            Cookies.remove('admin');
+            setAdminMode(undefined);
+            return;
+        }
+        Cookies.set('admin', '1');
+        setAdminMode('1');
+    }
+
     return (
         <div className='Content' style={{ backgroundColor: contentProfileColor(data.profileHue) }}>
             {loading ? (
@@ -244,7 +262,7 @@ function User() {
                             ) : <></>}
                         </>}
                         <b>Rank: </b> {ordinalNum(data.rank)} <br />
-                        <b>Points: </b> {data.points} <br />
+                        <b>Points: </b> {moneyFormatter.format(data.points)} <br />
                         <b>Accuracy: </b> {(data.avgAccuracy * 100).toFixed(2)}% <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
                         <b>Joined: </b> {ReturnDate(Date.parse(data.joined))} <br />
@@ -276,14 +294,12 @@ function User() {
                             <></>
                         }
                         {Cookies.get('modmode') ?
-                            <a href={queryParams.get('admin') ? "?" : "?admin=1"} title={queryParams.get('admin') ? "User Mode" : "Admin Mode"}>
-                                <button className='SvgButton'>
-                                    {queryParams.get('admin') ? <Icon width={20} icon="mdi:user-box" /> : <Icon width={20} icon="eos-icons:admin" />}
-                                </button>
-                            </a>
+                            <button className='SvgButton' title={adminMode ? "User Mode" : "Admin Mode"} onClick={toggleAdmin}>
+                                {adminMode ? <Icon width={20} icon="mdi:user-box" /> : <Icon width={20} icon="eos-icons:admin" />}
+                            </button>
                         : <></>}
                         {
-                            queryParams.get('admin') ? 
+                            adminMode ? 
                                 <a title='Ban' target="_blank" rel='noreferrer' style={{ color: 'red' }} href={"/api/network/admin/user/ban?username=" + name + "&to=" + (data.isBanned ? "false" : "true")}>
                                     <button className='SvgButton'>
                                         {(data.isBanned ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
@@ -307,9 +323,7 @@ function User() {
                     <div className='Contents'>
                         {editBioMode ? 
                             <>
-                                <textarea rows="10" cols="85" id="bioInput" placeholder={"Hello World! <br>\n:)"}>
-                                    {data.bio}
-                                </textarea>
+                                <Editor id="BioEditor" value={bioHTML ?? data.bio} defaultValue={data.bio} onChange={onChange} />
                             </>
                         : 
                             <div className='UserBio' dangerouslySetInnerHTML={{ __html: data.bio }} />
@@ -317,7 +331,7 @@ function User() {
                         {data.scores.length > 0 ? (
                             <>
                                 <center> <b> Best Performances </b> </center>
-                                {renderScores(data.scores, queryParams.get('admin'))}
+                                {renderScores(data.scores, adminMode)}
                                 <br></br>
                                 {(tablePage > 0) ?
                                     <button className='SvgButton' style={{float: 'left'}} onClick={() => {

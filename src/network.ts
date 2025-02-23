@@ -578,7 +578,8 @@ export async function topPlayers(page:number): Promise<Array<any>> {
             ],
             select: {
                 name: true,
-                points: true
+                points: true,
+                profileHue: true
             },
             take: 15,
             skip: 15 * page
@@ -647,15 +648,43 @@ export async function getSongComments(id: string) {
 }
 
 export async function searchSongs(query: string) {
+    if (query.trim().length < 3) {
+        throw {
+            error_message: "Search query needs to be longer than 3!"
+        }
+    }
+
     try {
-        return (await prisma.song.findMany({
+        const rawRes = await prisma.song.findMany({
             where: {
                 id: {
                     contains: query,
                     mode: "insensitive"
                 }
-            }
-        }))
+            },
+            select: {
+                id: true,
+                scores: {
+                    select: {
+                        points: true
+                    },
+                    orderBy: {
+                        points: "desc"
+                    },
+                    take: 1
+                }
+            },
+            take: 50
+        });
+
+        let res = [];
+        for (const song of rawRes) {
+            res.push({
+                id: song.id,
+                fp: song.scores[0]?.points ?? 0
+            });
+        }
+        return res
     }
     catch (exc) {
         return null;
@@ -663,6 +692,12 @@ export async function searchSongs(query: string) {
 }
 
 export async function searchUsers(query: string) {
+    if (query.trim().length < 3) {
+        throw {
+            error_message: "Search query needs to be longer than 3!"
+        }
+    }
+
     try {
         return (await prisma.user.findMany({
             where: {
@@ -670,7 +705,13 @@ export async function searchUsers(query: string) {
                     contains: query,
                     mode: "insensitive"
                 }
-            }
+            },
+            select: {
+                name: true,
+                isBanned: true,
+                points: true,
+            },
+            take: 50
         }))
     }
     catch (exc) {

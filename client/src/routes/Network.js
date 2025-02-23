@@ -18,6 +18,7 @@ function Network() {
                 throw new Error('Players not found.');
             }
             const data = await response.json();
+            setError(null);
             setData(data);
             setLoading(false);
         } catch (error) {
@@ -31,6 +32,7 @@ function Network() {
                 throw new Error('Messages not found.');
             }
             const data = await response.json();
+            setSezError(null);
             setSezData(data);
             setSezLoading(false);
         } catch (error) {
@@ -39,6 +41,8 @@ function Network() {
         }
     };
     useEffect(() => {
+        setSezLoading(true);
+        setLoading(true);
         fetchData();
     }, []);
 
