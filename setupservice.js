@@ -9,7 +9,7 @@ cp.execSync("npm i");
 
 let service = "" +
 "[Unit]\n" +
-"Description = Funkin Online server service\n" +
+"Description = Funkin Online Server service\n" +
 "After = network.target\n" +
 "StartLimitIntervalSec = 0\n" +
 "[Service]\n" +
@@ -17,7 +17,7 @@ let service = "" +
 "Restart = always\n" +
 "RestartSec = 1\n" +
 "WorkingDirectory = " + __dirname + "\n" +
-"ExecStart = npm start\n" +
+"ExecStart = npm run pstart\n" +
 "[Install]\n" +
 "WantedBy = multi-user.target"
 ;
