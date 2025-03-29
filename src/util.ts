@@ -32,7 +32,7 @@ export function ordinalNum(num:number) {
 
 export async function isUserNameInRoom(userName:string, room?:GameRoom) {
     if (!room) room = Data.MAP_USERNAME_PLAYINGROOM.get(userName);
-    return isUserIDInRoom(await getPlayerIDByName(userName), room);
+    return await isUserIDInRoom(await getPlayerIDByName(userName), room);
 }
 
 export async function isUserIDInRoom(userID: string, room?: GameRoom) {

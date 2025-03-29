@@ -888,7 +888,7 @@ export default config({
                 try {
                     const [id, _] = getIDToken(req);
 
-                    if (isUserIDInRoom(id)) {
+                    if (await isUserIDInRoom(id)) {
                         const room = Data.MAP_USERNAME_PLAYINGROOM.get(await getPlayerNameByID(id));
                         const clientSSID = getKeyOfValue(room.clientsID, id);
                         let client = null;
