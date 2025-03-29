@@ -58,7 +58,7 @@ export default config({
                 res.send({
                     online: playerCount,
                     rooms: roomFreeCount,
-                    sez: (playerName ? playerName + ' sez: "' + Data.FRONT_MESSAGES[0].message + '"' : null)
+                    sez: (playerName ? playerName + ' sez: "' + Data.FRONT_MESSAGES[0].message + '"' : '')
                 });
             }
             catch (exc) {
