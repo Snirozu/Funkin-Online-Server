@@ -139,7 +139,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
     });
 
     this.onMessage("inviteplayertoroom", async (client, message: string) => {
-      if (!this.SSIDtoID.has(client.sessionId) || !this.IDToName.has(this.SSIDtoID.get(client.sessionId))) {
+      if (!this.SSIDtoID.has(client.sessionId)) {
         client.send("notification", 'Authorization Error');
         this.removePlayer(client);
         return;
@@ -150,7 +150,6 @@ export class NetworkRoom extends Room<NetworkSchema> {
         return;
       }
 
-      console.log(Data.MAP_USERNAME_PLAYINGROOM.get(this.IDToName.get(this.SSIDtoID.get(client.sessionId))).roomId);
       if (!(await isUserIDInRoom(this.SSIDtoID.get(client.sessionId)))) {
         client.send("notification", 'You\'re not in a game room!');
         return;
