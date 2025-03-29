@@ -187,7 +187,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
 
     const newRank = await getPlayerRank(submitter.name);
 
-    if (newRank >= 10 && newRank > prevRank) {
+    if (newRank <= 50 && newRank < prevRank) {
         logToAll(formatLog(submitter.name + ' climbed to ' + ordinalNum(newRank) + ' place on the global leaderboard!'))
     }
 
