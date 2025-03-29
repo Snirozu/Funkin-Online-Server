@@ -2,7 +2,7 @@ import { Room, Client } from "@colyseus/core";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
 import { Data } from "../Data";
-import { authPlayer, getPlayerByID, getPlayerIDByName } from "../network";
+import { authPlayer, getPlayerByID, getPlayerByName, getPlayerIDByName } from "../network";
 import { NetworkSchema } from "./schema/NetworkSchema";
 import { formatLog, isUserIDInRoom } from "../util";
 
@@ -150,12 +150,13 @@ export class NetworkRoom extends Room<NetworkSchema> {
         return;
       }
 
-      if (await isUserIDInRoom(this.SSIDtoID.get(client.sessionId))) {
+      console.log(Data.MAP_USERNAME_PLAYINGROOM.get(this.IDToName.get(this.SSIDtoID.get(client.sessionId))).roomId);
+      if (!(await isUserIDInRoom(this.SSIDtoID.get(client.sessionId)))) {
         client.send("notification", 'You\'re not in a game room!');
         return;
       }
       
-      if (!(await getPlayerByID(this.SSIDtoID.get(client.sessionId))).friends.includes(await getPlayerIDByName(message.toLowerCase()))) {
+      if (!((await getPlayerByName(message)).friends.includes(this.SSIDtoID.get(client.sessionId)))) {
         client.send("notification", 'You\'re not friends with ' + message + '!');
         return;
       }
@@ -190,11 +191,8 @@ export class NetworkRoom extends Room<NetworkSchema> {
     }
 
     const player = await authPlayer(options);
-    if (!player) {
-      throw new ServerError(5001, "Prohibited!"); 
-    }
-    if (this.IDToName.has(player.id)) {
-      throw new ServerError(5002, "Prohibited"); 
+    if (!player || this.IDToName.has(player.id)) {
+      this.removePlayer(this.IDtoClient.get(player.id));
     }
 
     this.SSIDtoID.set(client.sessionId, player.id);

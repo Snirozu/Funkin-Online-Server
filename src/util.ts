@@ -37,7 +37,15 @@ export async function isUserNameInRoom(userName:string, room?:GameRoom) {
 
 export async function isUserIDInRoom(userID: string, room?: GameRoom) {
     if (!room) room = Data.MAP_USERNAME_PLAYINGROOM.get(await getPlayerNameByID(userID));
-    return room != null && room.clients.length > 0 && room.clientsID.has(userID);
+    return room != null && room.clients.length > 0 && hasValue(room.clientsID, userID);
+}
+
+export function hasValue(map:Map<any, any>, value:any) {
+    for (const v of map.values()) {
+        if (v == value)
+            return true;
+    }
+    return false;
 }
 
 export const validCountries = [
