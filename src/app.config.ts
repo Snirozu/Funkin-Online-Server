@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -18,6 +18,7 @@ import fileUpload, { UploadedFile } from "express-fileupload";
 import { networkRoom, NetworkRoom } from "./rooms/NetworkRoom";
 import nodemailer from 'nodemailer';
 import * as crypto from "crypto";
+import { isUserIDInRoom, isUserNameInRoom } from "./util";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')
@@ -52,12 +53,12 @@ export default config({
         app.get("/api/front", async (req, res) => {
             try {
                 const [playerCount, roomFreeCount] = await countPlayers();
-                const player = Data.FRONT_MESSAGES[0] ? await getPlayerByID(Data.FRONT_MESSAGES[0].player) : undefined;
+                const playerName = Data.FRONT_MESSAGES[0] ? await getPlayerNameByID(Data.FRONT_MESSAGES[0].player) : undefined;
 
                 res.send({
                     online: playerCount,
                     rooms: roomFreeCount,
-                    sez: (player ? player.name + ' sez: "' + Data.FRONT_MESSAGES[0].message + '"' : null)
+                    sez: (playerName ? playerName + ' sez: "' + Data.FRONT_MESSAGES[0].message + '"' : null)
                 });
             }
             catch (exc) {
@@ -66,7 +67,7 @@ export default config({
             }
         });
 
-        app.get("/api/online", async (req, res) => {
+        app.get("/api/onlinecount", async (req, res) => {
             try {
                 res.send('' + (await countPlayers())[0]);
             }
@@ -117,176 +118,7 @@ export default config({
                     switch (params[1]) {
                         case undefined:
                         case "":
-                            res.redirect('/old_network/users/online');
-                            break;
-                        case "users":
-                            if (params[2] == "online") {
-                                let usersBody = '<h1>Players Online</h1><tr>';
-                                for (const playerName of Data.ONLINE_PLAYERS) {
-                                    usersBody += '<a href="/old_network/user/' + playerName + '"> ' + playerName + '</a><br>';
-                                }
-                                res.send(usersBody);
-                            }
-                            break;
-                        case "user":
-                            const player = await getPlayerByName(params[2]);
-
-                            if (!player)
-                                throw { error_message: "Player not found!" };
-
-                            let trs = '';
-
-                            const score_page = Number.parseInt(req.query.score_page as string ?? "0");
-
-                            const scores = await getScoresPlayer(player.id, score_page);
-                            scores.forEach((score:any) => {
-                                const songId = (score.songId as string).split('-');
-                                songId.pop();
-                                trs += '<tr><td><a href="/old_network/song/' + score.songId + '?strum=' + score.strum + '">' + songId.join(" ") + '</a></td><td>' + score.score + '</td><td>' + score.accuracy + '</td><td>' + score.points + '</td><td>' + score.submitted + '</td></tr>';
-                            });
-
-                            let scoreStr = ' \
-                            <table style="width:1000px"> \
-                                <tr> \
-                                <td> Song </td> \
-                                <td> Score </td> \
-                                <td> Accuracy </td> \
-                                <td> Points </td> \
-                                <td> Submitted </td> \
-                                </tr>'
-                                + trs +
-                                '</table> \
-                            ';
-
-                            if (score_page >= 1) {
-                                scoreStr += "<br> <a href='/old_network/user/" + player.name + "?score_page=" + (score_page - 1) + "'> <-- Previous Page </a>";
-                            }
-                            if (scores.length >= 15) {
-                                if (score_page >= 1)
-                                    scoreStr += '&nbsp';
-                                else
-                                    scoreStr += '<br>';
-                                scoreStr += "<a href='/old_network/user/" + player.name + "?score_page=" + (score_page + 1) + "'> Next Page --> </a>";
-                            }
-
-                            res.send("<h2>" + player.name + "</h2> " + (player.isMod ? "Moderator" : '') + " <hr>Points: " + player.points + 
-                                "<br>Online: " + (Data.VERIFIED_PLAYING_PLAYERS.includes(player.name) ? 'In a Room' : (Date.now() - player.lastActive.getTime() < 1000 * 90 ? "Now" : timeAgo.format(player.lastActive)))
-                                + "<br>Joined: " + new Date(player.joined).toDateString() + '<h3>Scores:</h3><hr>' + scoreStr);
-                            break;
-                        case 'song':
-                            const strum = Number.parseInt(req.query.strum as string ?? "2");
-                            const top_page = Number.parseInt(req.query.page as string ?? "0");
-                            const top = await topScores(params[2], strum, top_page);
-
-                            let songTitle = '???';
-                            let trss = '';
-
-                            for (const score of top) {
-                                const songId = params[2].split('-');
-                                songId.pop();
-                                songTitle = songId.join(" ");
-                                const playerName = (await getPlayerByID(score.player)).name;
-                                trss += '<tr><td><a href="/old_network/user/' + playerName + '">' + playerName + '</a></td><td>' + score.score + '</td><td>' + score.accuracy + '</td><td>' + score.points + '</td><td>' + score.submitted + '</td></tr>';
-                            }
-
-                            let topStr = ' \
-                            <table style="width:1000px"> \
-                                <tr> \
-                                <td> Player </td> \
-                                <td> Score </td> \
-                                <td> Accuracy </td> \
-                                <td> Points </td> \
-                                <td> Submitted </td> \
-                                </tr>'
-                                + trss +
-                                '</table> \
-                            ';
-
-                            if (top_page >= 1) {
-                                topStr += "<br> <a href='/old_network/song/" + params[2] + "?page=" + (top_page - 1) + "'> <-- Previous Page </a>";
-                            }
-                            if (top.length >= 15) {
-                                if (top_page >= 1)
-                                    topStr += '&nbsp';
-                                else
-                                    topStr += '<br>';
-                                topStr += "<a href='/old_network/song/" + params[2] + "?page=" + (top_page + 1) + "'> Next Page --> </a>";
-                            }
-
-                            const comments = await getSongComments(params[2]);
-                            if (comments) {
-                                topStr += "<h1>Comments</h1>";
-                                for (const comment of comments) {
-                                    const cumdate = new Date(comment.at);
-                                    topStr += "<hr><b>" + (await getPlayerByID(comment.by)).name + '</b><br>"' + comment.content + '" at ' + cumdate.getMinutes() + ":" + cumdate.getSeconds();
-                                    if (reqPlayer.id == comment.by) {
-                                        topStr += "<br><a href='/old_network/account/remove?song_comment=" + comment.songid + "'>(REMOVE)</a>"
-                                    }
-                                }
-                                if (comments.length <= 0) {
-                                    topStr += "No comments!";
-                                }
-                            }
-
-                            let strumStr = strum + "";
-                            switch (strum) {
-                                case 1: 
-                                    strumStr += ' (Dad)';
-                                    break;
-                                case 2:
-                                    strumStr += ' (Boyfriend)';
-                                    break;
-                                default:
-                                    strumStr += ' (???)';
-                                    break;
-                            }
-
-                            res.send('<h1>' + songTitle + "</h1><p>Strum: " + strumStr + "</p><hr>" + topStr);
-                            break;
-                        case 'search':
-                            let resp = "<h1>Search Results for: " + req.query.q + "</h1>";
-                            switch (params[2]) {
-                                case 'songs':
-                                    for (const song of (await searchSongs(req.query.q as string))) {
-                                        resp += '<a href="/old_network/song/' + song.id + '"> ' + song.id + '</a><hr>';
-                                    }
-                                    res.send(resp);
-                                    break;
-                                case 'users':
-                                    for (const user of (await searchUsers(req.query.q as string))) {
-                                        resp += '<a href="/old_network/user/' + user.name + '"> ' + user.name + '</a><hr>';
-                                    }
-                                    res.send(resp);
-                                    break;
-                            }
-                            break;
-                        case "account":
-                            if (!reqPlayer) {
-                                res.send('nuh uh');
-                                return;
-                            }
-
-                            switch (params[2]) {
-                                case "remove":
-                                    const removed = [];
-                                    if (req.query.song_comment) {
-                                        await removeSongComment(reqPlayer.id, req.query.song_comment as string);
-                                        removed.push("song comment");
-                                    }
-                                    if (req.query.score) {
-                                        await removeScore(req.query.score as string, reqPlayer.id);
-                                        removed.push("score");
-                                    }
-
-                                    if (removed.length == 0) {
-                                        res.send('none removed! <br><a href="javascript:history.back()"> go bakc </a>');
-                                        return;
-                                    }
-
-                                    res.send('removed ' + removed.join(',') + '! <br><a href="javascript:history.back()"> go bakc </a>');
-                                    break;
-                            }
-
+                            res.redirect('/404');
                             break;
                         case "admin":
                             if (!reqPlayer || !reqPlayer.isMod) {
@@ -323,8 +155,10 @@ export default config({
                                     for (const report of reports) {
                                         const submitter = await getPlayerByID(report.by);
                                         response += 'By: ' + submitter.name;
-                                        if (report.content.startsWith("Score #")) {
-                                            const score = await getScore(report.content.split("Score #")[1]);
+                                        const contentLines = report.content.split('\n');
+                                        const scoreLine = contentLines.shift();
+                                        if (scoreLine.startsWith("Score #")) {
+                                            const score = await getScore(scoreLine.split("Score #")[1]);
                                             if (!score) {
                                                 await removeReport(report.id);
                                                 response += "<br>REMOVED<hr>";
@@ -333,6 +167,7 @@ export default config({
                                             const scorePlayer = await getPlayerByID(score.player);
                                             response += "<br> " + "<a href='/api/old_network/score/replay?id=" + score.id + "'>" + scorePlayer.name + "'s Score"
                                                 + "</a> on <a href='/old_network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
+                                                + (contentLines.length > 0 ? "<br>" + contentLines.join('<br>') : '')
                                                 + "<br><br><a href='/old_network/admin/remove?report=" + report.id + "&score=" + score.id + "'>(REMOVE SCORE)</a>&nbsp;&nbsp;&nbsp;";
                                         }
                                         else {
@@ -364,17 +199,15 @@ export default config({
             -
             */
 
-            app.use('/api/avatar', express.static('database/avatars'));
-
             //GET
 
-            app.get("/api/network/sezdetal", async (req, res) => {
+            app.get("/api/sezdetal", async (req, res) => {
                 try {
                     let sezlist = [];
                     for (const msg of Data.FRONT_MESSAGES) {
-                        const player = await getPlayerByID(msg.player);
+                        const playerName = await getPlayerNameByID(msg.player);
                         sezlist.push({
-                            player: player.name,
+                            player: playerName,
                             message: msg.message
                         });
                     }
@@ -386,7 +219,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/online", async (req, res) => {
+            app.get("/api/online", async (req, res) => {
                 try {
                     let roomArray:any = [];
                     var rooms = await matchMaker.query();
@@ -413,7 +246,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/account/info", checkLogin, async (req, res) => {
+            app.get("/api/account/info", checkLogin, async (req, res) => {
                 try {
                     const [id, token] = getIDToken(req);
                     const user = await pingPlayer(id);
@@ -434,7 +267,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/user/friends/remove", checkLogin, async (req, res) => {
+            app.get("/api/user/friends/remove", checkLogin, async (req, res) => {
                 try {
                     if (!req.query.name)
                         return res.sendStatus(400);
@@ -447,7 +280,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/user/friends/request", checkLogin, async (req, res) => {
+            app.get("/api/user/friends/request", checkLogin, async (req, res) => {
                 try {
                     if (!req.query.name)
                         return res.sendStatus(400);
@@ -460,7 +293,41 @@ export default config({
                 }
             });
 
-            app.get("/api/network/user/info", async (req, res) => {
+            app.get("/api/avatar/:user", async (req, res) => {
+                try {
+                    if (!req.params.user)
+                        return res.sendStatus(400);
+
+                    const file = await getAvatar(await getPlayerIDByName(req.params.user as string));
+                    if (!file)
+                        return res.sendStatus(404);
+
+                    res.send(file.data);
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/background/:user", async (req, res) => {
+                try {
+                    if (!req.params.user)
+                        return res.sendStatus(400);
+
+                    const file = await getBackground(await getPlayerIDByName(req.params.user as string));
+                    if (!file)
+                        return res.sendStatus(404);
+
+                    res.send(file.data);
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/user/info", async (req, res) => {
                 try {
                     if (!req.query.name)
                         return res.sendStatus(400);
@@ -478,7 +345,8 @@ export default config({
                         isBanned: user.isBanned,
                         profileHue: user.profileHue ?? 250,
                         avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
-                        rank: await getPlayerRank(user.name)
+                        rank: await getPlayerRank(user.name),
+                        country: user.country
                     });
                 }
                 catch (exc) {
@@ -487,7 +355,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/user/details", async (req, res) => {
+            app.get("/api/user/details", async (req, res) => {
                 try {
                     if (!req.query.name)
                         return res.sendStatus(400);
@@ -498,9 +366,45 @@ export default config({
                     if (!user)
                         return res.sendStatus(404);
 
-                    let coolScores:any[] = [];
+                    const pingasFriends = auth?.pendingFriends ?? [];
 
-                    const scores = await getScoresPlayer(user.id, Number.parseInt(req.query.page as string ?? "0"));
+                    res.send({
+                        isMod: user.isMod,
+                        joined: user.joined,
+                        lastActive: user.lastActive,
+                        points: user.points,
+                        isSelf: auth?.id == user.id,
+                        isBanned: user.isBanned,
+                        bio: user.bio,
+                        friends: await getUserFriends(user.friends),
+                        canFriend: !pingasFriends.includes(user?.id),
+                        profileHue: user.profileHue,
+                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
+                        rank: await getPlayerRank(user.name),
+                        country: user.country
+                    });
+                }
+                catch (exc) {
+                    console.error(exc);
+                    res.sendStatus(500);
+                }
+            });
+
+            app.get("/api/user/scores", async (req, res) => {
+                try {
+                    if (!req.query.name)
+                        return res.sendStatus(400);
+
+                    const userID = await getPlayerIDByName(req.query.name as string);
+
+                    if (!userID)
+                        return res.sendStatus(404);
+
+                    let coolScores: any[] = [];
+
+                    const scores = await getScoresPlayer(userID, Number.parseInt(req.query.page as string ?? "0"));
+                    if (!scores)
+                        return res.sendStatus(404);
                     scores.forEach(score => {
                         const songId = (score.songId as string).split('-');
                         songId.pop();
@@ -517,23 +421,7 @@ export default config({
                         });
                     });
 
-                    const pingasFriends = auth?.pendingFriends ?? [];
-
-                    res.send({
-                        isMod: user.isMod,
-                        joined: user.joined,
-                        lastActive: user.lastActive,
-                        points: user.points,
-                        scores: coolScores,
-                        isSelf: auth?.id == user.id,
-                        isBanned: user.isBanned,
-                        bio: user.bio,
-                        friends: await getUserFriends(user.friends),
-                        canFriend: !pingasFriends.includes(user?.id),
-                        profileHue: user.profileHue,
-                        avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
-                        rank: await getPlayerRank(user.name)
-                    });
+                    res.send(coolScores);
                 }
                 catch (exc) {
                     console.error(exc);
@@ -541,7 +429,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/admin/user/data", checkLogin , async (req, res) => {
+            app.get("/api/admin/user/data", checkLogin , async (req, res) => {
                 try {
                     const reqPlayer = await authPlayer(req);
                     if (!reqPlayer || !reqPlayer.isMod)
@@ -553,7 +441,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/admin/user/set/email", checkLogin, async (req, res) => {
+            app.get("/api/admin/user/set/email", checkLogin, async (req, res) => {
                 try {
                     const reqPlayer = await authPlayer(req);
                     if (!reqPlayer || !reqPlayer.isMod)
@@ -565,7 +453,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/admin/user/delete", checkLogin, async (req, res) => {
+            app.get("/api/admin/user/delete", checkLogin, async (req, res) => {
                 try {
                     const reqPlayer = await authPlayer(req);
                     if (!reqPlayer || !reqPlayer.isMod)
@@ -579,7 +467,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/admin/user/ban", checkLogin, async (req, res) => {
+            app.get("/api/admin/user/ban", checkLogin, async (req, res) => {
                 try {
                     const reqPlayer = await authPlayer(req);
                     if (!reqPlayer || !reqPlayer.isMod)
@@ -593,7 +481,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/admin/score/delete", checkLogin, async (req, res) => {
+            app.get("/api/admin/score/delete", checkLogin, async (req, res) => {
                 try {
                     const reqPlayer = await authPlayer(req);
                     if (!reqPlayer || !reqPlayer.isMod)
@@ -606,7 +494,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/admin/players", checkLogin, async (req, res) => {
+            app.get("/api/admin/players", checkLogin, async (req, res) => {
                 try {
                     const reqPlayer = await authPlayer(req);
                     if (!reqPlayer || !reqPlayer.isMod)
@@ -614,7 +502,7 @@ export default config({
 
                     let jsonRooms = {
                         rooms: [] as any[],
-                        verified_playing: Data.VERIFIED_PLAYING_PLAYERS
+                        playing_rooms: Data.MAP_USERNAME_PLAYINGROOM
                     };
                     for (const room of await matchMaker.query()) {
                         if (room.roomId != networkRoom.roomId) {
@@ -632,7 +520,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/song/comments", async (req, res) => {
+            app.get("/api/song/comments", async (req, res) => {
                 try {
                     if (!req.query.id)
                         return res.sendStatus(400);
@@ -644,7 +532,7 @@ export default config({
                     let cmts = [];
                     for (const comment of comments) {
                         cmts.push({
-                            player: (await getPlayerByID(comment.by)).name,
+                            player: await getPlayerNameByID(comment.by),
                             content: comment.content,
                             at: comment.at
                         });
@@ -660,16 +548,22 @@ export default config({
                 }
             });
 
-            app.get("/api/network/score/replay", async (req, res) => {
+            app.get("/api/score/replay", async (req, res) => {
                 try {
                     if (!req.query.id)
                         return res.sendStatus(400);
 
                     res.setHeader('content-type', 'application/json');
+
                     const score = await getScore(req.query.id as string);
                     if (!score)
                         return res.sendStatus(404);
-                    res.send(score.replayData);
+
+                    const file = await getReplayFile(score.replayFileId);
+                    if (!file)
+                        return res.sendStatus(404);
+
+                    res.send(file.data);
                 }
                 catch (exc) {
                     console.error(exc);
@@ -677,7 +571,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/top/song", async (req, res) => {
+            app.get("/api/top/song", async (req, res) => {
                 try {
                     if (!req.query.song)
                         return res.sendStatus(400);
@@ -689,7 +583,7 @@ export default config({
                             score: score.score,
                             accuracy: score.accuracy,
                             points: score.points,
-                            player: (await getPlayerByID(score.player)).name,
+                            player: await getPlayerNameByID(score.player),
                             submitted: score.submitted,
                             id: score.id,
                             misses: score.misses,
@@ -709,16 +603,19 @@ export default config({
                 }
             });
 
-            app.get("/api/network/top/players", async (req, res) => {
+            app.get("/api/top/players", async (req, res) => {
                 try {
-                    const _top = await topPlayers(Number.parseInt(req.query.page as string ?? "0"));
+                    const _top = await topPlayers(Number.parseInt(req.query.page as string ?? "0"), req.query.country as string);
                     const top: any[] = [];
-                    for (const score of _top) {
-                        top.push({
-                            player: score.name,
-                            points: score.points,
-                            profileHue: score.profileHue,
-                        });
+                    if (_top) {
+                        for (const player of _top) {
+                            top.push({
+                                player: player.name,
+                                points: player.points,
+                                profileHue: player.profileHue,
+                                country: player.country
+                            });
+                        }
                     }
                     res.send(top);
                 }
@@ -728,7 +625,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/search/songs", async (req, res) => {
+            app.get("/api/search/songs", async (req, res) => {
                 try {
                     res.send(await searchSongs(req.query.q as string));
                 }
@@ -737,7 +634,7 @@ export default config({
                 }
             });
 
-            app.get("/api/network/search/users", async (req, res) => {
+            app.get("/api/search/users", async (req, res) => {
                 try {
                     res.send(await searchUsers(req.query.q as string));
                 }
@@ -756,7 +653,7 @@ export default config({
             */
 
             // ping for successful authorization
-            app.get("/api/network/account/me", checkLogin, async (req, res) => {
+            app.get("/api/account/me", checkLogin, async (req, res) => {
                 try {
                     const [id, token] = getIDToken(req);
                     const player = await pingPlayer(id);
@@ -770,7 +667,8 @@ export default config({
                         points: player.points,
                         avgAccuracy: player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0,
                         isMod: player.isMod,
-                        profileHue: player.profileHue ?? 250
+                        profileHue: player.profileHue ?? 250,
+                        country: player.country
                     });
                 }
                 catch (exc) {
@@ -779,18 +677,27 @@ export default config({
                 }
             });
 
-            app.get("/api/network/account/friends", checkLogin, async (req, res) => {
+            app.get("/api/account/friends", checkLogin, async (req, res) => {
                 try {
                     const [id, token] = getIDToken(req);
                     const player = await getPlayerByID(id);
-                    const friends = await getUserFriends(player.friends);
+                    const friendList = await getUserFriends(player.friends);
                     const pending = await getUserFriends(player.pendingFriends);
                     const request = await searchFriendRequests(player.id);
+
+                    let friends: Array<any> = [];
+                    for (const friend of friendList) {
+                        friends.push({
+                            name: friend,
+                            status: Data.ONLINE_PLAYERS.includes(friend) ? 'ONLINE' : 'Offline',
+                            hue: await getPlayerProfileHue(friend)
+                        });
+                    }
 
                     res.send({
                         friends: friends,
                         pending: pending,
-                        requests: request
+                        requests: request,
                     });
                 }
                 catch (exc) {
@@ -799,7 +706,7 @@ export default config({
                 }
             });
             
-            app.get("/api/network/account/ping", checkLogin, async (req, res) => {
+            app.get("/api/account/ping", checkLogin, async (req, res) => {
                 try {
                     const [id, token] = getIDToken(req);
                     const player = await pingPlayer(id);
@@ -817,7 +724,7 @@ export default config({
             });
 
             // saves the auth cookie in the browser
-            app.get("/api/network/account/cookie", async (req, res) => {
+            app.get("/api/account/cookie", async (req, res) => {
                 try {
                     if (!req.query.id || !req.query.token) return;
 
@@ -829,11 +736,11 @@ export default config({
                         expires: new Date(253402300000000)
                     });
 
-                    const user = await getPlayerByID(req.query.id + "");
-                    if (!user)
+                    const userName = await getPlayerNameByID(req.query.id + "");
+                    if (!userName)
                         return res.sendStatus(400);
                     
-                    res.redirect('/user/' + user.name);
+                    res.redirect('/user/' + userName);
                 }
                 catch (exc) {
                     console.error(exc);
@@ -842,7 +749,7 @@ export default config({
             });
 
             // logs out the user of the website
-            app.get("/api/network/account/logout", async (req, res) => {
+            app.get("/api/account/logout", async (req, res) => {
                 try {
                     res.clearCookie('authid');
                     res.clearCookie('authtoken');
@@ -856,10 +763,9 @@ export default config({
 
             //POST
 
-            app.post("/api/network/account/avatar", checkLogin, async (req, res) => {
+            app.post("/api/account/avatar", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
-                    const player = await getPlayerByID(id);
 
                     const file = req.files.file as UploadedFile;
                     if (file.size > 1024 * 100) {
@@ -868,18 +774,63 @@ export default config({
                     if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg') {
                         return res.sendStatus(415);
                     }
-                    await file.mv('database/avatars/' + btoa(player.name));
+                    if (!await uploadAvatar(id, file.data)) {
+                        return res.sendStatus(500);
+                    }
                     res.sendStatus(200);
                 }
                 catch (exc: any) {
                     console.log(exc);
                     res.status(400).json({
-                        error: exc.error_message ?? "Couldn't submit..."
+                        error: exc.error_message ?? "Couldn't upload..."
                     });
                 }
             });
 
-            app.post("/api/network/song/comment", checkLogin, async (req, res) => {
+            app.post("/api/account/background", checkLogin, async (req, res) => {
+                try {
+                    const [id, _] = getIDToken(req);
+                    if ((await getPlayerByID(id)).points < 1000) {
+                        return res.sendStatus(418);
+                    }
+
+                    const file = req.files.file as UploadedFile;
+                    if (file.size > 1024 * 100) {
+                        return res.sendStatus(413);
+                    }
+                    if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg') {
+                        return res.sendStatus(415);
+                    }
+                    if (!await uploadBackground(id, file.data)) {
+                        return res.sendStatus(500);
+                    }
+                    res.sendStatus(200);
+                }
+                catch (exc: any) {
+                    console.error(exc);
+                    res.status(400).json({
+                        error: exc.error_message ?? "Couldn't upload..."
+                    });
+                }
+            });
+            
+            app.post("/api/account/removeimages", checkLogin, async (req, res) => {
+                try {
+                    const [id, _] = getIDToken(req);
+                    if (!await removeImages(id)) {
+                        return res.sendStatus(500);
+                    }
+                    res.sendStatus(200);
+                }
+                catch (exc: any) {
+                    console.error(exc);
+                    res.status(400).json({
+                        error: exc.error_message ?? "Couldn't upload..."
+                    });
+                }
+            });
+
+            app.post("/api/song/comment", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
@@ -893,14 +844,13 @@ export default config({
                 }
             });
 
-            app.post("/api/network/sez", checkLogin, async (req, res) => {
+            app.post("/api/sez", checkLogin, async (req, res) => {
                 try {
                     if (req.body.message && req.body.message.length < 80 && !(req.body.message as string).includes("\n")) {
                         const [id, _] = getIDToken(req);
-                        const player = await getPlayerByID(id);
                         
                         Data.FRONT_MESSAGES.unshift({
-                            player: player.id,
+                            player: id,
                             message: req.body.message
                         });
                         if (Data.FRONT_MESSAGES.length > 5) {
@@ -920,11 +870,11 @@ export default config({
                 }
             });
 
-            app.post("/api/network/account/profile/set", checkLogin, async (req, res) => {
+            app.post("/api/account/profile/set", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
-                    await setPlayerBio(id, req.body.bio, Number.parseInt(req.body.hue));
+                    await setPlayerBio(id, req.body.bio, Number.parseInt(req.body.hue), req.body.country);
                     res.sendStatus(200);
                 }
                 catch (exc: any) {
@@ -934,20 +884,16 @@ export default config({
                 }
             });
 
-            app.post("/api/network/account/rename", checkLogin, async (req, res) => {
+            app.post("/api/account/rename", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
-                    if (Data.VERIFIED_PLAYING_PLAYERS.includes(id)) {
+                    if (isUserIDInRoom(id)) {
                         res.sendStatus(418);
                         return;
                     }
 
                     const renameAction = await renamePlayer(id, req.body.username);
-
-                    if (fs.existsSync('database/avatars/' + btoa(renameAction.old)))
-                        fs.renameSync('database/avatars/' + btoa(renameAction.old), 'database/avatars/' + btoa(renameAction.new));
-
                     res.send(renameAction.new);
                 }
                 catch (exc: any) {
@@ -960,9 +906,8 @@ export default config({
                 }
             });
 
-            // reports a replay to me!!!!
             // requires `content` json body field
-            app.post("/api/network/score/report", checkLogin, async (req, res) => {
+            app.post("/api/score/report", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
@@ -977,7 +922,7 @@ export default config({
 
             // submits user replay to the leaderboard system
             // requires replay data json data
-            app.post("/api/network/score/submit", checkLogin, async (req, res) => {
+            app.post("/api/score/submit", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
@@ -994,7 +939,7 @@ export default config({
             // registers the user to the database
             // requires 'username' json body field
             // todo to add user deletion from the database
-            app.post("/api/network/auth/register", async (req, res) => {
+            app.post("/api/auth/register", async (req, res) => {
                 try {
                     if (!req.body.email || !(req.body.email as string).includes('@'))
                         throw { error_message: 'Invalid Email Address!' }
@@ -1034,7 +979,7 @@ export default config({
                 }
             });
 
-            app.post("/api/network/auth/login", async (req, res) => {
+            app.post("/api/auth/login", async (req, res) => {
                 try {
                     if (!req.body.email || !(req.body.email as string).includes('@'))
                         throw { error_message: 'Invalid Email Address!' }
@@ -1069,7 +1014,7 @@ export default config({
                 }
             });
 
-            app.post("/api/network/account/email/set", checkLogin, async (req, res) => {
+            app.post("/api/account/email/set", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
 
@@ -1104,7 +1049,7 @@ export default config({
                 }
             });
 
-            app.all("/api/network/account/delete", checkLogin, async (req, res) => {
+            app.all("/api/account/delete", checkLogin, async (req, res) => {
                 try {
                     const [id, _] = getIDToken(req);
                     const player = await getPlayerByID(id);
@@ -1196,7 +1141,7 @@ export default config({
             // });
         }
         else {
-            app.all("/api/network*", async (req, res) => {
+            app.all("/api*", async (req, res) => {
                 res.status(400).json({
                     error: "This server doesn't support the Network functionality!"
                 });
@@ -1258,14 +1203,12 @@ export default config({
                         refreshPlayers.push(pName);
                     }
                 };
-                let refreshPlayings:string[] = [];
-                for (const pName of Data.VERIFIED_PLAYING_PLAYERS) {
-                    if (refreshPlayers.includes(pName)) {
-                        refreshPlayings.push(pName);
+                for (const item of Data.MAP_USERNAME_PLAYINGROOM) {
+                    if (!isUserNameInRoom(item[0], item[1])) {
+                        Data.MAP_USERNAME_PLAYINGROOM.delete(item[0]);
                     }
                 }
                 Data.ONLINE_PLAYERS = refreshPlayers;
-                Data.VERIFIED_PLAYING_PLAYERS = refreshPlayings;
             }, 1000 * 60 * 2);
         }
     },
@@ -1297,8 +1240,8 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                     break;
                 title = player.name + "'s Profile - Psych Online";
                 description = player.points + "FP";
-                if (fs.existsSync(process.cwd() + '/database/avatars'))
-                    image = "https://" + req.hostname + "/api/avatar/" + btoa(player.name);
+                if (await hasAvatar(player.id))
+                    image = "https://" + req.hostname + "/api/avatar/" + encodeURIComponent(player.name);
                 else 
                     image = "https://" + req.hostname + "/images/bf1.png";
                     //image = 'https://kickstarter.funkin.me/static/assets/img/stickers/bf1.png';
@@ -1338,7 +1281,7 @@ export async function countPlayers():Promise<number[]> {
         });
     }
     for (const player of Data.ONLINE_PLAYERS) {
-        if (!Data.VERIFIED_PLAYING_PLAYERS.includes(player)) {
+        if (isUserNameInRoom(player)) {
             playerCount++;
         }
     }

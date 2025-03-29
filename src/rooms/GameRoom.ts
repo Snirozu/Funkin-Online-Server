@@ -346,6 +346,17 @@ export class GameRoom extends Room<RoomState> {
       this.broadcast("log", formatLog(this.getStatePlayer(client).name + ": " + message, this.clientsHue.get(client.sessionId)));
     });
 
+    this.onMessage("notifyInstall", (client, message) => {
+      this.keepAliveClient(client);
+
+      if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
+      if (message.length >= 200) {
+        this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has finished installing the mod!"));
+        return;
+      }
+      this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has finished installing: " + message));
+    });
+
     this.onMessage("swapSides", (client, message) => {
       this.keepAliveClient(client);
 
@@ -719,7 +730,7 @@ export class GameRoom extends Room<RoomState> {
         isVerified = true;
         this.clientsID.set(client.sessionId, options.networkId);
         this.clientsHue.set(client.sessionId, player.profileHue);
-        Data.VERIFIED_PLAYING_PLAYERS.push(player.name);
+        Data.MAP_USERNAME_PLAYINGROOM.set(player.name, this);
         playerName = player.name;
         playerPoints = player.points;
       })
@@ -846,7 +857,7 @@ export class GameRoom extends Room<RoomState> {
     this.clientsDinner.delete(client.sessionId);
 
     this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has left the room!"));
-    Data.VERIFIED_PLAYING_PLAYERS.splice(Data.VERIFIED_PLAYING_PLAYERS.indexOf(this.getStatePlayer(client).name), 1);
+    Data.MAP_USERNAME_PLAYINGROOM.delete(this.getStatePlayer(client).name);
 
     this.clientsRemoved.push(client.sessionId);
     this.clients.delete(client);

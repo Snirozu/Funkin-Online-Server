@@ -13,6 +13,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// recommended to have `points` descending index set
 model User {
   id      String   @id @default(auto()) @map("_id") @db.ObjectId
   name    String   @unique
@@ -20,9 +21,6 @@ model User {
   joined  DateTime @default(now())
   lastActive  DateTime @default(now())
   points    Int
-  scores  Score[]
-  reports Report[]
-  songComments SongComment[]
   isMod Boolean?
   pendingFriends String[] //list of players to accept invites from
   friends String[] // friends ids
@@ -32,17 +30,26 @@ model User {
   profileHue Int?
   avgAccSum Float?
   avgAccSumAmount Int?
+  country String?
+
+  scores  Score[]
+  reports Report[]
+  songComments SongComment[]
+  avatar FileAvatar?
+  background FileBackground?
 }
 
+// recommended to have `maxPoints` descending index set
 model Song {
   id     String  @id @map("_id") // song name, it's difficulty and the hashed value of the chart
   scores Score[]
   comments SongComment[]
+  maxPoints Float?
 }
 
+// recommended to have `score` and `points` descending index set
 model Score {
   id         String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
-  replayData String
 
   score    Float
   accuracy Float
@@ -64,6 +71,11 @@ model Score {
 
   songId String? // filled by prisma
   player String? @db.ObjectId // filled by prisma
+
+  replayData String? //deprecated, TODO
+
+  replayFileRe FileReplay? @relation(fields: [replayFileId], references: [id])
+  replayFileId String? @db.ObjectId @unique // id of File that stores the replay contents
 }
 
 model Report {
@@ -82,4 +94,30 @@ model SongComment {
   by      String @db.ObjectId
   song    Song   @relation(fields: [songid], references: [id])
   songid  String
+}
+
+model FileReplay {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  data    Bytes
+  size    BigInt
+  date    DateTime @default(now())
+  scoreRe Score?
+}
+
+model FileAvatar {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  data    Bytes
+  size    BigInt
+  date    DateTime @default(now())
+  ownerRe User     @relation(fields: [owner], references: [id])
+  owner   String   @db.ObjectId @unique
+}
+
+model FileBackground {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  data    Bytes
+  size    BigInt
+  date    DateTime @default(now())
+  ownerRe User     @relation(fields: [owner], references: [id])
+  owner   String   @db.ObjectId @unique
 }

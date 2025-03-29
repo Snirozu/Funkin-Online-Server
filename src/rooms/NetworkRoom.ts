@@ -2,9 +2,9 @@ import { Room, Client } from "@colyseus/core";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
 import { Data } from "../Data";
-import { authPlayer, getPlayerByID } from "../network";
+import { authPlayer, getPlayerByID, getPlayerIDByName } from "../network";
 import { NetworkSchema } from "./schema/NetworkSchema";
-import { formatLog } from "../util";
+import { formatLog, isUserIDInRoom } from "../util";
 
 export let networkRoom: NetworkRoom; 
 
@@ -25,6 +25,10 @@ export function logToAll(content: string) {
       return;
     }
 
+    networkRoom.loggedMessages.push([content, Date.now()]);
+    if (networkRoom.loggedMessages.length > 100) {
+      networkRoom.loggedMessages.shift();
+    }
     networkRoom.broadcast('log', content);
   }
   catch (exc) { }
@@ -32,13 +36,15 @@ export function logToAll(content: string) {
 
 export class NetworkRoom extends Room<NetworkSchema> {
   //at least it's fast /shrug
-  SSIDtoID: Map<String, String> = new Map<String, String>();
-  IDToName: Map<String, String> = new Map<String, String>();
-  IDtoClient: Map<String, Client> = new Map<String, Client>();
-  nameToClient: Map<String, Client> = new Map<String, Client>();
-  nameToHue: Map<String, number> = new Map<String, number>();
+  SSIDtoID: Map<string, string> = new Map<string, string>();
+  IDToName: Map<string, string> = new Map<string, string>();
+  IDtoClient: Map<string, Client> = new Map<string, Client>();
+  nameToClient: Map<string, Client> = new Map<string, Client>();
+  nameToHue: Map<string, number> = new Map<string, number>();
 
   notifyClients: Array<Client> = [];
+
+  loggedMessages: Array<Array<any>> = []; // array<any> is [content, unix_timestamp]
 
   async onCreate (options: any) {
     if (networkRoom) {
@@ -123,13 +129,57 @@ export class NetworkRoom extends Room<NetworkSchema> {
         return;
       }
 
-      this.broadcast("log", formatLog(sender + ": " + message, this.nameToHue.get(sender.toLowerCase())));
+      logToAll(formatLog(sender + ": " + message, this.nameToHue.get(sender.toLowerCase())));
       this.notifyClients.forEach(client => {
         try {
           client.send("notification", 'New Chat Message from ' + sender);
         }
         catch (exc) {}
       });
+    });
+
+    this.onMessage("inviteplayertoroom", async (client, message: string) => {
+      if (!this.SSIDtoID.has(client.sessionId) || !this.IDToName.has(this.SSIDtoID.get(client.sessionId))) {
+        client.send("notification", 'Authorization Error');
+        this.removePlayer(client);
+        return;
+      }
+
+      if (!this.nameToClient.has(message.toLowerCase())) {
+        client.send("notification", 'Player isn\'t online in-game!');
+        return;
+      }
+
+      if (await isUserIDInRoom(this.SSIDtoID.get(client.sessionId))) {
+        client.send("notification", 'You\'re not in a game room!');
+        return;
+      }
+      
+      if (!(await getPlayerByID(this.SSIDtoID.get(client.sessionId))).friends.includes(await getPlayerIDByName(message.toLowerCase()))) {
+        client.send("notification", 'You\'re not friends with ' + message + '!');
+        return;
+      }
+
+      const senderName = this.IDToName.get(this.SSIDtoID.get(client.sessionId));
+
+      this.nameToClient.get(message.toLowerCase()).send('roominvite', JSON.stringify({
+        name: senderName,
+        roomid: Data.MAP_USERNAME_PLAYINGROOM.get(senderName).roomId
+      }));
+      client.send("notification", 'Invite sent!');
+    });
+
+    this.onMessage("loggedMessagesAfter", async (client, message: number) => {
+      if (!message)
+        message = 0;
+
+      let loggedAfter = [];
+      for (const log of this.loggedMessages) {
+        if (log[1] > message) {
+          loggedAfter.push(log[0]);
+        }
+      }
+      client.send("batchLog", JSON.stringify(loggedAfter));
     });
   }
   

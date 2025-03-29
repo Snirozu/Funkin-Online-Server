@@ -15,7 +15,7 @@ function HeadBar() {
 
     const fetchData = async () => {
         try {
-            const response = await axios.get(getHost() + '/api/network/account/me', {
+            const response = await axios.get(getHost() + '/api/account/me', {
                 headers: {
                     'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
                 }
@@ -28,6 +28,9 @@ function HeadBar() {
             if (data.isMod) {
                 Cookies.set('modmode', true, { sameSite: 'strict'});
             }
+
+            document.documentElement.style.setProperty('--head-profile-color', headProfileColor(data.profileHue));
+
             setError(null);
             setData(data);
             setLoading(false);
@@ -49,15 +52,16 @@ function HeadBar() {
                 <a href="/stats">STATS</a>
                 <a href="/search">SEARCH</a>
                 <a href="/top">TOP</a>
+                {Cookies.get('authid') ? <a href="/friends">FRIENDS</a> : <></>}
+                <a href="/old_network/admin" style={{color: 'tomato'}}>ADMIN</a>
                 {loading ? (
                     <></>
                 ) : error ? (
                     <></>
                 ) : (
                     <>
-                        <a href="/friends">FRIENDS</a>
-                        <a className='BarProfile' id='HeadProfile' style={{backgroundColor: headProfileColor(data.profileHue)}} href={"/user/" + encodeURIComponent(data.name)}>
-                            <AvatarImg className='SmallerAvatar' src={getHost() + "/api/avatar/" + btoa(data.name)}/>
+                        <a className='BarProfile' href={"/user/" + encodeURIComponent(data.name)}>
+                            <AvatarImg className='SmallerAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(data.name)}/>
                             <div className='BarProfileText'>
                                 <b>Welcome, {data.name}! </b> <br></br>
                                 Points: {data.points}

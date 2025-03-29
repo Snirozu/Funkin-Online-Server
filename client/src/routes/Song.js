@@ -18,7 +18,7 @@ function Song() {
         try {
             setLoading(true);
             page = page ?? 0;
-            const response = await fetch(getHost() + '/api/network/top/song?song=' + song + "&strum=" + searchParams.get("strum") + "&page=" + page);
+            const response = await fetch(getHost() + '/api/top/song?song=' + song + "&strum=" + searchParams.get("strum") + "&page=" + page);
             if (!response.ok) {
                 throw new Error('Song not found.');
             }
@@ -89,7 +89,7 @@ function renderScores(song, scores, page) {
             </td>
             <td>
                 <a href={"/user/" + encodeURIComponent(score.player)}> {score.player} </a>
-                <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/network/score/replay?id=" + score.id}>
+                <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/score/replay?id=" + score.id}>
                     <Icon width={20} icon="mdi:eye" />
                 </a>
                 {
@@ -120,7 +120,7 @@ function renderScores(song, scores, page) {
     return (<>
         {leader ?
             <a href={"/user/" + encodeURIComponent(leader.player)} className='LeaderContainer'>
-                <AvatarImg src={getHost() + "/api/avatar/" + btoa(leader.player)}></AvatarImg>
+                <AvatarImg src={getHost() + "/api/avatar/" + encodeURIComponent(leader.player)}></AvatarImg>
                 <div className="FlexBox">
                     <br></br>
                     <span className="BigText">1st</span><span className="BiggerText"> {leader.player} </span>
@@ -158,7 +158,7 @@ function RenderComments(props) {
 
     const fetchComments = async () => {
         try {
-            const response = await fetch(getHost() + '/api/network/song/comments?id=' + props.songId);
+            const response = await fetch(getHost() + '/api/song/comments?id=' + props.songId);
             if (!response.ok) {
                 throw new Error('Could not load song comments.');
             }
@@ -190,7 +190,7 @@ function RenderComments(props) {
             milis += "0";
         commentsBody.push(
             <div className="Comment">
-                <AvatarImg className="SmallerAvatar" src={getHost() + "/api/avatar/" + btoa(comment.player)}></AvatarImg>
+                <AvatarImg className="SmallerAvatar" src={getHost() + "/api/avatar/" + encodeURIComponent(comment.player)}></AvatarImg>
                 <div>
                     <a href={"/user/" + comment.player}>{comment.player}</a> <br></br>
                     <span>{comment.content}</span> <br></br>

@@ -13,6 +13,7 @@
     "nth-check": ">=2.0.1",
     "postcss": ">=8.4.31",
     "react": "^18.3.1",
+    "react-avatar-editor": "^13.0.2",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
     "react-native-bootsplash": "^6.1.1",
@@ -20,6 +21,7 @@
     "react-scripts": "^5.0.1",
     "react-simple-wysiwyg": "^3.2.0",
     "react-tabs": "^6.1.0",
+    "reactjs-popup": "^2.0.6",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -48,6 +50,7 @@
   },
   "devDependencies": {
     "@iconify/react": "^5.0.2",
-    "@types/js-cookie": "^3.0.6"
+    "@types/js-cookie": "^3.0.6",
+    "@types/react-avatar-editor": "^13.0.4"
   }
 }

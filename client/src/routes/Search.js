@@ -60,7 +60,7 @@ function SongSearchList(props) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(getHost() + '/api/network/search/songs?q=' + encodeURIComponent(props.query), { validateStatus: () => true });
+                const response = await axios.get(getHost() + '/api/search/songs?q=' + encodeURIComponent(props.query), { validateStatus: () => true });
                 if (response.status !== 200) {
                     throw new Error(getResError(response));
                 }
@@ -130,7 +130,7 @@ function PlayerSearchList(props) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(getHost() + '/api/network/search/users?q=' + encodeURIComponent(props.query), { validateStatus: () => true });
+                const response = await axios.get(getHost() + '/api/search/users?q=' + encodeURIComponent(props.query), { validateStatus: () => true });
                 if (response.status !== 200) {
                     throw new Error(getResError(response));
                 }
@@ -157,7 +157,7 @@ function PlayerSearchList(props) {
                         {
                             !user.isBanned ? (
                                 <>
-                                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + btoa(user.name)}></AvatarImg>
+                                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(user.name)}></AvatarImg>
                                     <br></br><span>{user.name}</span>
                                 </>
                             ) :

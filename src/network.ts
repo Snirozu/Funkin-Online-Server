@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
-import { filterSongName, filterUsername, formatLog } from "./util";
+import { filterSongName, filterUsername, formatLog, ordinalNum, validCountries } from "./util";
 import { logToAll, notifyPlayer } from "./rooms/NetworkRoom";
 import * as fs from 'fs';
 import sanitizeHtml from 'sanitize-html';
@@ -32,7 +32,7 @@ export function getIDToken(req:any):Array<string> {
 
 export async function checkLogin(req:any, res:any, next:any) {
     const [id, token] = getIDToken(req);
-    const player = await getPlayerByID(id);
+    const player = await getLoginPlayerByID(id);
 
     if (player == null || token == null || id == null) { 
         return res.sendStatus(401)
@@ -112,7 +112,8 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     if (!songId || !song) {
         song = await prisma.song.create({
             data: {
-                id: songId
+                id: songId,
+                maxPoints: 0
             }
         });
     }
@@ -132,11 +133,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
         ))
             return { song: song.id }
 
-        await prisma.score.delete({
-            where: {
-                id: leaderboardScore.id
-            }
-        });
+        removeScore(leaderboardScore.id);
     }
 
     let playbackRate = 1;
@@ -145,13 +142,21 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     }
     catch (_) {}
 
+    const replayString = JSON.stringify(replay);
+    const replayFile = await prisma.fileReplay.create({
+        data: {
+            data: Buffer.from(replayString, 'utf8'),
+            size: replayString.length
+        }
+    });
+
     const score = await prisma.score.create({
         data: {
             accuracy: replay.accuracy,
             bads: replay.bads,
             goods: replay.goods,
             points: replay.points,
-            replayData: JSON.stringify(replay),
+            replayFileId: replayFile.id,
             score: replay.score,
             shits: replay.shits,
             sicks: replay.sicks,
@@ -161,6 +166,8 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
             playbackRate: playbackRate
         }
     });
+
+    const prevRank = await getPlayerRank(submitter.name);
 
     await prisma.user.update({
         where: {
@@ -178,6 +185,12 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
         },
     })
 
+    const newRank = await getPlayerRank(submitter.name);
+
+    if (newRank >= 10 && newRank > prevRank) {
+        logToAll(formatLog(submitter.name + ' climbed to ' + ordinalNum(newRank) + ' place on the global leaderboard!'))
+    }
+
     await prisma.song.update({
         where: {
             id: song.id,
@@ -187,15 +200,38 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
                 connect: {
                     id: score.id,
                 },
-            },
+            }
         },
     })
+
+    await updateSongMaxPoints(song.id);
 
     return {
         song: song.id,
         message: "Submitted!",
-        gained_points: replay.points - (leaderboardScore?.points ?? 0) 
+        gained_points: replay.points - (leaderboardScore?.points ?? 0),
+        climbed_ranks: prevRank - newRank
     }
+}
+
+async function updateSongMaxPoints(songId:string) {
+    const data = await prisma.score.aggregate({
+        where: {
+            songId: songId
+        },
+	    _max: {
+            points: true
+        }
+    });
+
+    await prisma.song.update({
+        where: {
+            id: songId
+        },
+        data: {
+            maxPoints: data._max.points
+        }
+    });
 }
 
 export async function submitReport(id: string, reqJson: any) {
@@ -286,6 +322,14 @@ export async function removeScore(id: string, checkPlayer?: string) {
             id: id
         }
     }));
+    
+    await prisma.fileReplay.delete({
+        where: {
+            id: score.replayFileId
+        }
+    });
+
+    await updateSongMaxPoints(score.songId);
 
     try {
         await prisma.user.update({
@@ -393,7 +437,7 @@ export async function renamePlayer(id: string, name: string) {
     if (player)
         throw { error_message: "Player with that username exists!" }
 
-    const oldName = (await getPlayerByID(id)).name;
+    const oldPlayer = await getPlayerByID(id);
 
     const data = (await prisma.user.update({
         data: {
@@ -404,9 +448,16 @@ export async function renamePlayer(id: string, name: string) {
         }
     }));
 
+    cachedIDtoName.delete(oldPlayer.id);
+    cachedNameToID.delete(oldPlayer.name);
+    cachedProfileNameHue.delete(oldPlayer.name);
+
+    cachePlayerUniques(data.id, data.name);
+    cachedProfileNameHue.set(data.name, data.profileHue);
+
     return {
         new: data.name,
-        old: oldName
+        old: oldPlayer.name
     };
 }
 
@@ -425,9 +476,11 @@ export async function grantPlayerMod(id: string) {
     }));
 }
 
-export async function setPlayerBio(id: string, bio: string, hue: number) {
+export async function setPlayerBio(id: string, bio: string, hue: number, country: string) {
     if (bio.length > 1500) {
-        return null;
+        throw {
+            error_message: "Your bio reaches 1500 characters!"
+        }
     }
 
     if (hue > 360)
@@ -437,10 +490,15 @@ export async function setPlayerBio(id: string, bio: string, hue: number) {
 
     const sanitizedHtml = sanitizeHtml(bio);
 
+    if (!validCountries.includes(country)) {
+        country = null;
+    }
+
     return (await prisma.user.update({
         data: {
             bio: sanitizedHtml,
-            profileHue: hue
+            profileHue: hue,
+            country: country
         },
         where: {
             id: id
@@ -487,6 +545,28 @@ export async function getPlayerByEmail(email: string) {
     }
 }
 
+export async function getLoginPlayerByID(id: string) {
+    if (!id)
+        return null;
+
+    try {
+        return await prisma.user.findFirstOrThrow({
+            where: {
+                id: {
+                    equals: id
+                }
+            },
+            select: {
+                isBanned: true,
+                secret: true
+            }
+        });
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
 export async function getPlayerByID(id: string) {
     if (!id)
         return null;
@@ -499,6 +579,58 @@ export async function getPlayerByID(id: string) {
                 }
             }
         });
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function getPlayerNameByID(id: string) {
+    if (!id)
+        return null;
+
+    try {
+        if (!cachedIDtoName.has(id)) {
+            const daName = (await prisma.user.findFirstOrThrow({
+                where: {
+                    id: {
+                        equals: id
+                    }
+                },
+                select: {
+                    name: true
+                }
+            })).name;
+            cachePlayerUniques(id, daName);
+        }
+        
+        return cachedIDtoName.get(id);
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function getPlayerIDByName(name: string) {
+    if (!name)
+        return null;
+
+    try {
+        if (!cachedNameToID.has(name)) {
+            const daID = (await prisma.user.findFirstOrThrow({
+                where: {
+                    name: {
+                        equals: name
+                    }
+                },
+                select: {
+                    id: true
+                }
+            })).id;
+            cachePlayerUniques(daID, name);
+        }
+
+        return cachedNameToID.get(name);
     }
     catch (exc) {
         return null;
@@ -524,6 +656,7 @@ export async function pingPlayer(id: string) {
                 profileHue: true,
                 avgAccSum: true,
                 avgAccSumAmount: true,
+                country: true
             }
         }));
     }
@@ -534,7 +667,8 @@ export async function pingPlayer(id: string) {
 
 export async function topScores(id: string, strum:number, page: number) {
     try {
-        return (await prisma.score.findMany({
+        
+        return await prisma.score.findMany({
             where: {
                 songId: id,
                 strum: strum
@@ -561,25 +695,34 @@ export async function topScores(id: string, strum:number, page: number) {
             },
             take: 15,
             skip: 15 * page
-        }));
+        });
     }
     catch (exc) {
+        console.error(exc);
         return null;
     }
 }
 
-export async function topPlayers(page:number): Promise<Array<any>> {
+export async function topPlayers(page:number, country?:string): Promise<Array<any>> {
     try {
+        if (!country || !validCountries.includes(country)) {
+            country = undefined;
+        }
+
         return (await prisma.user.findMany({
             orderBy: [
                 {
                     points: 'desc'
                 }
             ],
+            where: country ? {
+                country: country
+            } : undefined,
             select: {
                 name: true,
                 points: true,
-                profileHue: true
+                profileHue: true,
+                country: true
             },
             take: 15,
             skip: 15 * page
@@ -593,6 +736,19 @@ export async function topPlayers(page:number): Promise<Array<any>> {
 export async function getScore(id: string) {
     try {
         return (await prisma.score.findUnique({
+            where: {
+                id: id
+            }
+        }));
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function getReplayFile(id: string) {
+    try {
+        return (await prisma.fileReplay.findUnique({
             where: {
                 id: id
             }
@@ -664,15 +820,7 @@ export async function searchSongs(query: string) {
             },
             select: {
                 id: true,
-                scores: {
-                    select: {
-                        points: true
-                    },
-                    orderBy: {
-                        points: "desc"
-                    },
-                    take: 1
-                }
+                maxPoints: true
             },
             take: 50
         });
@@ -681,7 +829,7 @@ export async function searchSongs(query: string) {
         for (const song of rawRes) {
             res.push({
                 id: song.id,
-                fp: song.scores[0]?.points ?? 0
+                fp: song.maxPoints ?? 0
             });
         }
         return res
@@ -830,8 +978,8 @@ export async function requestFriendRequest(req:any) {
 export async function getUserFriends(friends: Array<string>) {
     let value: Array<string> = [];
     for (const friendID of friends) {
-        const friend = await getPlayerByID(friendID);
-        value.push(friend.name);
+        const friend = await getPlayerNameByID(friendID);
+        value.push(friend);
     }
     return value;
 }
@@ -869,9 +1017,12 @@ export async function deleteUser(id:string):Promise<any> {
             id: id
         },
         select: {
-            name: true
+            name: true,
+            id: true
         }
     })
+    cachedIDtoName.delete(user.id);
+    cachedNameToID.delete(user.name);
 
     console.log("Deleted user: " + user.name);
 }
@@ -899,13 +1050,43 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
     })
 
     if (to) {
-        deleteUserAvatar(player.name);
+        const scores = await prisma.score.findMany({
+            where: {
+                player: id
+            },
+            select: {
+                songId: true,
+                replayFileId: true
+            }
+        });
 
         await prisma.score.deleteMany({
             where: {
                 player: id
             }
         })
+
+        await prisma.fileAvatar.delete({
+            where: {
+                owner: id
+            }
+        })
+
+        await prisma.fileBackground.delete({
+            where: {
+                owner: id
+            }
+        })
+
+        for (const score of scores) {
+            await updateSongMaxPoints(score.songId);
+            await prisma.fileReplay.delete({
+                where: {
+                    id: score.replayFileId
+                }
+            });
+        }
+
         await prisma.report.deleteMany({
             where: {
                 by: id
@@ -921,41 +1102,199 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
     console.log("Set " + id + "'s ban status to " + to);
 }
 
-export async function deleteUserAvatar(username:string) {
-    if (fs.existsSync('database/avatars/' + btoa(username)))
-        fs.unlinkSync('database/avatars/' + btoa(username));
+export async function uploadAvatar(userId:string, data:Buffer) {
+    try {
+        await prisma.fileAvatar.deleteMany({
+            where: {
+                owner: userId
+            }
+        })
+        return await prisma.fileAvatar.create({
+            data: {
+                data: data,
+                size: data.byteLength,
+                ownerRe: {
+                    connect: {
+                        id: userId
+                    }
+                }
+            }
+        });
+    }
+    catch (exc) {
+        return null;
+    }
 }
 
-export async function updateScores() {
-    console.log("updating...");
-    let daJson:ReplayData = null;
-    let i = 0;
-    const scores = await prisma.score.findMany({
-        select: {
-            id: true,
-            replayData: true
-        }
-    });
-    for (const score of scores) {
-        i++;
-        daJson = JSON.parse(score.replayData);
-        console.log(i + '/' + scores.length + " updating score: " + score.id + " -> " + daJson.gameplay_modifiers.songspeed);
-        if (daJson.gameplay_modifiers.songspeed != 1)
-            await prisma.score.update({
-                where: {
-                    id: score.id
-                },
-                data: {
-                    playbackRate: daJson.gameplay_modifiers.songspeed 
-                }
-            })
+export async function getAvatar(userId: string) {
+    try {
+        return await prisma.fileAvatar.findUnique({
+            where: {
+                owner: userId
+            }
+        });
     }
-    console.log("done!");
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function hasAvatar(userId: string) {
+    try {
+        return await prisma.fileAvatar.count({
+            where: {
+                owner: userId
+            }
+        }) > 0;
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function uploadBackground(userId: string, data: Buffer) {
+    try {
+        await prisma.fileBackground.deleteMany({
+            where: {
+                owner: userId
+            }
+        })
+        return await prisma.fileBackground.create({
+            data: {
+                data: data,
+                size: data.byteLength,
+                ownerRe: {
+                    connect: {
+                        id: userId
+                    }
+                }
+            }
+        });
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function getBackground(userId: string) {
+    try {
+        return await prisma.fileBackground.findUnique({
+            where: {
+                owner: userId
+            }
+        });
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function hasBackground(userId: string) {
+    try {
+        return await prisma.fileBackground.count({
+            where: {
+                owner: userId
+            }
+        }) > 0;
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function removeImages(userId: string) {
+    try {
+        await prisma.fileBackground.deleteMany({
+            where: {
+                owner: userId
+            }
+        })
+        await prisma.fileAvatar.deleteMany({
+            where: {
+                owner: userId
+            }
+        })
+        return true;
+    }
+    catch (exc) {
+        return false;
+    }
+}
+
+// export async function updateScores() {
+//     console.log("updating...");
+
+//     let i = 0;
+//     const scores = await prisma.song.findMany({
+//         select: {
+//             id: true,
+//         }
+//     });
+
+//     for (const song of scores) {
+//         //await migrateReplay(score.id);
+//         await updateSongMaxPoints(song.id);
+//         console.log(i++);
+//     }
+
+//     console.log("done!");
+// }
+
+export async function migrateReplay(scoreId: string, data?:string) {
+    try {
+        if (!data) {
+            data = (await prisma.score.findFirst({
+                where: {
+                    id: scoreId,
+                    replayData: {
+                        isSet: true
+                    }
+                },
+                select: {
+                    replayData: true
+                },
+                take: 100
+            })).replayData;
+        }
+
+        if (!data || data.length <= 0)
+            return null;
+
+        return await prisma.score.update({
+            where: {
+                id: scoreId
+            },
+            data: {
+                replayFileRe: {
+                    create: {
+                        data: Buffer.from(data),
+                        size: data.length
+                    },
+                },
+                replayData: {
+                    unset: true
+                }
+            },
+            select: {
+                id: true
+            }
+        });
+    }
+    catch (exc) {
+        console.error(exc);
+        return null;
+    }
 }
 
 export async function perishScores() {
     console.log("deleting rankings");
     await prisma.score.deleteMany();
+    await prisma.fileReplay.deleteMany();
+    await prisma.song.updateMany({
+        data: {
+            maxPoints: 0
+        }
+    });
     console.log("deleting reports");
     await prisma.report.deleteMany();
     
@@ -1001,6 +1340,61 @@ export async function getPlayerRank(name: string): Promise<number> {
         return null;
     }
 }
+
+export async function getPlayerProfileHue(name: string) {
+    if (!name)
+        return null;
+
+    try {
+        if (!cachedProfileNameHue.has(name)) {
+            const daHue = (await prisma.user.findFirstOrThrow({
+                where: {
+                    name: {
+                        equals: name
+                    }
+                },
+                select: {
+                    profileHue: true
+                }
+            })).profileHue;
+            cachedProfileNameHue.set(name, daHue);
+        }
+
+        return cachedProfileNameHue.get(name);
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+// CACHE
+
+export let cachedIDtoName: Map<string, string> = new Map<string, string>();
+export let cachedNameToID: Map<string, string> = new Map<string, string>();
+
+export let cachedProfileNameHue: Map<string, number> = new Map<string, number>();
+
+export async function cachePlayerUniques(id:string, name:string) {
+    cachedIDtoName.set(id, name);
+    cachedNameToID.set(name, id);
+}
+
+export async function initDatabaseCache() {
+    console.log('caching the database...');
+    for (const user of await prisma.user.findMany({
+        select: {
+            id: true,
+            name: true,
+            profileHue: true
+        }
+    })) {
+        cachePlayerUniques(user.id, user.name);
+        cachedProfileNameHue.set(user.name, user.profileHue);
+    }
+    console.log('successfully cached the database!');
+}
+
+// STRUCTURES
 
 class ReplayData {
     player: string;

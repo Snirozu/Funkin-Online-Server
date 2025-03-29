@@ -3,6 +3,14 @@
   src: url('PhantomMuff_Full_Letters_1.1.5.ttf');
 }
 
+:root {
+  --head-profile-color: #282c34;
+  --content-profile-color: #282c34;
+  --text-profile-color: #ff7d7d;
+  --row-profile-color: #362d3b;
+  --row-profile-color-two: rgb(46, 40, 51);
+}
+
 p, h1, h2, h3, h4, h5, h6, span, a {
   font-family: 'PhantomMuff';
 }
@@ -97,6 +105,7 @@ a:hover {
   max-height: 50px;
   display: flex;
   align-items: center;
+  background: var(--head-profile-color);
 }
 
 .BarProfileText {
@@ -249,7 +258,7 @@ a:hover {
 }
 
 .Content {
-  background-color: #282c34;
+  background: var(--content-profile-color);
   max-width: 800px;
   min-width: 300px;
   display: flex;
@@ -331,13 +340,33 @@ a:hover {
   max-width: 1px;
 }
 
-.AvatarCaption {
-  display: block;
-  width: 150px;
+.NameContainer {
+  display: flex;
+  width: 141px;
   text-align: center;
+  overflow-wrap: break-word;
+  align-items: center;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.AvatarCaption {
   font-size: 20px;
   font-weight: bold;
-  overflow-wrap: break-word;
+}
+
+.SmallFlag {
+  border-radius: 3px;
+  height: 18px;
+  max-width: 26px;
+}
+
+.BiggerFlag {
+  border-radius: 3px;
+  height: 25px;
+  max-width: 38px;
 }
 
 .ProfileInfo {
@@ -380,20 +409,20 @@ a:hover {
 }
 
 a {
-  color: #ff7d7d;
+  color: var(--text-profile-color);
   text-decoration: none;
 }
 
 table {
-  background-color: rgb(48, 39, 47);
+  background: var(--row-profile-color-two);
 }
 
 tbody tr:nth-child(odd) {
-  background-color: rgb(54, 45, 59);
+  background: var(--row-profile-color);
 }
 
 tbody tr:nth-child(even) {
-  background-color: rgb(46, 40, 51);
+  background: var(--row-profile-color-two);
 }
 
 .SvgButton {
@@ -410,7 +439,7 @@ tbody tr:nth-child(even) {
 }
 
 .UserBio {
-  max-height: 150px;
+  max-height: 200px;
   max-width: 100%;
   overflow: auto;
   font-family: 'PhantomMuff';
@@ -438,4 +467,58 @@ tbody tr:nth-child(even) {
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
+}
+
+.ProfileRow1 {
+  background: var(--row-profile-color);
+}
+
+.ProfileRow2 {
+  background: var(--row-profile-color-two);
+}
+
+.popup-overlay {
+  background-color: #00000094;
+}
+
+select {
+  max-width: 100%;
+}
+
+.Over {
+  display: inline-block;
+  position: relative;
+  max-width: 140px;
+  max-height: 140px;
+}
+
+.OverFloat {
+  position: absolute;
+  background-color: #c5c5c567;
+  width: 100%;
+  height: 100%;
+
+  border-radius: 20%;
+}
+
+.WholeCenter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.WholeCenter * {
+  line-height: 25px;
+  border-radius: 20px;
+  padding: 5px;
+  color: #ffea72;
+  background-color: #000000c4;
+}
+
+.OverFloat:hover {
+  background-color: #9b9b9ba8;
+  text-decoration: underline;
+  cursor: pointer;
 }
