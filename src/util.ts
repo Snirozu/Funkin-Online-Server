@@ -40,6 +40,14 @@ export async function isUserIDInRoom(userID: string, room?: GameRoom) {
     return room != null && room.clients.length > 0 && hasValue(room.clientsID, userID);
 }
 
+export function getKeyOfValue(map: Map<string, any>, value: any) {
+    for (const [k, v] of map) {
+        if (v == value)
+            return k;
+    }
+    return null;
+}
+
 export function hasValue(map:Map<any, any>, value:any) {
     for (const v of map.values()) {
         if (v == value)

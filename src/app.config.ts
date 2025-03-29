@@ -18,7 +18,7 @@ import fileUpload, { UploadedFile } from "express-fileupload";
 import { networkRoom, NetworkRoom } from "./rooms/NetworkRoom";
 import nodemailer from 'nodemailer';
 import * as crypto from "crypto";
-import { isUserIDInRoom, isUserNameInRoom } from "./util";
+import { getKeyOfValue, isUserIDInRoom, isUserNameInRoom } from "./util";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')
@@ -889,8 +889,18 @@ export default config({
                     const [id, _] = getIDToken(req);
 
                     if (isUserIDInRoom(id)) {
-                        res.sendStatus(418);
-                        return;
+                        const room = Data.MAP_USERNAME_PLAYINGROOM.get(await getPlayerNameByID(id));
+                        const clientSSID = getKeyOfValue(room.clientsID, id);
+                        let client = null;
+                        for (const c of room.clients) {
+                            if (c.sessionId == clientSSID)
+                                client = c;
+                        }
+                        if (client == null) {
+                            res.sendStatus(418);
+                            return;
+                        }
+                        client.leave();
                     }
 
                     const renameAction = await renamePlayer(id, req.body.username);
