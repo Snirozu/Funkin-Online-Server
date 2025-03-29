@@ -9,7 +9,8 @@ module.exports = {
                 "assets/",
                 "nodemon.json",
                 ".env",
-                "EMAIL_BLACKLIST"
+                "EMAIL_BLACKLIST",
+                "build/"
             ],
             watch_delay: 1000,
             instances: 1,
