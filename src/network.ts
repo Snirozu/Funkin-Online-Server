@@ -453,7 +453,7 @@ export async function renamePlayer(id: string, name: string) {
     cachedProfileNameHue.delete(oldPlayer.name);
 
     cachePlayerUniques(data.id, data.name);
-    cachedProfileNameHue.set(data.name, data.profileHue);
+    cachedProfileNameHue.set(data.name, data.profileHue ?? 250);
 
     return {
         new: data.name,
@@ -1356,7 +1356,7 @@ export async function getPlayerProfileHue(name: string) {
                 select: {
                     profileHue: true
                 }
-            })).profileHue;
+            })).profileHue ?? 250;
             cachedProfileNameHue.set(name, daHue);
         }
 
@@ -1389,7 +1389,7 @@ export async function initDatabaseCache() {
         }
     })) {
         cachePlayerUniques(user.id, user.name);
-        cachedProfileNameHue.set(user.name, user.profileHue);
+        cachedProfileNameHue.set(user.name, user.profileHue ?? 250);
     }
     console.log('successfully cached the database!');
 }

@@ -729,7 +729,7 @@ export class GameRoom extends Room<RoomState> {
 
         isVerified = true;
         this.clientsID.set(client.sessionId, options.networkId);
-        this.clientsHue.set(client.sessionId, player.profileHue);
+        this.clientsHue.set(client.sessionId, player.profileHue ?? 250);
         Data.MAP_USERNAME_PLAYINGROOM.set(player.name, this);
         playerName = player.name;
         playerPoints = player.points;

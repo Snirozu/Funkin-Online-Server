@@ -378,7 +378,7 @@ export default config({
                         bio: user.bio,
                         friends: await getUserFriends(user.friends),
                         canFriend: !pingasFriends.includes(user?.id),
-                        profileHue: user.profileHue,
+                        profileHue: user.profileHue ?? 250,
                         avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
                         rank: await getPlayerRank(user.name),
                         country: user.country
@@ -612,7 +612,7 @@ export default config({
                             top.push({
                                 player: player.name,
                                 points: player.points,
-                                profileHue: player.profileHue,
+                                profileHue: player.profileHue ?? 250,
                                 country: player.country
                             });
                         }
