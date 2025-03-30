@@ -53,7 +53,7 @@ function HeadBar() {
                 <a href="/search">SEARCH</a>
                 <a href="/top">TOP</a>
                 {Cookies.get('authid') ? <a href="/friends">FRIENDS</a> : <></>}
-                <a href="/old_network/admin" style={{color: 'tomato'}}>ADMIN</a>
+                {Cookies.get('modmode') ? <a href="/old_network/admin" style={{color: 'tomato'}}>ADMIN</a> : <></>}
                 {loading ? (
                     <></>
                 ) : error ? (

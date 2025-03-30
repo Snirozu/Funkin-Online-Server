@@ -190,7 +190,10 @@ export class NetworkRoom extends Room<NetworkSchema> {
     }
 
     const player = await authPlayer(options);
-    if (!player || this.IDToName.has(player.id)) {
+    if (!player) {
+      throw new ServerError(401, "Unauthorized to Network");
+    }
+    if (this.IDToName.has(player.id)) {
       this.removePlayer(this.IDtoClient.get(player.id));
     }
 
@@ -214,14 +217,19 @@ export class NetworkRoom extends Room<NetworkSchema> {
   }
 
   removePlayer(client: Client) {
-    const clID = this.SSIDtoID.get(client.sessionId);
-    this.IDtoClient.delete(clID);
-    this.nameToClient.delete(this.IDToName.get(clID).toLowerCase());
-    this.nameToHue.delete(this.IDToName.get(clID).toLowerCase());
-    this.IDToName.delete(clID);
-    this.SSIDtoID.delete(client.sessionId);
+    try {
+      const clID = this.SSIDtoID.get(client.sessionId);
+      this.IDtoClient.delete(clID);
+      this.nameToClient.delete(this.IDToName.get(clID).toLowerCase());
+      this.nameToHue.delete(this.IDToName.get(clID).toLowerCase());
+      this.IDToName.delete(clID);
+      this.SSIDtoID.delete(client.sessionId);
 
-    this.setNotifs(client, false);
+      this.setNotifs(client, false);
+    }
+    catch (exc) {}
+    
+    client.leave();
   }
 
   setNotifs(client: Client, enable:boolean) {

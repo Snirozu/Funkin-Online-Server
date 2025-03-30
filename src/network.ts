@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
 import { filterSongName, filterUsername, formatLog, ordinalNum, validCountries } from "./util";
-import { logToAll, notifyPlayer } from "./rooms/NetworkRoom";
+import { logToAll, networkRoom, notifyPlayer } from "./rooms/NetworkRoom";
 import * as fs from 'fs';
 import sanitizeHtml from 'sanitize-html';
 
@@ -1024,6 +1024,11 @@ export async function deleteUser(id:string):Promise<any> {
     cachedIDtoName.delete(user.id);
     cachedNameToID.delete(user.name);
 
+    try {
+        networkRoom.IDtoClient.get(user.id).leave(403);
+    }
+    catch (_) {}
+
     console.log("Deleted user: " + user.name);
 }
 
@@ -1097,6 +1102,11 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
                 by: id
             }
         })
+
+        try {
+            networkRoom.IDtoClient.get(player.id).leave(403);
+        }
+        catch (_) { }
     }
 
     console.log("Set " + id + "'s ban status to " + to);

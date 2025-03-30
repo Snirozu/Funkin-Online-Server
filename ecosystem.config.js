@@ -5,7 +5,6 @@ module.exports = {
             name: "funkin-online",
             script: "build/index.js",
             watch: [
-                "src/",
                 "assets/",
                 "nodemon.json",
                 ".env",

@@ -37,7 +37,7 @@ export async function isUserNameInRoom(userName:string, room?:GameRoom) {
 
 export async function isUserIDInRoom(userID: string, room?: GameRoom) {
     if (!room) room = Data.MAP_USERNAME_PLAYINGROOM.get(await getPlayerNameByID(userID));
-    return room != null && room.clients.length > 0 && hasValue(room.clientsID, userID);
+    return room && room.clients.length > 0 && hasValue(room.clientsID, userID);
 }
 
 export function getKeyOfValue(map: Map<string, any>, value: any) {

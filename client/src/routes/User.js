@@ -320,7 +320,7 @@ export function Flag(props) {
     return (
         <img className={props.className ?? 'SmallFlag'} src={"https://flagcdn.com/h24/" + props.code.toLowerCase() + ".png"} onError={(e) => {
             e.target.src = "https://flagsapi.com/" + props.code + "/flat/24.png";
-        }} alt='Flag'/>
+        }} alt={props.code} title={allCountries.get(props.code)}/>
     );
 }
 
