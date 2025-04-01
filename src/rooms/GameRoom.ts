@@ -601,10 +601,25 @@ export class GameRoom extends Room<RoomState> {
           this.broadcast("log", formatLog("> " + this.getStatePlayer(client).name + " has rolled " + Math.floor(Math.random() * (6 - 1 + 1) + 1)));
           break;
         case "kick":
-          if (!this.isOwner(client) || !this.clients.at(1) || this.clients.at(1) == client) {
+          if (!this.isOwner(client)) {
+            client.send("log", formatLog("> Just leave the game bro"));
             return;
           }
-          this.removePlayer(this.clients.at(1));
+
+          let kickCount = 0;
+          for (const cl of this.clients) {
+            if (!this.isOwner(cl) && (message[1] ? this.getStatePlayer(cl).name == message[1] : true)) {
+              this.removePlayer(cl);
+              kickCount++;
+            }
+          }
+          client.send("log", formatLog("> Kicked " + kickCount + " player(s)"));
+          break;
+        case "help":
+          client.send("log", formatLog("> Global Commands: /roll, /kick"));
+          break;
+        default:
+          client.send("log", formatLog("> Unknown command; try /help to see the command list!"));
           break;
       }
     });
@@ -867,6 +882,10 @@ export class GameRoom extends Room<RoomState> {
         this.destroy();
     else
         this.state.player2 = new Player();
+
+    if (this.clients.length < this.maxClients) {
+      this.unlock();
+    }
   }
 
   async onDispose() {

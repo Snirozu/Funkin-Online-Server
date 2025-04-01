@@ -12,11 +12,12 @@ export function filterUsername(str:string) {
     return (str.match(re) || []).join('').trim();
 }
 
-export function formatLog(content:string, hue:number = null):string {
+export function formatLog(content:string, hue:number = null, isPM:boolean = false):string {
     return JSON.stringify({
         content: content, 
         hue: hue,
-        date: Date.now()
+        date: Date.now(),
+        isPM: isPM
     });
 }
 
