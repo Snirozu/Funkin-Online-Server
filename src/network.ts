@@ -1071,35 +1071,36 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
             }
         })
 
-        await prisma.fileAvatar.delete({
-            where: {
-                owner: id
-            }
-        })
-
-        await prisma.fileBackground.delete({
-            where: {
-                owner: id
-            }
-        })
-
         for (const score of scores) {
             await updateSongMaxPoints(score.songId);
-            await prisma.fileReplay.delete({
+            await prisma.fileReplay.deleteMany({
                 where: {
                     id: score.replayFileId
                 }
             });
         }
 
+        await prisma.songComment.deleteMany({
+            where: {
+                by: id
+            }
+        })
+
         await prisma.report.deleteMany({
             where: {
                 by: id
             }
         })
-        await prisma.songComment.deleteMany({
+
+        await prisma.fileAvatar.deleteMany({
             where: {
-                by: id
+                owner: id
+            }
+        })
+
+        await prisma.fileBackground.deleteMany({
+            where: {
+                owner: id
             }
         })
 

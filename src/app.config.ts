@@ -154,7 +154,7 @@ export default config({
                                     const reports = await viewReports();
                                     for (const report of reports) {
                                         const submitter = await getPlayerByID(report.by);
-                                        response += 'By: ' + submitter.name;
+                                        response += "By: <a href='/user/" + submitter.name + "'>" + submitter.name + "</a>";
                                         const contentLines = report.content.split('\n');
                                         const scoreLine = contentLines.shift();
                                         if (scoreLine.startsWith("Score #")) {
@@ -165,8 +165,8 @@ export default config({
                                                 continue;
                                             }
                                             const scorePlayer = await getPlayerByID(score.player);
-                                            response += "<br> " + "<a href='/api/old_network/score/replay?id=" + score.id + "'>" + scorePlayer.name + "'s Score"
-                                                + "</a> on <a href='/old_network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
+                                            response += "<br> " + "<a href='/user/" + scorePlayer.name + "'>" + scorePlayer.name + "'s</a> <a href='/api/score/replay?id=" + score.id + "'>Score"
+                                                + "</a> on <a href='/network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
                                                 + (contentLines.length > 0 ? "<br>" + contentLines.join('<br>') : '')
                                                 + "<br><br><a href='/old_network/admin/remove?report=" + report.id + "&score=" + score.id + "'>(REMOVE SCORE)</a>&nbsp;&nbsp;&nbsp;";
                                         }
@@ -176,7 +176,7 @@ export default config({
                                         response += "<a href='/old_network/admin/remove?report=" + report.id + "'>(REMOVE REPORT)</a>"
                                         response += "<hr>";
                                     }
-                                    response += '';
+                                    response += '<style> html { padding: 30px; color: white; background-color: rgb(50, 50, 50); font-family: Verdana, sans-serif; } </style>';
 
                                     res.send(response);
                                     break;
