@@ -665,7 +665,42 @@ export async function pingPlayer(id: string) {
     }
 }
 
-export async function topScores(id: string, strum:number, page: number) {
+export async function topScores(id: string, strum:number, page: number): Promise<Array<ScoreData>> {
+    let scores: ScoreData[] = await topScoresRaw(id, strum, page);
+
+    if(scores == null)
+        return null;
+
+    function sortingHelper(a: number, b: number) {
+        let result: number = 0;
+
+		if (a < b)
+			result = 1;
+		else if (a > b)
+			result = -1;
+
+		return result;
+    }
+
+    scores.sort(function(a: ScoreData, b: ScoreData) {
+        const scoreSort = sortingHelper(a.score, b.score);
+        if(scoreSort != 0) return scoreSort;
+
+        const accuracySort = sortingHelper(a.accuracy, b.accuracy);
+        if(accuracySort != 0) return accuracySort;
+
+        const fpSort = sortingHelper(a.points, b.points);
+        if(fpSort != 0) return fpSort;
+
+        // "i did it first!"
+        const dateSort = -sortingHelper(a.submitted.getTime(), b.submitted.getTime());
+        return dateSort;
+    });
+
+    return scores;
+}
+
+export async function topScoresRaw(id: string, strum:number, page: number): Promise<Array<ScoreData>> {
     try {
         
         return await prisma.score.findMany({
@@ -1435,4 +1470,20 @@ class ReplayData {
 
     version: number;
     mod_url: string;
+}
+
+class ScoreData {
+    id: string;
+    points: number;
+    score: number;
+    accuracy: number;
+    sicks: number;
+    goods: number;
+    bads: number;
+    shits: number;
+    misses: number;
+    playbackRate: number;
+    submitted: Date;
+    modURL: string;
+    player: string; 
 }
