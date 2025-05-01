@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages } from "./network";
+import { genAccessToken, createUser, submitScore, checkLogin, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages, validateEmail } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -53,12 +53,12 @@ export default config({
         app.get("/api/front", async (req, res) => {
             try {
                 const [playerCount, roomFreeCount] = await countPlayers();
-                const playerName = Data.FRONT_MESSAGES[0] ? await getPlayerNameByID(Data.FRONT_MESSAGES[0].player) : undefined;
+                const playerName = Data.PUBLIC.FRONT_MESSAGES[0] ? await getPlayerNameByID(Data.PUBLIC.FRONT_MESSAGES[0].player) : undefined;
 
                 res.send({
                     online: playerCount,
                     rooms: roomFreeCount,
-                    sez: (playerName ? playerName + ' sez: "' + Data.FRONT_MESSAGES[0].message + '"' : '')
+                    sez: (playerName ? playerName + ' sez: "' + Data.PUBLIC.FRONT_MESSAGES[0].message + '"' : '')
                 });
             }
             catch (exc) {
@@ -204,7 +204,7 @@ export default config({
             app.get("/api/sezdetal", async (req, res) => {
                 try {
                     let sezlist = [];
-                    for (const msg of Data.FRONT_MESSAGES) {
+                    for (const msg of Data.PUBLIC.FRONT_MESSAGES) {
                         const playerName = await getPlayerNameByID(msg.player);
                         sezlist.push({
                             player: playerName,
@@ -849,12 +849,12 @@ export default config({
                     if (req.body.message && req.body.message.length < 80 && !(req.body.message as string).includes("\n")) {
                         const [id, _] = getIDToken(req);
                         
-                        Data.FRONT_MESSAGES.unshift({
+                        Data.PUBLIC.FRONT_MESSAGES.unshift({
                             player: id,
                             message: req.body.message
                         });
-                        if (Data.FRONT_MESSAGES.length > 5) {
-                            Data.FRONT_MESSAGES.pop();
+                        if (Data.PUBLIC.FRONT_MESSAGES.length > 5) {
+                            Data.PUBLIC.FRONT_MESSAGES.pop();
                         }
                         res.sendStatus(200);
                         return;
@@ -954,12 +954,11 @@ export default config({
                     if (!req.body.email || !(req.body.email as string).includes('@'))
                         throw { error_message: 'Invalid Email Address!' }
 
-                    const emailHost = (req.body.email as string).split('@')[1].trim();
-                    for (const v of Data.EMAIL_BLACKLIST) {
-                        const domain = v.split(' ')[0].trim();
-                        if (domain.trim().length > 0 && emailHost.endsWith(domain))
-                            throw { error_message: 'This Email Host is Blocked!' }
+                    if (!validateEmail(req.body.email)) {
+                        throw { error_message: 'This Email Host is Blocked!' }
                     }
+
+                    const player = await getPlayerByEmail(req.body.email);
 
                     if (req.body.code) {
                         if (req.body.code != emailCodes.get(req.body.email)) {
@@ -976,9 +975,16 @@ export default config({
                         });
                     }
                     else {
+                        res.sendStatus(200);
+                        if (player) {
+                            // to avoid users abusing the email system
+                            // we always send an "successful" response (even when it's not)
+                            return; // throw { error_message: 'Player with that email does exist!' }
+                        }
+
                         const daCode = generateCode();
                         tempSetCode(req.body.email, daCode);
-                        sendCodeMail(req.body.email, daCode, res);
+                        sendCodeMail(req.body.email, daCode);
                     }
                 }
                 catch (exc: any) {
@@ -995,8 +1001,6 @@ export default config({
                         throw { error_message: 'Invalid Email Address!' }
 
                     const player = await getPlayerByEmail(req.body.email);
-                    if (!player)
-                        throw { error_message: 'Player with that email doesn\'t exist!' }
                     
                     if (req.body.code) {
                         if (req.body.code != emailCodes.get(req.body.email)) {
@@ -1011,9 +1015,16 @@ export default config({
                         });
                     }
                     else {
+                        res.sendStatus(200);
+                        if (!player) {
+                            // to avoid users abusing the email system
+                            // we always send an "successful" response (even when it's not)
+                            return; // throw { error_message: 'Player with that email doesn\'t exist!' }
+                        }
+
                         const daCode = generateCode();
                         tempSetCode(req.body.email, daCode);
-                        sendCodeMail(req.body.email, daCode, res);
+                        sendCodeMail(req.body.email, daCode);
                     }
                 }
                 catch (exc: any) {
@@ -1031,6 +1042,10 @@ export default config({
                     if (!req.body.email || !(req.body.email as string).includes('@'))
                         throw { error_message: 'Invalid Email Address!' }
 
+                    if (!validateEmail(req.body.email)) {
+                        throw { error_message: 'This Email Host is Blocked!' }
+                    }
+
                     const player = await getPlayerByID(id);
                     if (player.email && player.email != req.body.old_email)
                         throw { error_message: 'Currently Set Email is Not Provided!' }
@@ -1046,9 +1061,14 @@ export default config({
                         res.sendStatus(200);
                     }
                     else {
+                        res.sendStatus(200);
+                        if (await getPlayerByEmail(req.body.email)) {
+                            return;
+                        }
+
                         const daCode = generateCode();
                         tempSetCode(req.body.email, daCode);
-                        sendCodeMail(req.body.email, daCode, res);
+                        sendCodeMail(req.body.email, daCode);
                     }
                 }
                 catch (exc: any) {
@@ -1077,7 +1097,8 @@ export default config({
                     else {
                         const daCode = generateCode();
                         tempSetCode(player.email, daCode);
-                        sendCodeMail(player.email, daCode, res);
+                        sendCodeMail(player.email, daCode);
+                        res.sendStatus(200);
                     }
                 }
                 catch (exc: any) {
@@ -1298,20 +1319,21 @@ export async function countPlayers():Promise<number[]> {
     return [playerCount, roomFreeCount, playingCount];
 }
 
-export async function sendCodeMail(email:string, code:string, res?:any) {
+export async function sendCodeMail(email:string, code:string) {
     transMail.sendMail({
         from: 'Psych Online',
         to: email,
         subject: code + ' is your Verification Code',
         html: '<h3>Your verification code is:<h3><h1>' + code + '</h1>'
-    },
-        (error, info) => {
-            if (res)
-                if (error)
-                    res.sendStatus(500);
-                else
-                    res.sendStatus(200);
-        });
+    }
+    // ,    (error, info) => {
+    //         if (res)
+    //             if (error)
+    //                 res.sendStatus(500);
+    //             else
+    //                 res.sendStatus(200);
+    //     }
+    );
 }
 
 export function tempSetCode(email:string, code:string) {

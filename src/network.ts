@@ -5,6 +5,7 @@ import { filterSongName, filterUsername, formatLog, ordinalNum, validCountries }
 import { logToAll, networkRoom, notifyPlayer } from "./rooms/NetworkRoom";
 import * as fs from 'fs';
 import sanitizeHtml from 'sanitize-html';
+import { Data } from "./Data";
 
 export const prisma = new PrismaClient()
 
@@ -377,7 +378,7 @@ export async function createUser(name: string, email: string) {
         throw { error_message: "Player with that username already exists!" }
 
     if (await getPlayerByEmail(email))
-        throw { error_message: "Player with that email already exists!" }
+        throw { error_message: "Can't set the same email for two accounts!" }
 
     return (await prisma.user.create({
         data: {
@@ -388,6 +389,16 @@ export async function createUser(name: string, email: string) {
         },
     }));
 }
+
+export function validateEmail(email:string) {
+    const emailHost = email.split('@')[1].trim();
+    for (const v of Data.EMAIL_BLACKLIST) {
+        const domain = v.split(' ')[0].trim();
+        if (domain.trim().length > 0 && emailHost.endsWith(domain))
+            return false;
+    }
+    return true;
+} 
 
 export async function resetSecret(id: string) {
     return (await prisma.user.update({
@@ -402,7 +413,7 @@ export async function resetSecret(id: string) {
 
 export async function setEmail(id: string, email: string) {
     if (await getPlayerByEmail(email))
-        throw { error_message: "Player with that email already exists!" }
+        throw { error_message: "Can't set the same email for two accounts!" }
 
     return (await prisma.user.update({
         data: {

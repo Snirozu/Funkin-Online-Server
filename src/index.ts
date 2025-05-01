@@ -2,7 +2,7 @@ import { listen } from "@colyseus/tools";
 import app from "./app.config";
 import * as fs from 'fs';
 import dotenv from 'dotenv';
-import { Data } from "./Data";
+import { Data, PublicData } from "./Data";
 import { grantPlayerMod, initDatabaseCache, prisma } from "./network";
 import sanitizeHtml from 'sanitize-html';
 
@@ -10,9 +10,18 @@ process.on('uncaughtException', function (exception) {
     console.error(exception);
 });
 
+process.on('exit', () => {
+    console.log('Saving PublicData...');
+    fs.writeFileSync("database/public_data.json", JSON.stringify(Data.PUBLIC));
+    console.log('Done!');
+});
+
 if (!fs.existsSync("database/"))
     fs.mkdirSync("database/");
 
+Data.PUBLIC = new PublicData();
+if (fs.existsSync("database/public_data.json"))
+    Data.PUBLIC = JSON.parse(fs.readFileSync("database/public_data.json", 'utf8'));
 if (fs.existsSync("database/day_players.json"))
     Data.DAY_PLAYERS = JSON.parse(fs.readFileSync("database/day_players.json", 'utf8'));
 if (fs.existsSync("database/country_players.json"))
