@@ -708,11 +708,6 @@ export async function topScoresRaw(id: string, strum:number, page: number): Prom
                 songId: id,
                 strum: strum
             },
-            orderBy: [
-                {
-                    score: 'desc'
-                }
-            ],
             select: {
                 score: true,
                 accuracy: true,
