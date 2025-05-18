@@ -25,9 +25,9 @@ export function logToAll(content: string) {
       return;
     }
 
-    networkRoom.loggedMessages.push([content, Date.now()]);
-    if (networkRoom.loggedMessages.length > 100) {
-      networkRoom.loggedMessages.shift();
+    Data.PUBLIC.LOGGED_MESSAGES.push([content, Date.now()]);
+    if (Data.PUBLIC.LOGGED_MESSAGES.length > 100) {
+      Data.PUBLIC.LOGGED_MESSAGES.shift();
     }
     networkRoom.broadcast('log', content);
   }
@@ -41,8 +41,6 @@ export class NetworkRoom extends Room<NetworkSchema> {
   IDtoClient: Map<string, Client> = new Map<string, Client>();
   nameToClient: Map<string, Client> = new Map<string, Client>();
   nameToHue: Map<string, number> = new Map<string, number>();
-
-  loggedMessages: Array<Array<any>> = []; // array<any> is [content, unix_timestamp]
 
   async onCreate (options: any) {
     if (networkRoom) {
@@ -156,7 +154,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
         message = 0;
 
       let loggedAfter = [];
-      for (const log of this.loggedMessages) {
+      for (const log of Data.PUBLIC.LOGGED_MESSAGES) {
         if (log[1] > message) {
           loggedAfter.push(log[0]);
         }
