@@ -247,13 +247,13 @@ function User() {
                             :
                             <></>
                         }
-                        {hasAccess('user.admin') ?
+                        {hasAccess('/api/admin/user/ban') || hasAccess('/api/admin/score/delete') ?
                             <button className='SvgButton' title={adminMode ? "User Mode" : "Admin Mode"} onClick={toggleAdmin}>
                                 {adminMode ? <Icon width={20} icon="mdi:user-box" /> : <Icon width={20} icon="eos-icons:admin" />}
                             </button>
                         : <></>}
                         {
-                            adminMode ? 
+                            adminMode && hasAccess('/api/admin/user/ban') ? 
                                 <a title='Ban' target="_blank" rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} href={"/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true")}>
                                     <button className='SvgButton'>
                                         {(data.role === "Banned" ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
@@ -514,7 +514,7 @@ function UserScores(props) {
                 <td>
                     <a href={songURL}> {score.name} </a>
                     {
-                        isAdmin ?
+                        isAdmin && hasAccess('/api/admin/score/delete') ?
                             <>
                                 <button title='Remove Score' className='SvgNoButton' style={{ float: 'right', color: 'var(--text-profile-color)' }} onClick={() => removeScore(score.id)}>
                                     <Icon width={20} icon="mdi:trash-outline" />

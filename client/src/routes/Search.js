@@ -154,13 +154,15 @@ function PlayerSearchList(props) {
                 <div className="Coolbox">
                     <a href={"/user/" + encodeURIComponent(user.name)}>
                         {
-                            !user.role === "Banned" ? (
+                            user.role !== "Banned" ? (
                                 <>
                                     <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(user.name)}></AvatarImg>
                                     <br></br>
                                     <span>{user.name}</span>
                                     <br></br>
-                                    <span>{user.role}</span>
+                                    {
+                                        user.role ? <span>{user.role}</span> : <></>
+                                    }
                                 </>
                             ) :
                             (

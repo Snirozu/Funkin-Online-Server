@@ -47,15 +47,16 @@ export function loadConfig() {
 
     function extendDong(role: Role, to: Role) {
         if (to.access)
-            role.access.concat(to.access);
+            role.access = role.access.concat(to.access);
 
         if (to.extends)
             extendDong(role, ROLES.get(to.extends));
     }
 
     for (const role of data.roles) {
-        if (role.extends)
+        if (role.extends) {
             extendDong(ROLES.get(role.name), ROLES.get(role.extends));
+        }
     }
 
     for (const user of data.users) {

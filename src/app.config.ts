@@ -112,88 +112,6 @@ export default config({
                 res.redirect(req.url.substring("/network".length));
             });
 
-            // app.get("/old_network*", async (req, res) => {
-            //     try {
-            //         const reqPlayer = await authPlayer(req, true);
-            //         const params = (req.params as Array<string>)[0].split("/");
-            //         switch (params[1]) {
-            //             case undefined:
-            //             case "":
-            //                 res.redirect('/404');
-            //                 break;
-            //             case "admin":
-            //                 if (!reqPlayer || !reqPlayer.isMod) {
-            //                     res.send('nuh uh');
-            //                     return;
-            //                 }
-
-            //                 switch (params[2]) {
-            //                     case "remove":
-            //                         const removed = [];
-            //                         if (req.query.report) {
-            //                             await removeReport(req.query.report as string);
-            //                             removed.push("report");
-            //                         }
-            //                         if (req.query.score) {
-            //                             await removeScore(req.query.score as string);
-            //                             removed.push("score");
-            //                         }
-
-            //                         if (removed.length == 0) {
-            //                             res.send('none removed! <br><a href="javascript:history.back()"> go bakc </a>');
-            //                             return;
-            //                         }
-
-            //                         res.send('removed ' + removed.join(',') + '! <br><a href="javascript:history.back()"> go bakc </a>');
-            //                         break;
-            //                     default:
-            //                         let response = '';
-
-            //                         response += '<h1>logged as ' + reqPlayer.name + "</h1>";
-
-            //                         response += '<h2> Reports: </h2><hr>';
-            //                         const reports = await viewReports();
-            //                         for (const report of reports) {
-            //                             const submitter = await getPlayerByID(report.by);
-            //                             response += "By: <a href='/user/" + submitter.name + "'>" + submitter.name + "</a>";
-            //                             const contentLines = report.content.split('\n');
-            //                             const scoreLine = contentLines.shift();
-            //                             if (scoreLine.startsWith("Score #")) {
-            //                                 const score = await getScore(scoreLine.split("Score #")[1]);
-            //                                 if (!score) {
-            //                                     await removeReport(report.id);
-            //                                     response += "<br>REMOVED<hr>";
-            //                                     continue;
-            //                                 }
-            //                                 const scorePlayer = await getPlayerByID(score.player);
-            //                                 response += "<br> " + "<a href='/user/" + scorePlayer.name + "'>" + scorePlayer.name + "'s</a> <a href='/api/score/replay?id=" + score.id + "'>Score"
-            //                                     + "</a> on <a href='/network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
-            //                                     + (contentLines.length > 0 ? "<br>" + contentLines.join('<br>') : '')
-            //                                     + "<br><br><a href='/old_network/admin/remove?report=" + report.id + "&score=" + score.id + "'>(REMOVE SCORE)</a>&nbsp;&nbsp;&nbsp;";
-            //                             }
-            //                             else {
-            //                                 response += "<br>" + report.content + "<br><br>";
-            //                             }
-            //                             response += "<a href='/old_network/admin/remove?report=" + report.id + "'>(REMOVE REPORT)</a>"
-            //                             response += "<hr>";
-            //                         }
-            //                         response += '<style> html { padding: 30px; color: white; background-color: rgb(50, 50, 50); font-family: Verdana, sans-serif; } </style>';
-
-            //                         res.send(response);
-            //                         break;
-            //                 }
-            //                 break;
-            //             default:
-            //                 res.send("unknown page");
-            //                 break;
-            //         }
-            //     }
-            //     catch (exc:any) {
-            //         console.error(exc);
-            //         res.status(400).send(exc?.error_message ?? "Unknown error...");
-            //     }
-            // });
-
             /*
             -
             API STUFF
@@ -424,6 +342,75 @@ export default config({
                 catch (exc) {
                     console.error(exc);
                     res.sendStatus(500);
+                }
+            });
+
+            app.get("/admin*", checkAccess, async (req, res) => {
+                try {
+                    const reqPlayer = await authPlayer(req);
+                    if (!reqPlayer)
+                        return res.sendStatus(403);
+
+                    const params = (req.params as Array<string>)[0].split("/");
+                    switch (params[1]) {
+                        case "remove":
+                            const removed = [];
+                            if (req.query.report) {
+                                await removeReport(req.query.report as string);
+                                removed.push("report");
+                            }
+                            if (req.query.score) {
+                                await removeScore(req.query.score as string);
+                                removed.push("score");
+                            }
+
+                            if (removed.length == 0) {
+                                res.send('none removed! <br><a href="javascript:history.back()"> go bakc </a>');
+                                return;
+                            }
+
+                            res.send('removed ' + removed.join(',') + '! <br><a href="javascript:history.back()"> go bakc </a>');
+                            break;
+                        default:
+                            let response = '';
+
+                            response += '<h1>logged as ' + reqPlayer.name + "</h1>";
+
+                            response += '<h2> Reports: </h2><hr>';
+                            const reports = await viewReports();
+                            for (const report of reports) {
+                                const submitter = await getPlayerByID(report.by);
+                                response += "By: <a href='/user/" + submitter.name + "'>" + submitter.name + "</a>";
+                                const contentLines = report.content.split('\n');
+                                const scoreLine = contentLines.shift();
+                                if (scoreLine.startsWith("Score #")) {
+                                    const score = await getScore(scoreLine.split("Score #")[1]);
+                                    if (!score) {
+                                        await removeReport(report.id);
+                                        response += "<br>REMOVED<hr>";
+                                        continue;
+                                    }
+                                    const scorePlayer = await getPlayerByID(score.player);
+                                    response += "<br> " + "<a href='/user/" + scorePlayer.name + "'>" + scorePlayer.name + "'s</a> <a href='/api/score/replay?id=" + score.id + "'>Score"
+                                        + "</a> on <a href='/network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
+                                        + (contentLines.length > 0 ? "<br>" + contentLines.join('<br>') : '')
+                                        + "<br><br><a href='/admin/remove?report=" + report.id + "&score=" + score.id + "'>(REMOVE SCORE)</a>&nbsp;&nbsp;&nbsp;";
+                                }
+                                else {
+                                    response += "<br>" + report.content + "<br><br>";
+                                }
+                                response += "<a href='/admin/remove?report=" + report.id + "'>(REMOVE REPORT)</a>"
+                                response += "<hr>";
+                            }
+                            response += '<style> html { padding: 30px; color: white; background-color: rgb(50, 50, 50); font-family: Verdana, sans-serif; } a { color: #428ee6; } </style>';
+
+                            res.send(response);
+                            break;
+                    }
+                }
+                catch (exc: any) {
+                    console.error(exc);
+                    res.status(400).send(exc?.error_message ?? "Unknown error...");
                 }
             });
 

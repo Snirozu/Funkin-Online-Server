@@ -2,7 +2,7 @@
 
 [[users]]
 name = "Snirozu"
-role = "Admin"
+role = "Helper"
 
 [[roles]]
 # basically a root user
@@ -21,8 +21,7 @@ access = [
     '/api/admin/user/set/email',
     '/api/admin/user/ban',
     '/api/admin/players',
-    'command.announce',
-    'user.admin'
+    'command.announce'
 ]
 extends = 'Helper'
 
@@ -33,6 +32,7 @@ name = "Helper"
 priority = 1
 access = [
     '/api/admin/score/delete',
+    '/admin',
 ]
 extends = 'Member'
 
