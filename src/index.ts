@@ -1,10 +1,11 @@
 import { listen } from "@colyseus/tools";
 import app from "./app.config";
-import * as fs from 'fs';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import { Data, PublicData } from "./Data";
-import { grantPlayerMod, initDatabaseCache, prisma } from "./network";
+import { initDatabaseCache, prisma } from "./network";
 import sanitizeHtml from 'sanitize-html';
+import { loadConfig } from "./Config";
 
 process.on('uncaughtException', function (exception) {
     console.error(exception);
@@ -35,6 +36,9 @@ sanitizeHtml.defaults.allowedTags.push('img');
 // load email blacklist
 Data.EMAIL_BLACKLIST = fs.readFileSync("EMAIL_BLACKLIST", 'utf8').split('\n');
 
+// load config
+loadConfig();
+
 // prisma refuses to work when not in the main() function, why? idk
 async function main() {
     try {
@@ -49,16 +53,16 @@ async function main() {
                     console.log("Network is enabled")
                 }
 
-                if (process.env["GRANT_MODS"]) {
-                    for (const id of process.env["GRANT_MODS"].split(" ")) {
-                        try {
-                            const player = await grantPlayerMod(id);
-                            console.log(player.name + " is a mod!");
-                        }
-                        catch (exc) {
-                        }
-                    }
-                }
+                // if (process.env["GRANT_MODS"]) {
+                //     for (const id of process.env["GRANT_MODS"].split(" ")) {
+                //         try {
+                //             const player = await grantPlayerMod(id);
+                //             console.log(player.name + " is a mod!");
+                //         }
+                //         catch (exc) {
+                //         }
+                //     }
+                // }
 
                 await initDatabaseCache();
             })

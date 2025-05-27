@@ -2,7 +2,7 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import AvatarImg from './AvatarImg';
-import { getHost, headProfileColor } from './Util';
+import { getHost, hasAccess, headProfileColor } from './Util';
 
 function HeadBar() {
     const [data, setData] = useState({
@@ -25,9 +25,7 @@ function HeadBar() {
             }
             const data = response.data;
             Cookies.set('username', data.name, { sameSite: 'strict' });
-            if (data.isMod) {
-                Cookies.set('modmode', true, { sameSite: 'strict'});
-            }
+            Cookies.set('access_list', data.access.join(','), { sameSite: 'strict' });
 
             document.documentElement.style.setProperty('--head-profile-color', headProfileColor(data.profileHue));
 
@@ -53,7 +51,7 @@ function HeadBar() {
                 <a href="/search">SEARCH</a>
                 <a href="/top">TOP</a>
                 {Cookies.get('authid') ? <a href="/friends">FRIENDS</a> : <></>}
-                {Cookies.get('modmode') === 'true' ? <a href="/old_network/admin" style={{color: 'tomato'}}>ADMIN</a> : <></>}
+                {hasAccess('/old_network/admin') ? <a href="/old_network/admin" style={{color: 'tomato'}}>ADMIN</a> : <></>}
                 {loading ? (
                     <></>
                 ) : error ? (

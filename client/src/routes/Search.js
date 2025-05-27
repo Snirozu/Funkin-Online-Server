@@ -119,8 +119,7 @@ function SongSearchList(props) {
 function PlayerSearchList(props) {
     const [data, setData] = useState([{
         name: '',
-        isBanned: false,
-        isMod: false,
+        role: '',
         points: 0,
         profileHue: 0
     }]);
@@ -155,17 +154,20 @@ function PlayerSearchList(props) {
                 <div className="Coolbox">
                     <a href={"/user/" + encodeURIComponent(user.name)}>
                         {
-                            !user.isBanned ? (
+                            !user.role === "Banned" ? (
                                 <>
                                     <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(user.name)}></AvatarImg>
-                                    <br></br><span>{user.name}</span>
+                                    <br></br>
+                                    <span>{user.name}</span>
+                                    <br></br>
+                                    <span>{user.role}</span>
                                 </>
                             ) :
                             (
                                 <s> 
                                     <span>{user.name}</span>
                                     <br></br>
-                                    Banned
+                                    <span>{user.role}</span>
                                 </s>
                             )
                         }

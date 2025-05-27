@@ -1,5 +1,6 @@
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
+import Cookies from 'js-cookie';
 
 TimeAgo.addDefaultLocale(en);
 export const timeAgo = new TimeAgo('en-US')
@@ -63,6 +64,28 @@ export function textProfileRow(hue, alt) {
     if (alt)
         return "hsl(" + hue + ",10%,18%)";
     return "hsl(" + hue + ",10%,22%)";
+}
+
+export function hasAccess(has) {
+	if (!Cookies.get('access_list')) {
+		return false;
+	}
+	for (const perm of Cookies.get('access_list').split(',')) {
+		if (matchWildcard(perm, has))
+			return true;
+	}
+	return false; 
+}
+
+function matchWildcard(match, to) {
+	let isNegative = false;
+	if (to.startsWith('!')) {
+		isNegative = true;
+		to.substring(1);
+	}
+	let w = match.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+	const re = new RegExp(`^${w.replace(/\*/g, '.*').replace(/\?/g, '.')}$`, 'i');
+	return re.test(to) !== isNegative;
 }
 
 export const allCountries = new Map([

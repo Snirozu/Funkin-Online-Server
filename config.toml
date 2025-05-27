@@ -1,0 +1,73 @@
+# loosely based on luckperms (i love lp smm <33333)
+
+[[users]]
+name = "Snirozu"
+role = "Admin"
+
+[[roles]]
+# basically a root user
+name = "Admin"
+priority = 9999
+access = [
+    '*'
+]
+
+
+[[roles]]
+# manages users
+name = "Moderator"
+priority = 2
+access = [
+    '/api/admin/user/set/email',
+    '/api/admin/user/ban',
+    '/api/admin/players',
+    'command.announce',
+    'user.admin'
+]
+extends = 'Helper'
+
+
+[[roles]]
+# manages scores and player reports
+name = "Helper"
+priority = 1
+access = [
+    '/api/admin/score/delete',
+]
+extends = 'Member'
+
+
+[[roles]]
+name = "Member"
+priority = 0
+default = true
+access = [
+    '/api/sez',
+    '/api/account/*',
+    '/api/song/*',
+    '/api/score/*',
+    '/api/user/*',
+    'room.auth',
+    # '/api/account/info',
+    # '/api/account/me',
+    # '/api/account/friends',
+    # '/api/account/ping',
+    # '/api/account/avatar',
+    # '/api/account/background',
+    # '/api/account/removeimages',
+    # '/api/account/email/set',
+    # '/api/account/delete',
+    # '/api/account/profile/set',
+    # '/api/account/rename',
+    # '/api/song/comment',
+    # '/api/score/report',
+    # '/api/score/submit',
+    # '/api/user/friends/remove',
+    # '/api/user/friends/request',
+]
+
+
+[[roles]]
+name = "Banned"
+priority = -1
+access = []

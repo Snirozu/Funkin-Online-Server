@@ -4,7 +4,8 @@
         "assets/",
         "nodemon.json",
         ".env",
-        "EMAIL_BLACKLIST"
+        "EMAIL_BLACKLIST",
+        "config.toml"
     ],
     "ext": "ts, html, css, json"
 }

@@ -21,11 +21,10 @@ model User {
   joined  DateTime @default(now())
   lastActive  DateTime @default(now())
   points    Int
-  isMod Boolean?
+  role String?
   pendingFriends String[] //list of players to accept invites from
   friends String[] // friends ids
   email String? @unique
-  isBanned Boolean?
   bio String?
   profileHue Int?
   avgAccSum Float?

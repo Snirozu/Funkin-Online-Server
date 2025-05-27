@@ -4,7 +4,7 @@ import { Player } from "./schema/Player";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
 import { MapSchema } from "@colyseus/schema";
-import { getPlayerByID } from "../network";
+import { getPlayerByID, hasAccess } from "../network";
 import jwt from "jsonwebtoken";
 import { filterUsername, formatLog } from "../util";
 import { Data } from "../Data";
@@ -729,7 +729,7 @@ export class GameRoom extends Room<RoomState> {
     let isVerified = false;
     const player = await getPlayerByID(options.networkId);
     if (options.networkId && options.networkToken && player) {
-      if (player.isBanned) {
+      if (!hasAccess(player, 'room.auth')) {
         client.error(418, "get fucked lmao");
         this.removePlayer(client);
         return;

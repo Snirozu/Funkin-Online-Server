@@ -2,7 +2,7 @@ import { Room, Client } from "@colyseus/core";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
 import { Data } from "../Data";
-import { authPlayer, getPlayerByID, getPlayerByName, getPlayerIDByName } from "../network";
+import { authPlayer, getPlayerByID, getPlayerByName, getPlayerIDByName, hasAccess } from "../network";
 import { NetworkSchema } from "./schema/NetworkSchema";
 import { formatLog, isUserIDInRoom } from "../util";
 
@@ -103,7 +103,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
         else if (message.startsWith('/announce')) {
           const playAdm = await getPlayerByID(this.SSIDtoID.get(client.sessionId) + '');
           
-          if (playAdm && playAdm.isMod) {
+          if (playAdm && hasAccess(playAdm, 'command.announce')) {
             this.clients.forEach(client => {
               client.send("notification", message.substring('/announce '.length));
             });
@@ -169,7 +169,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
       throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
     }
 
-    const player = await authPlayer(options);
+    const player = await authPlayer(options, false);
     if (!player) {
       throw new ServerError(401, "Unauthorized to Network");
     }

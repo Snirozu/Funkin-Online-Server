@@ -9,7 +9,8 @@ module.exports = {
                 "nodemon.json",
                 ".env",
                 "EMAIL_BLACKLIST",
-                "build/"
+                "build/",
+                "config.toml",
             ],
             watch_delay: 1000,
             instances: 1,

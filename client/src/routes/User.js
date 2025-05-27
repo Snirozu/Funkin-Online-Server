@@ -4,7 +4,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { allCountries, contentProfileColor, getHost, headProfileColor, moneyFormatter, ordinalNum, textProfileColor, textProfileRow, timeAgo } from '../Util';
+import { allCountries, contentProfileColor, getHost, hasAccess, headProfileColor, moneyFormatter, ordinalNum, textProfileColor, textProfileRow, timeAgo } from '../Util';
 import { Icon } from '@iconify/react';
 import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
@@ -20,12 +20,10 @@ function User() {
     name = decodeURIComponent(name);
 
     const [data, setData] = useState({
-        isMod: false,
         joined: 0,
         lastActive: 0,
         points: 0,
         isSelf: false,
-        isBanned: false,
         bio: '',
         friends: [],
         canFriend: false,
@@ -183,7 +181,7 @@ function User() {
             ) : (
                 <>
                     <div className='Sidebar'>
-                        {data.isBanned ? (
+                        {data.role === "Banned" ? (
                             <>
                             <span className='AvatarCaption'> <s> {name} </s> </span>
                             <center> <b> BANNED </b> </center>
@@ -205,8 +203,8 @@ function User() {
                                     <Flag code={data.country}></Flag>
                                 : <></>}
                             </div>
-                            {data.isMod ? (
-                                <center> <b> Moderator </b> </center>
+                            {data.role ? (
+                                <center> <b> {data.role} </b> </center>
                             ) : <></>}
                         </>}
                         <b>Rank: </b> {ordinalNum(data.rank)} <br />
@@ -249,16 +247,16 @@ function User() {
                             :
                             <></>
                         }
-                        {Cookies.get('modmode') ?
+                        {hasAccess('user.admin') ?
                             <button className='SvgButton' title={adminMode ? "User Mode" : "Admin Mode"} onClick={toggleAdmin}>
                                 {adminMode ? <Icon width={20} icon="mdi:user-box" /> : <Icon width={20} icon="eos-icons:admin" />}
                             </button>
                         : <></>}
                         {
                             adminMode ? 
-                                <a title='Ban' target="_blank" rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} href={"/api/admin/user/ban?username=" + name + "&to=" + (data.isBanned ? "false" : "true")}>
+                                <a title='Ban' target="_blank" rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} href={"/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true")}>
                                     <button className='SvgButton'>
-                                        {(data.isBanned ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
+                                        {(data.role === "Banned" ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
                                     </button>
                                 </a>
                             : <></>

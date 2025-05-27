@@ -3,9 +3,9 @@ import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
 import { filterSongName, filterUsername, formatLog, ordinalNum, validCountries } from "./util";
 import { logToAll, networkRoom, notifyPlayer } from "./rooms/NetworkRoom";
-import * as fs from 'fs';
 import sanitizeHtml from 'sanitize-html';
 import { Data } from "./Data";
+import { DEFAULT_ROLE, ROLES } from "./Config";
 
 export const prisma = new PrismaClient()
 
@@ -31,16 +31,16 @@ export function getIDToken(req:any):Array<string> {
     return [id, secret];
 }
 
-export async function checkLogin(req:any, res:any, next:any) {
+export async function checkAccess(req: any, res: any, next: any) {
     const [id, token] = getIDToken(req);
     const player = await getLoginPlayerByID(id);
 
-    if (player == null || token == null || id == null) { 
+    if (player == null || token == null || id == null) {
         return res.sendStatus(401)
     }
 
-    if (player.isBanned) {
-        return res.sendStatus(418)
+    if (!hasAccess(player, req.path)) {
+        return res.sendStatus(401)
     }
 
     jwt.verify(token, player.secret as string, (err: any, user: any) => {
@@ -50,7 +50,7 @@ export async function checkLogin(req:any, res:any, next:any) {
     })
 }
 
-export async function authPlayer(req: any) {
+export async function authPlayer(req: any, checkPerms:boolean = true) {
     const [id, token] = getIDToken(req);
     const player = await getPlayerByID(id);
 
@@ -58,7 +58,7 @@ export async function authPlayer(req: any) {
         return;
     }
 
-    if (player.isBanned) {
+    if (checkPerms && !hasAccess(player, req.path)) {
         return
     }
 
@@ -71,6 +71,37 @@ export async function authPlayer(req: any) {
         return player;
     }
     return;
+}
+
+export function hasAccess(user: any, to: string):boolean {
+    let role = user.role;
+    if (!user.role)
+        role = DEFAULT_ROLE;
+
+    for (const access of ROLES.get(role).access) {
+        if (matchWildcard(access, to))
+            return true;
+    }
+    return false; 
+}
+
+export function getPriority(user: any):number {
+    let role = user.role;
+    if (!user.role)
+        role = DEFAULT_ROLE;
+
+    return ROLES.get(role).priority;
+}
+
+function matchWildcard(match:string, to:string) {
+    let isNegative = false;
+    if (to.startsWith('!')) {
+        isNegative = true;
+        to.substring(1);
+    }
+    let w = match.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`^${w.replace(/\*/g, '.*').replace(/\?/g, '.')}$`, 'i');
+    return re.test(to) != isNegative;
 }
 
 //DATABASE STUFF
@@ -472,17 +503,18 @@ export async function renamePlayer(id: string, name: string) {
     };
 }
 
-export async function grantPlayerMod(id: string) {
-    if ((await getPlayerByID(id))?.isMod) {
-        throw "already a mod";
+export async function grantPlayerRole(name: string, role: string) {
+    if ((await getPlayerByName(name)).role == role) {
+        //console.log(name + ' is already already a: ' + role);
+        return null;
     }
 
     return (await prisma.user.update({
         data: {
-            isMod: true
+            role: role
         },
         where: {
-            id: id
+            name: name
         }
     }));
 }
@@ -568,8 +600,8 @@ export async function getLoginPlayerByID(id: string) {
                 }
             },
             select: {
-                isBanned: true,
-                secret: true
+                secret: true,
+                role: true
             }
         });
     }
@@ -660,10 +692,9 @@ export async function pingPlayer(id: string) {
             select: {
                 name: true,
                 points: true,
-                isMod: true,
+                role: true,
                 joined: true,
                 lastActive: true,
-                isBanned: true,
                 profileHue: true,
                 avgAccSum: true,
                 avgAccSumAmount: true,
@@ -867,7 +898,7 @@ export async function searchUsers(query: string) {
             },
             select: {
                 name: true,
-                isBanned: true,
+                role: true,
                 points: true,
             },
             take: 50
@@ -880,7 +911,7 @@ export async function searchUsers(query: string) {
 
 export async function removeFriendFromUser(req: any) {
     const me = await getPlayerByName(req.query.name as string);
-    const remove = await authPlayer(req);
+    const remove = await authPlayer(req, false);
 
     if (!me || !remove)
         throw { error_message: "Player not found" }
@@ -916,7 +947,7 @@ export async function removeFriendFromUser(req: any) {
 export async function requestFriendRequest(req:any) {
     // to and from is confusing for me sorry lol
     const me = await getPlayerByName(req.query.name as string);
-    const want = await authPlayer(req);
+    const want = await authPlayer(req, false);
 
     if (!me || !want)
         throw { error_message: "Player not found" }
@@ -1017,10 +1048,6 @@ export async function deleteUser(id:string):Promise<any> {
         return null;
     }
 
-    const player = await getPlayerByID(id);
-    if (player.isMod)
-        return null;
-
     await setUserBanStatus(id, true);
     
     const user = await prisma.user.delete({
@@ -1048,17 +1075,13 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
         return null;
     }
 
-    const user = await getPlayerByID(id);
-    if (user.isMod)
-        return null;
-
     const player = await prisma.user.update({
         where: {
             id: id
         },
         data: {
             points: 0,
-            isBanned: to,
+            role: to ? 'Banned' : DEFAULT_ROLE,
             bio: {
                 unset: true
             }
@@ -1331,18 +1354,42 @@ export async function perishScores() {
     console.log("deleted ranking shit");
 }
 
-export async function banAgain() {
-    console.log("banning again");
-    for (const user of await prisma.user.findMany({
-        where: {
-            isBanned: true
-        }
-    })) {
-        console.log(user.name + ' has been banned (again)');
-        await setUserBanStatus(user.id, true);
-    }
-    console.log('done banning again');
-}
+// export async function migrateRoles() {
+//     console.log("migrating roles");
+//     for (const user of await prisma.user.findMany({
+//         where: {
+//             OR: [
+//                 {
+//                     isBanned: {
+//                         isSet: true
+//                     }
+//                 },
+//                 {
+//                     isMod: {
+//                         isSet: true
+//                     }
+//                 }
+//             ]
+//         }
+//     })) {
+//         console.log(user.name + ' found');
+//         grantPlayerRole(user.name, user.isBanned ? 'Banned' : user.isMod ? 'Moderator' : DEFAULT_ROLE);
+//         await prisma.user.update({
+//             where: {
+//                 id: user.id,
+//             },
+//             data: {
+//                 isBanned: {
+//                     unset: true
+//                 },
+//                 isMod: {
+//                     unset: true
+//                 },
+//             }
+//         });
+//     }
+//     console.log('done migrating roles');
+// }
 
 export async function getPlayerRank(name: string): Promise<number> {
     try {

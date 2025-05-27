@@ -60,6 +60,7 @@
     "nodemailer": "^6.9.15",
     "path-to-regexp": "^8.2.0",
     "sanitize-html": "^2.13.0",
+    "toml": "^3.0.0",
     "ws": "^8.18.0"
   }
 }
