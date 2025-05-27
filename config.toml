@@ -2,7 +2,7 @@
 
 [[users]]
 name = "Snirozu"
-role = "Helper"
+role = "Admin"
 
 [[roles]]
 # basically a root user
