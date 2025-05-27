@@ -392,7 +392,7 @@ export default config({
                                     }
                                     const scorePlayer = await getPlayerByID(score.player);
                                     response += "<br> " + "<a href='/user/" + scorePlayer.name + "'>" + scorePlayer.name + "'s</a> <a href='/api/score/replay?id=" + score.id + "'>Score"
-                                        + "</a> on <a href='/network/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
+                                        + "</a> on <a href='/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
                                         + (contentLines.length > 0 ? "<br>" + contentLines.join('<br>') : '')
                                         + "<br><br><a href='/admin/remove?report=" + report.id + "&score=" + score.id + "'>(REMOVE SCORE)</a>&nbsp;&nbsp;&nbsp;";
                                 }
