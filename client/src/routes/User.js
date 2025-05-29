@@ -173,7 +173,7 @@ function User() {
     }
 
     return (
-        <div className='Content'>
+        <div className='Content' id='ProfileContent'>
             {loading ? (
                 <p>Loading...</p>
             ) : error ? (

@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkAccess, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages, validateEmail, getPriority, grantPlayerRole } from "./network";
+import { genAccessToken, createUser, submitScore, checkAccess, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages, validateEmail, getPriority, grantPlayerRole, getSong } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -1287,8 +1287,8 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 const player = await getPlayerByName(params[1]);
                 if (!player)
                     break;
-                title = player.name + "'s Profile - Psych Online";
-                description = player.points + "FP";
+                title = player.name + "'s " + getFlagEmoji(player.country) + " - Profile";
+                description = (player.role ?? DEFAULT_ROLE) + " | " + player.points + "FP" + "\nAccuracy: " + (player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0) + '%';
                 if (await hasAvatar(player.id))
                     image = "https://" + req.hostname + "/api/avatar/" + encodeURIComponent(player.name);
                 else 
@@ -1297,7 +1297,11 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 break;
             case "song":
                 const song = params[1].split('-');
-                title = song[0] + " [" + song[1] + "] Leaderboard - Psych Online";
+                title = song[0] + " [" + song[1] + "] Leaderboard";
+                const daSong = await getSong(params[1]);
+                if (daSong) {
+                    description = daSong.maxPoints + "FP\n" + daSong._count.scores + ' Scores | ' + daSong._count.comments + ' Comments';
+                }
                 break;
         }
         response = response.replace('%___OG_TITLE___%', title);
@@ -1310,6 +1314,14 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
         res.sendStatus(404);
     }
 }
+
+function getFlagEmoji(countryCode:string) {
+    const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+}  
 
 /**
  * @returns [playerCount, roomFreeCount, playingCount]
