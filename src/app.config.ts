@@ -1270,6 +1270,8 @@ export default config({
     }
 });
 
+export const moneyFormatter = new Intl.NumberFormat();
+
 async function showIndex(req: { hostname: string; params: string[]; }, res: { send: (arg0: string) => void; sendStatus: (arg0: number) => void; }) {
     try {
         const indexPath = process.cwd() + '/client/build/index.html';
@@ -1287,8 +1289,8 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 const player = await getPlayerByName(params[1]);
                 if (!player)
                     break;
-                title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '') + "- Profile";
-                description = (player.role ?? DEFAULT_ROLE) + " | " + player.points + "FP" + "\nAvg. Accuracy: " + ((player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0) * 100).toFixed(2) + '%';
+                title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '');
+                description = (player.role ?? DEFAULT_ROLE) + " | " + moneyFormatter.format(player.points) + " FP" + "\nAvg. Accuracy: " + ((player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0) * 100).toFixed(2) + '%';
                 if (await hasAvatar(player.id))
                     image = "https://" + req.hostname + "/api/avatar/" + encodeURIComponent(player.name);
                 else 
@@ -1300,7 +1302,7 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 title = song[0] + " [" + song[1] + "] Leaderboard";
                 const daSong = await getSong(params[1]);
                 if (daSong) {
-                    description = daSong.maxPoints + "FP\n" + daSong._count.scores + ' Score(s) | ' + daSong._count.comments + ' Comment(s)';
+                    description = 'FP Record: ' + moneyFormatter.format(daSong.maxPoints) + "\n" + daSong._count.scores + ' Score(s) | ' + daSong._count.comments + ' Comment(s)';
                 }
                 break;
         }
