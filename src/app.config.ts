@@ -1300,7 +1300,7 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 title = song[0] + " [" + song[1] + "] Leaderboard";
                 const daSong = await getSong(params[1]);
                 if (daSong) {
-                    description = daSong.maxPoints + "FP\n" + daSong._count.scores + ' Scores | ' + daSong._count.comments + ' Comments';
+                    description = daSong.maxPoints + "FP\n" + daSong._count.scores + ' Score(s) | ' + daSong._count.comments + ' Comment(s)';
                 }
                 break;
         }
