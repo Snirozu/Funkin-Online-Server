@@ -13,7 +13,7 @@ import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
 import { Data } from "./Data";
-import express from 'express';
+import express, { Request } from 'express';
 import fileUpload, { UploadedFile } from "express-fileupload";
 import { networkRoom, NetworkRoom } from "./rooms/NetworkRoom";
 import nodemailer from 'nodemailer';
@@ -34,6 +34,9 @@ const transMail = nodemailer.createTransport({
 
 const emailCodes: Map<String, String> = new Map<String, String>();
 const emailCodeTimers: Map<String, NodeJS.Timeout> = new Map<String, NodeJS.Timeout>();
+
+const ipAddressRegisterTimes: Map<String, number> = new Map<String, number>;
+const ipAddressRegisterResetTimers: Map<String, NodeJS.Timeout> = new Map<String, NodeJS.Timeout>();
 
 export default config({
 
@@ -976,6 +979,26 @@ export default config({
                         throw { error_message: 'This Email Host is Blocked!' }
                     }
 
+                    const ipAddress = getIPAddress(req);
+
+                    if(!ipAddressRegisterTimes.has(ipAddress)) {
+                        ipAddressRegisterTimes.set(ipAddress, 0);
+
+                        ipAddressRegisterResetTimers.set(ipAddress, setInterval(function() {
+                            ipAddressRegisterTimes.set(ipAddress, 0);
+                        }, 5 * 3600000));
+                    }
+
+                    const currentRegisterTimes = ipAddressRegisterTimes.get(ipAddress) + 1;
+                    ipAddressRegisterTimes.set(ipAddress, currentRegisterTimes);
+
+                    if(currentRegisterTimes >= 7)
+                    {
+                        // log the IP and username so in case of an attack it can get IP banned (when and if the feature exists)
+                        console.log(ipAddress + ' on timeout (Username: ' + req.body.username + ')');
+                        throw { error_message: "You have registered too many times on the same IP! You are currently on timeout." }
+                    }
+
                     const player = await getPlayerByEmail(req.body.email);
 
                     if (req.body.code) {
@@ -1324,6 +1347,15 @@ function getFlagEmoji(countryCode:string) {
         .map(char => 127397 + char.charCodeAt(0));
     return String.fromCodePoint(...codePoints);
 }  
+
+export function getIPAddress(req: Request): String {
+    if (req.headers['x-forwarded-for']) {
+        return (req.headers['x-forwarded-for'] as String).split(",")[0].trim();
+    }
+    else {
+        return req.socket.remoteAddress;
+    }
+}
 
 /**
  * @returns [playerCount, roomFreeCount, playingCount]
