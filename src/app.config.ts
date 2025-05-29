@@ -1287,7 +1287,7 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 const player = await getPlayerByName(params[1]);
                 if (!player)
                     break;
-                title = player.name + "'s " + (player.country ? getFlagEmoji(player.country) + ' ' : '') + "- Profile";
+                title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '') + "- Profile";
                 description = (player.role ?? DEFAULT_ROLE) + " | " + player.points + "FP" + "\nAvg. Accuracy: " + ((player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0) * 100).toFixed(2) + '%';
                 if (await hasAvatar(player.id))
                     image = "https://" + req.hostname + "/api/avatar/" + encodeURIComponent(player.name);
