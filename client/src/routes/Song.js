@@ -183,18 +183,19 @@ function RenderComments(props) {
     var commentsBody = [];
     
     for (const comment of comments) {
+        const isNeg = comment.at < 0;
         const at = Math.abs(Math.floor(comment.at / 1000));
-        let seconds = Math.floor(at / 60);
-        let milis = Math.floor(at % 60) + "";
-        if (milis.length == 1)
-            milis += "0";
+        let minutes = Math.floor(at / 60);
+        let seconds = Math.floor(at % 60) + "";
+        if (seconds.length == 1)
+            seconds = "0" + seconds;
         commentsBody.push(
             <div className="Comment">
                 <AvatarImg className="SmallerAvatar" src={getHost() + "/api/avatar/" + encodeURIComponent(comment.player)}></AvatarImg>
                 <div>
                     <a href={"/user/" + comment.player}>{comment.player}</a> <br></br>
                     <span>{comment.content}</span> <br></br>
-                    <span className="SmallText"> at {seconds}:{milis}</span>
+                    <span className="SmallText"> at {isNeg ? '-' : ''}{minutes}:{seconds}</span>
                 </div>
             </div>
         );

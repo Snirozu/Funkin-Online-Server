@@ -557,9 +557,6 @@ export default config({
                             at: comment.at
                         });
                     }
-                    cmts.sort((a, b) => {
-                        return (a?.at ?? -Infinity) - (b?.at ?? -Infinity);
-                    });
                     res.send(cmts);
                 }
                 catch (exc) {
