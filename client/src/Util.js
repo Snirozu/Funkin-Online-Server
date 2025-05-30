@@ -21,7 +21,7 @@ export function ordinalNum(num) {
 }
 
 export function getHost() {
-    //return "https://funkin.sniro.boo";
+    return "https://funkin.sniro.boo";
     if (window.location.hostname === "localhost") {
         return "http://localhost:2567";
     }
@@ -48,7 +48,7 @@ export function contentProfileColor(hue, fp) {
 	if (hue === undefined || hue === null)
 		hue = 250;
 	if (fp > 500)
-		return 'linear-gradient(hsl(' + hue + ',25%,20%), hsl(' + (hue + 10) + ',25%,10%))';
+		return 'linear-gradient(hsl(' + hue + ',25%,20%), hsl(' + (+hue + 10) + ',25%,10%))';
 	return "hsl(" + hue + ",20%,20%)";
 }
 
