@@ -329,6 +329,7 @@ function UserIconEditor() {
 
     const [zoom, setZoom] = useState(1);
     const [angle, setAngle] = useState(0);
+    const [asPNG, setAsPNG] = useState(false);
 
     let jpegCompression = 0.9; // 90% should be semi-lossless quality, and should save more space
 
@@ -343,7 +344,7 @@ function UserIconEditor() {
                 // document.getElementById('avatarpreview').src = fileURL;
                 // document.getElementById('avatarpreviewsize').textContent = (file.size * 0.001) + 'kB (' + (jpegCompression * 100) + "%)";
             },
-            "image/jpeg",
+            asPNG ? "image/png" : "image/jpeg",
             jpegCompression
         );
     }
@@ -380,7 +381,7 @@ function UserIconEditor() {
                         console.error(exc);
                     });
                 },
-                "image/jpeg",
+                asPNG ? "image/png" : "image/jpeg",
                 jpegCompression
             );
         }
@@ -407,6 +408,10 @@ function UserIconEditor() {
         }
     }
 
+    function onClickTransparent(e) {
+        setAsPNG(!asPNG);
+    }
+
     return (
         <div style={{display: 'inline'}}>
             <AvatarEditor
@@ -427,8 +432,15 @@ function UserIconEditor() {
             Angle:
             <input id="avatarangle" type="range" min="0" max="360" defaultValue={angle} onInput={(e) => setAngle(e.target.value)} />
             <br/>
-            Compression:
-            <input type="range" min="0" max="100" defaultValue={100 - (jpegCompression * 100)} onInput={(e) => jpegCompression = 1 - (e.target.value / 100)} />
+            {!asPNG ? <>
+                Compression:
+                <input type="range" min="0" max="100" defaultValue={100 - (jpegCompression * 100)} onInput={(e) => jpegCompression = 1 - (e.target.value / 100)} />
+                <br />
+            </> : <></>}
+            <br/>
+            Transparent (No Compression):
+            <input id="aspng" type="checkbox" onInput={onClickTransparent} />
+            <br/>
             <br/>
             <center>
                 <button onClick={onClickSave}> Save </button>
