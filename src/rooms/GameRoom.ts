@@ -20,7 +20,7 @@ class ClientInfo {
 }
 
 export class GameRoom extends Room<RoomState> {
-    maxClients = 6;
+    maxClients = 2;
     LOBBY_CHANNEL = "$lobbiesChannel"
     IPS_CHANNEL = "$IPSChannel"
     chartHash: string = null;
