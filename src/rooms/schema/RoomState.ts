@@ -1,4 +1,4 @@
-import { Schema, MapSchema, type } from "@colyseus/schema";
+import { Schema, MapSchema, type, ArraySchema } from "@colyseus/schema";
 import { Player } from "./Player";
 
 export class RoomState extends Schema {
@@ -12,8 +12,7 @@ export class RoomState extends Schema {
   @type("string") modDir: string = "";
   @type("string") modURL: string = "";
   //TODO change to 'players:Array'
-  @type(Player) player1:Player = new Player();
-  @type(Player) player2:Player = new Player();
+  @type([ Player ]) players: ArraySchema<Player>;
   //@type(Player) player3:Player;
   @type("boolean") isPrivate: boolean = true;
   @type("boolean") isStarted: boolean = false;

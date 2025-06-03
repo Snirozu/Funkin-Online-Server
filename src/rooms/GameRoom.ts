@@ -3,7 +3,7 @@ import { RoomState } from "./schema/RoomState";
 import { Player } from "./schema/Player";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
-import { MapSchema } from "@colyseus/schema";
+import { ArraySchema, MapSchema } from "@colyseus/schema";
 import { getPlayerByID, hasAccess } from "../network";
 import jwt from "jsonwebtoken";
 import { filterUsername, formatLog } from "../util";
@@ -22,6 +22,7 @@ export class GameRoom extends Room<RoomState> {
   clientsRemoved: string[] = [];
   clientsPingas: Map<string, number> = new Map<string, number>();
   clientsDinner: Map<string, number> = new Map<string, number>();
+  clientsIndexID: Map<string, number> = new Map<string, number>();
   ownerUUID:string = null;
   lastPingTime:number = null;
   networkOnly:boolean = false;
@@ -66,38 +67,36 @@ export class GameRoom extends Room<RoomState> {
     this.onMessage("startGame", (client, message) => {
       this.keepAliveClient(client);
 
-      if (this.isOwner(client) && this.state.player1.hasSong) {
-        this.state.player1.isReady = !this.state.player1.isReady;
-      }
-      else if (!this.isOwner(client) && this.state.player2.hasSong) {
-        this.state.player2.isReady = !this.state.player2.isReady;
-      }
-      
-      //if (this.clients.length >= 2 && this.hasPerms(client) && this.state.player1.hasSong && this.state.player2.hasSong) {
-      if (this.state.player1.isReady && this.state.player2.isReady && this.state.player1.hasSong && this.state.player2.hasSong) {
-        this.state.isStarted = true;
-        
-        this.state.player1.score = 0;
-        this.state.player1.misses = 0;
-        this.state.player1.sicks = 0;
-        this.state.player1.goods = 0;
-        this.state.player1.bads = 0;
-        this.state.player1.shits = 0;
-        this.state.player1.songPoints = 0;
-        this.state.player1.hasLoaded = false;
-        this.state.player1.hasEnded = false;
-        this.state.player1.isReady = false;
+      const player = this.getStatePlayer(client);
 
-        this.state.player2.score = 0;
-        this.state.player2.misses = 0;
-        this.state.player2.sicks = 0;
-        this.state.player2.goods = 0;
-        this.state.player2.bads = 0;
-        this.state.player2.shits = 0;
-        this.state.player2.songPoints = 0;
-        this.state.player2.hasLoaded = false;
-        this.state.player2.hasEnded = false;
-        this.state.player2.isReady = false;
+      if (player.hasSong) {
+        player.isReady = !player.isReady;
+      }
+
+      let allReady = true;
+      this.forEachPlayerNoNull(player => {
+        if(!player.isReady || !player.hasSong)
+        {
+          allReady = false;
+        }
+      });
+
+      //if (this.clients.length >= 2 && this.hasPerms(client) && this.state.player1.hasSong && this.state.player2.hasSong) {
+      if (allReady) {
+        this.state.isStarted = true;
+
+        this.forEachPlayerNoNull(player => {
+          player.score = 0;
+          player.misses = 0;
+          player.sicks = 0;
+          player.goods = 0;
+          player.bads = 0;
+          player.shits = 0;
+          player.songPoints = 0;
+          player.hasLoaded = false;
+          player.hasEnded = false;
+          player.isReady = false;
+        });
 
         this.state.health = 1;
 
@@ -157,11 +156,16 @@ export class GameRoom extends Room<RoomState> {
         this.state.modURL = message[5];
         this.state.diffList = message[6];
 
-        this.state.player1.isReady = false;
-        this.state.player2.isReady = false;
+        this.forEachPlayerNoNull((player, index) => {
+          player.isReady = false;
 
-        this.state.player1.hasSong = this.isOwner(client);
-        this.state.player2.hasSong = !this.isOwner(client);
+          if(this.clients.indexOf(client) == index) {
+            player.hasSong = this.isOwner(client);
+          }
+          else {
+            player.hasSong = !this.isOwner(client);
+          }
+        });
 
         this.broadcast("checkChart", "", {afterNextPatch: true});
       }
@@ -176,8 +180,9 @@ export class GameRoom extends Room<RoomState> {
         this.state.stageMod = message[1];
         this.state.stageURL = message[2];
 
-        this.state.player1.isReady = false;
-        this.state.player2.isReady = false;
+        this.forEachPlayerNoNull(player => {
+          player.isReady = false;
+        });
 
         this.broadcast("checkStage", "", { afterNextPatch: true });
       }
@@ -187,12 +192,7 @@ export class GameRoom extends Room<RoomState> {
       this.keepAliveClient(client);
 
       if (this.checkInvalid(message, VerifyTypes.STRING)) return;
-      if (!this.isOwner(client)) {
-        this.state.player2.hasSong = this.chartHash == message;
-      }
-      else {
-        this.state.player1.hasSong = this.chartHash == message;
-      }
+      this.getStatePlayer(client).hasSong = this.chartHash == message;
     });
 
     this.onMessage("strumPlay", (client, message) => {
@@ -220,16 +220,18 @@ export class GameRoom extends Room<RoomState> {
     this.onMessage("playerReady", (client, message) => {
       this.keepAliveClient(client);
 
-      if (this.isOwner(client)) {
-        this.state.player1.hasLoaded = true;
-      }
-      else {
-        this.state.player2.hasLoaded = true;
-      }
+      this.getStatePlayer(client).hasLoaded = true;
 
-      if (this.state.player1.hasLoaded && this.state.player2.hasLoaded) {
-        this.state.player1.isReady = false;
-        this.state.player2.isReady = false;
+      let allLoaded = true;
+      this.forEachPlayerNoNull(player => {
+        if(!player.hasLoaded)
+          allLoaded = false;
+      });
+
+      if (allLoaded) {
+        this.forEachPlayerNoNull(player => {
+          player.isReady = false;
+        });
         this.broadcast("startSong", "", { afterNextPatch: true });
       }
     });
@@ -237,14 +239,15 @@ export class GameRoom extends Room<RoomState> {
     this.onMessage("playerEnded", (client, message) => {
       this.keepAliveClient(client);
 
-      if (this.isOwner(client)) {
-        this.state.player1.hasEnded = true;
-      }
-      else {
-        this.state.player2.hasEnded = true;
-      }
+      this.getStatePlayer(client).hasEnded = true;
 
-      if (this.state.player1.hasEnded && this.state.player2.hasEnded) {
+      let allEnded = true;
+      this.forEachPlayerNoNull(player => {
+        if(!player.hasEnded)
+          allEnded = false;
+      });
+
+      if (allEnded) {
         this.endSong();
       }
     });
@@ -311,12 +314,7 @@ export class GameRoom extends Room<RoomState> {
 
       if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
 
-      if (this.isOwner(client)) {
-        this.state.player1.songPoints = message;
-      }
-      else {
-        this.state.player2.songPoints = message;
-      }
+      this.getStatePlayer(client).songPoints = message;
     });
 
     this.onMessage("updateMaxCombo", (client, message) => {
@@ -324,12 +322,7 @@ export class GameRoom extends Room<RoomState> {
 
       if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
 
-      if (this.isOwner(client)) {
-        this.state.player1.maxCombo = message;
-      }
-      else {
-        this.state.player2.maxCombo = message;
-      }
+      this.getStatePlayer(client).maxCombo = message;
     });
 
     this.onMessage("chat", (client, message) => {
@@ -388,12 +381,11 @@ export class GameRoom extends Room<RoomState> {
         this.state.disableSkins = !this.state.disableSkins;
 
         if (this.state.disableSkins) {
-          this.state.player1.skinMod = null;
-          this.state.player1.skinName = null;
-          this.state.player1.skinURL = null;
-          this.state.player2.skinMod = null;
-          this.state.player2.skinName = null;
-          this.state.player2.skinURL = null;
+          this.forEachPlayerNoNull(player => {
+            player.skinMod = null;
+            player.skinName = null;
+            player.skinURL = null;
+          });
         }
         else {
           this.broadcast("requestSkin", null, { afterNextPatch: true });
@@ -423,11 +415,9 @@ export class GameRoom extends Room<RoomState> {
 
       if (this.isOwner(client)) {
         this.metadata.ping = daPing;
-        this.state.player1.ping = daPing;
       }
-      else {
-        this.state.player2.ping = daPing;
-      }
+
+      this.getStatePlayer(client).ping = daPing;
 
       this.clientsPingas.set(client.sessionId, Date.now());
     });
@@ -502,47 +492,35 @@ export class GameRoom extends Room<RoomState> {
       const player = await getPlayerByID(this.clientsID.get(client.sessionId));
       if (!player)
         return;
-      
-      if (this.isOwner(client)) {
-        if (this.state.player1.verified && player) {
-          this.setPlayerPoints(this.state.player1, player.points);
-          this.state.player1.name = player.name;
-        }
-        else
-          this.setPlayerPoints(this.state.player1, message);
 
-        this.metadata.points = this.state.player1.points;
+      const playerSchema = this.getStatePlayer(client);
+      if (!playerSchema)
+        return;
+
+      if(playerSchema.verified) {
+        this.setPlayerPoints(playerSchema, player.points);
+        playerSchema.name = player.name;
       }
-      else {
-        if (this.state.player2.verified) {
-          this.setPlayerPoints(this.state.player2, player.points);
-          this.state.player2.name = player.name;
-        }
-        else
-          this.setPlayerPoints(this.state.player2, message);
+      else
+        this.setPlayerPoints(playerSchema, message);
+
+      
+
+      if (this.isOwner(client)) {
+        this.metadata.points = playerSchema.points;
       }
     });
 
     this.onMessage("status", (client, message) => {
       if (this.checkInvalid(message, VerifyTypes.STRING) || message.length >= 30) return;
 
-      if (this.isOwner(client)) {
-        this.state.player1.status = message;
-      }
-      else {
-        this.state.player2.status = message;
-      }
+      this.getStatePlayer(client).status = message;
     });
 
     this.onMessage("botplay", (client, _) => {
       this.keepAliveClient(client);
 
-      if (this.isOwner(client)) {
-        this.state.player1.botplay = true;
-      }
-      else {
-        this.state.player2.botplay = true;
-      }
+      this.getStatePlayer(client).botplay = true;
     });
 
     this.onMessage("updateArrColors", (client, message) => {
@@ -550,28 +528,17 @@ export class GameRoom extends Room<RoomState> {
 
       if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
 
-      if (this.isOwner(client)) {
-        this.state.player1.arrowColor0 = message[0][0];
-        this.state.player1.arrowColor1 = message[0][1];
-        this.state.player1.arrowColor2 = message[0][2];
-        this.state.player1.arrowColor3 = message[0][3];
+      const player = this.getStatePlayer(client);
 
-        this.state.player1.arrowColorP0 = message[1][0];
-        this.state.player1.arrowColorP1 = message[1][1];
-        this.state.player1.arrowColorP2 = message[1][2];
-        this.state.player1.arrowColorP3 = message[1][3];
-      }
-      else {
-        this.state.player2.arrowColor0 = message[0][0];
-        this.state.player2.arrowColor1 = message[0][1];
-        this.state.player2.arrowColor2 = message[0][2];
-        this.state.player2.arrowColor3 = message[0][3];
+      player.arrowColor0 = message[0][0];
+      player.arrowColor1 = message[0][1];
+      player.arrowColor2 = message[0][2];
+      player.arrowColor3 = message[0][3];
 
-        this.state.player2.arrowColorP0 = message[1][0];
-        this.state.player2.arrowColorP1 = message[1][1];
-        this.state.player2.arrowColorP2 = message[1][2];
-        this.state.player2.arrowColorP3 = message[1][3];
-      }
+      player.arrowColorP0 = message[1][0];
+      player.arrowColorP1 = message[1][1];
+      player.arrowColorP2 = message[1][2];
+      player.arrowColorP3 = message[1][3];
     });
 
     this.onMessage("updateNoteSkinData", (client, message) => {
@@ -579,16 +546,11 @@ export class GameRoom extends Room<RoomState> {
 
       if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
 
-      if (this.isOwner(client)) {
-        this.state.player1.noteSkin = message[0];
-        this.state.player1.noteSkinMod = message[1];
-        this.state.player1.noteSkinURL = message[2];
-      }
-      else {
-        this.state.player2.noteSkin = message[0];
-        this.state.player2.noteSkinMod = message[1];
-        this.state.player2.noteSkinURL = message[2];
-      }
+      const player = this.getStatePlayer(client);
+
+      player.noteSkin = message[0];
+      player.noteSkinMod = message[1];
+      player.noteSkinURL = message[2];
     });
 
     this.onMessage("command", (client, message) => {
@@ -629,6 +591,12 @@ export class GameRoom extends Room<RoomState> {
       
       if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
       this.broadcast("custom", message, { except: client });
+    });
+
+    this.onMessage("queueClientIndexUpdate", (client, message) => {
+      const clientID = this.clients.indexOf(client);
+      client.send("updateClientIndex", clientID);
+      this.clientsIndexID.set(client.sessionId, clientID);
     });
 
     this.clock.setInterval(() => {
@@ -675,10 +643,10 @@ export class GameRoom extends Room<RoomState> {
   }
 
   endSong() {
-    this.state.player1.isReady = false;
-    this.state.player1.botplay = false;
-    this.state.player2.isReady = false;
-    this.state.player2.botplay = false;
+    this.forEachPlayerNoNull(player => {
+      player.isReady = false;
+      player.botplay = false;
+    });
 
     this.state.isStarted = false;
 
@@ -757,72 +725,60 @@ export class GameRoom extends Room<RoomState> {
       return;
     }
 
+    if(this.clients.length > this.maxClients)
+    {
+      client.error(403, "This room is full!");
+      this.removePlayer(client);
+      return;
+    }
+
     if (process.env.DEBUG == "true")
       console.log(client.sessionId + " has joined on " + this.roomId);
 
-    if (this.clients.length == 1) {
+    if(this.state.players === undefined || this.state.players === null) {
+      this.state.players = new ArraySchema<Player>();
+    }
+
+    if(this.clients.length == 1) {
       this.metadata.points = playerPoints;
       this.metadata.verified = isVerified;
-      
-      this.state.player1 = new Player();
-      this.state.player1.name = playerName;
-      if (!this.state.disableSkins) {
-        this.state.player1.skinMod = options.skinMod;
-        this.state.player1.skinName = options.skinName;
-        this.state.player1.skinURL = options.skinURL;
-      }
-      this.setPlayerPoints(this.state.player1, playerPoints);
-      this.state.player1.verified = isVerified;
-
-      this.state.player1.arrowColor0 = options.arrowRGBT[0];
-      this.state.player1.arrowColor1 = options.arrowRGBT[1];
-      this.state.player1.arrowColor2 = options.arrowRGBT[2];
-      this.state.player1.arrowColor3 = options.arrowRGBT[3];
-
-      this.state.player1.arrowColorP0 = options.arrowRGBP[0];
-      this.state.player1.arrowColorP1 = options.arrowRGBP[1];
-      this.state.player1.arrowColorP2 = options.arrowRGBP[2];
-      this.state.player1.arrowColorP3 = options.arrowRGBP[3];
-
-      this.state.player1.noteSkin = options.noteSkin;
-      this.state.player1.noteSkinMod = options.noteSkinMod;
-      this.state.player1.noteSkinURL = options.noteSkinURL;
     }
-    else if (this.clients.length == 2) {
-      this.state.player2 = new Player();
-      if (this.state.player1.name == playerName) {
-        playerName += "(2)";
-      }
-      this.state.player2.name = playerName;
-      if (!this.state.disableSkins) {
-        this.state.player2.skinMod = options.skinMod;
-        this.state.player2.skinName = options.skinName;
-        this.state.player2.skinURL = options.skinURL;
-      }
-      this.setPlayerPoints(this.state.player2, playerPoints);
-      this.state.player2.verified = isVerified;
 
-      this.state.player2.arrowColor0 = options.arrowRGBT[0];
-      this.state.player2.arrowColor1 = options.arrowRGBT[1];
-      this.state.player2.arrowColor2 = options.arrowRGBT[2];
-      this.state.player2.arrowColor3 = options.arrowRGBT[3];
+    let playerSchema: Player = new Player();
+    playerSchema.name = playerName;
 
-      this.state.player2.arrowColorP0 = options.arrowRGBP[0];
-      this.state.player2.arrowColorP1 = options.arrowRGBP[1];
-      this.state.player2.arrowColorP2 = options.arrowRGBP[2];
-      this.state.player2.arrowColorP3 = options.arrowRGBP[3];
+    let nameDuplicates = 0;
+    this.forEachPlayerNoNull((player) => {
+      if(playerName == player.name)
+        nameDuplicates++;
+    });
 
-      this.state.player2.noteSkin = options.noteSkin;
-      this.state.player2.noteSkinMod = options.noteSkinMod;
-      this.state.player2.noteSkinURL = options.noteSkinURL;
+    if(nameDuplicates > 0)
+      playerSchema.name += " (" + nameDuplicates + ")";
+
+    if(!this.state.disableSkins) {
+      playerSchema.skinMod = options.skinMod;
+      playerSchema.skinName = options.skinName;
+      playerSchema.skinURL = options.skinURL;
     }
-    // else if (this.clients.length == 3) {
-    //   this.state.player3 = new Player();
-    //   if (this.state.player2.name == options.name || this.state.player1.name == options.name) {
-    //     options.name += "(2)";
-    //   }
-    //   this.state.player3.name = options.name;
-    // }
+    this.setPlayerPoints(playerSchema, playerPoints);
+    playerSchema.verified = isVerified;
+
+    playerSchema.arrowColor0 = options.arrowRGBT[0];
+    playerSchema.arrowColor1 = options.arrowRGBT[1];
+    playerSchema.arrowColor2 = options.arrowRGBT[2];
+    playerSchema.arrowColor3 = options.arrowRGBT[3];
+
+    playerSchema.arrowColorP0 = options.arrowRGBP[0];
+    playerSchema.arrowColorP1 = options.arrowRGBP[1];
+    playerSchema.arrowColorP2 = options.arrowRGBP[2];
+    playerSchema.arrowColorP3 = options.arrowRGBP[3];
+
+    playerSchema.noteSkin = options.noteSkin;
+    playerSchema.noteSkinMod = options.noteSkinMod;
+    playerSchema.noteSkinURL = options.noteSkinURL;
+
+    this.state.players[this.clients.indexOf(client)] = playerSchema;
 
     this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has joined the room!"), { afterNextPatch: true });
 
@@ -860,9 +816,13 @@ export class GameRoom extends Room<RoomState> {
       this.endSong();
     }
     else {
-      this.state.player1.isReady = false;
-      this.state.player2.isReady = false;
+      this.forEachPlayerNoNull(player => {
+        player.isReady = false;
+      });
     }
+
+    const clientIndex = this.clientsIndexID.get(client.sessionId);
+    console.log(clientIndex);
 
     this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId))) - 1) + ""));
     this.clientsIP.delete(client.sessionId);
@@ -870,6 +830,7 @@ export class GameRoom extends Room<RoomState> {
     this.clientsHue.delete(client.sessionId);
     this.clientsPingas.delete(client.sessionId);
     this.clientsDinner.delete(client.sessionId);
+    this.clientsIndexID.delete(client.sessionId);
 
     this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has left the room!"));
     Data.MAP_USERNAME_PLAYINGROOM.delete(this.getStatePlayer(client).name);
@@ -881,11 +842,17 @@ export class GameRoom extends Room<RoomState> {
     if (this.clients.length < 1 || this.isOwner(client))
         this.destroy();
     else
-        this.state.player2 = new Player();
+        this.state.players.splice(clientIndex, 1);
 
     if (this.clients.length < this.maxClients) {
       this.unlock();
     }
+
+    this.clientsIndexID.clear();
+    this.clients.forEach((client, index) => {
+      client.send("updateClientIndex", index);
+      this.clientsIndexID.set(client.sessionId, index);
+    });
   }
 
   async onDispose() {
@@ -927,7 +894,17 @@ export class GameRoom extends Room<RoomState> {
       //return this.state.player3;
     }
 
-    return (this.isOwner(client) ? this.state.player1 : this.state.player2);
+    const clientIndex = this.clients.indexOf(client);
+    return this.state.players[clientIndex];
+  }
+
+  forEachPlayerNoNull(callbackfn: (value: Player, index: number, array: Player[]) => void) {
+    this.state.players.forEach((value, index, array) => {
+      if(!value)
+        return;
+
+      callbackfn(value, index, array);
+    });
   }
 
   checkInvalid(v:any, type: VerifyTypes, indexes?:number) {
