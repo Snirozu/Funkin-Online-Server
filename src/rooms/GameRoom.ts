@@ -11,61 +11,65 @@ import { Data } from "../Data";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+class ClientInfo {
+    public ip: string;
+    public networkId: string;
+    public hue: number = 250;
+    public lastPing: number;
+    public aliveTime: number;
+    public index: number;
+}
+
 export class GameRoom extends Room<RoomState> {
-  maxClients = 2;
-  LOBBY_CHANNEL = "$lobbiesChannel"
-  IPS_CHANNEL = "$IPSChannel"
-  chartHash:string = null;
-  clientsIP: Map<string, string> = new Map<string, string>(); // nvm don't use Client here, sessionId instead
-  clientsID: Map<string, string> = new Map<string, string>();
-  clientsHue: Map<string, number> = new Map<string, number>();
-  clientsRemoved: string[] = [];
-  clientsPingas: Map<string, number> = new Map<string, number>();
-  clientsDinner: Map<string, number> = new Map<string, number>();
-  clientsIndexID: Map<string, number> = new Map<string, number>();
-  ownerUUID:string = null;
-  lastPingTime:number = null;
-  networkOnly:boolean = false;
+    maxClients = 2;
+    LOBBY_CHANNEL = "$lobbiesChannel"
+    IPS_CHANNEL = "$IPSChannel"
+    chartHash: string = null;
+    clientsInfo: Map<string, ClientInfo> = new Map<string, ClientInfo>();
+    clientsRemoved: string[] = [];
+    ownerUUID: string = null;
+    lastPingTime: number = null;
+    networkOnly: boolean = false;
 
-  keepAliveClient(client: Client) {
-    this.clientsDinner.set(client.sessionId, Date.now());
-  }
-
-  async onCreate (options: any) {
-    this.roomId = await this.generateRoomId();
-    this.setPrivate();
-    this.setState(new RoomState());
-    this.autoDispose = true;
-
-    if (process.env.DEBUG == "true")
-      console.log("new room created: " + this.roomId);
-
-    var daGameplaySettings = options.gameplaySettings;
-    if (daGameplaySettings) {
-      for (const key in daGameplaySettings) {
-        const value = daGameplaySettings[key].toString();
-        if (key == "instakill" || key == "practice" || key == "opponentplay") {
-          continue;
-        }
-        this.state.gameplaySettings.set(key, value);
-      }
+    keepAliveClient(client: Client) {
+        this.clientsInfo.get(client.sessionId).aliveTime = Date.now();
     }
 
-    this.networkOnly = options.networkOnly;
+    async onCreate(options: any) {
+        this.roomId = await this.generateRoomId();
+        this.setPrivate();
+        this.setState(new RoomState());
+        this.autoDispose = true;
 
-    this.setMetadata({ name: options.name, networkOnly: this.networkOnly });
+        if (process.env.DEBUG == "true")
+            console.log("new room created: " + this.roomId);
 
-    this.onMessage("togglePrivate", (client, message) => {
-      this.keepAliveClient(client);
+        var daGameplaySettings = options.gameplaySettings;
+        if (daGameplaySettings) {
+            for (const key in daGameplaySettings) {
+                const value = daGameplaySettings[key].toString();
+                if (key == "instakill" || key == "practice" || key == "opponentplay") {
+                    continue;
+                }
+                this.state.gameplaySettings.set(key, value);
+            }
+        }
 
-      if (this.hasPerms(client)) {
-        this.state.isPrivate = !this.state.isPrivate;
-        this.setPrivate(this.state.isPrivate);
-      }
-    });
+        this.networkOnly = options.networkOnly;
 
-    this.onMessage("startGame", (client, message) => {
-      this.keepAliveClient(client);
+        this.setMetadata({ name: options.name, networkOnly: this.networkOnly });
+
+        this.onMessage("togglePrivate", (client, message) => {
+            this.keepAliveClient(client);
+
+            if (this.hasPerms(client)) {
+                this.state.isPrivate = !this.state.isPrivate;
+                this.setPrivate(this.state.isPrivate);
+            }
+        });
+
+        this.onMessage("startGame", (client, message) => {
+            this.keepAliveClient(client);
 
       const player = this.getStatePlayer(client);
 
@@ -98,63 +102,63 @@ export class GameRoom extends Room<RoomState> {
           player.isReady = false;
         });
 
-        this.state.health = 1;
+                this.state.health = 1;
 
-        this.broadcast("gameStarted", "", { afterNextPatch: true });
-      }
-    });
+                this.broadcast("gameStarted", "", { afterNextPatch: true });
+            }
+        });
 
-    this.onMessage("addScore", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("addScore", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
-      if (this.state.isStarted) {
-        this.getStatePlayer(client).score += message;
-      }
-    });
+            if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
+            if (this.state.isStarted) {
+                this.getStatePlayer(client).score += message;
+            }
+        });
 
-    this.onMessage("addMiss", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("addMiss", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.state.isStarted) {
-        this.getStatePlayer(client).misses += 1;
-      }
-    });
+            if (this.state.isStarted) {
+                this.getStatePlayer(client).misses += 1;
+            }
+        });
 
-    this.onMessage("addHitJudge", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("addHitJudge", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.STRING)) return;
-      if (this.state.isStarted) {
-        switch (message) {
-          case "sick":
-            this.getStatePlayer(client).sicks += 1;
-            break; // java flashbacks
-          case "good":
-            this.getStatePlayer(client).goods += 1;
-            break;
-          case "bad":
-            this.getStatePlayer(client).bads += 1;
-            break;
-          case "shit":
-            this.getStatePlayer(client).shits += 1;
-            break;
-        }
-      }
-    });
+            if (this.checkInvalid(message, VerifyTypes.STRING)) return;
+            if (this.state.isStarted) {
+                switch (message) {
+                    case "sick":
+                        this.getStatePlayer(client).sicks += 1;
+                        break; // java flashbacks
+                    case "good":
+                        this.getStatePlayer(client).goods += 1;
+                        break;
+                    case "bad":
+                        this.getStatePlayer(client).bads += 1;
+                        break;
+                    case "shit":
+                        this.getStatePlayer(client).shits += 1;
+                        break;
+                }
+            }
+        });
 
-    this.onMessage("setFSD", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("setFSD", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 6)) return;
-      if (this.hasPerms(client)) {
-        this.state.folder = message[0];
-        this.state.song = message[1];
-        this.state.diff = message[2];
-        this.chartHash = message[3];
-        this.state.modDir = message[4];
-        this.state.modURL = message[5];
-        this.state.diffList = message[6];
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 6)) return;
+            if (this.hasPerms(client)) {
+                this.state.folder = message[0];
+                this.state.song = message[1];
+                this.state.diff = message[2];
+                this.chartHash = message[3];
+                this.state.modDir = message[4];
+                this.state.modURL = message[5];
+                this.state.diffList = message[6];
 
         this.forEachPlayerNoNull((player, index) => {
           player.isReady = false;
@@ -167,58 +171,58 @@ export class GameRoom extends Room<RoomState> {
           }
         });
 
-        this.broadcast("checkChart", "", {afterNextPatch: true});
-      }
-    });
+                this.broadcast("checkChart", "", { afterNextPatch: true });
+            }
+        });
 
-    this.onMessage("setStage", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("setStage", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
-      if (this.hasPerms(client)) {
-        this.state.stageName = message[0];
-        this.state.stageMod = message[1];
-        this.state.stageURL = message[2];
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
+            if (this.hasPerms(client)) {
+                this.state.stageName = message[0];
+                this.state.stageMod = message[1];
+                this.state.stageURL = message[2];
 
         this.forEachPlayerNoNull(player => {
           player.isReady = false;
         });
 
-        this.broadcast("checkStage", "", { afterNextPatch: true });
-      }
-    });
+                this.broadcast("checkStage", "", { afterNextPatch: true });
+            }
+        });
 
-    this.onMessage("verifyChart", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("verifyChart", (client, message) => {
+            this.keepAliveClient(client);
 
       if (this.checkInvalid(message, VerifyTypes.STRING)) return;
       this.getStatePlayer(client).hasSong = this.chartHash == message;
     });
 
-    this.onMessage("strumPlay", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("strumPlay", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
-      if (this.clients[0] == null || this.clients[1] == null) {
-        return;
-      }
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
+            if (this.clients[0] == null || this.clients[1] == null) {
+                return;
+            }
 
-      this.broadcast("strumPlay", message, { except: client });
-    });
+            this.broadcast("strumPlay", message, { except: client });
+        });
 
-    this.onMessage("charPlay", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("charPlay", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
-      if (this.clients[0] == null || this.clients[1] == null) {
-        return;
-      }
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
+            if (this.clients[0] == null || this.clients[1] == null) {
+                return;
+            }
 
-      this.broadcast("charPlay", message, { except: client });
-    });
+            this.broadcast("charPlay", message, { except: client });
+        });
 
-    this.onMessage("playerReady", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("playerReady", (client, message) => {
+            this.keepAliveClient(client);
 
       this.getStatePlayer(client).hasLoaded = true;
 
@@ -236,8 +240,8 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
-    this.onMessage("playerEnded", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("playerEnded", (client, message) => {
+            this.keepAliveClient(client);
 
       this.getStatePlayer(client).hasEnded = true;
 
@@ -252,133 +256,133 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
-    this.onMessage("noteHit", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("noteHit", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
-      if (this.clients[0] == null || this.clients[1] == null) {
-        return;
-      }
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
+            if (this.clients[0] == null || this.clients[1] == null) {
+                return;
+            }
 
-      this.broadcast("noteHit", message, { except: client });
+            this.broadcast("noteHit", message, { except: client });
 
-      if (this.playerSide(client)) {
-        this.state.health -= 0.023;
-      }
-      else {
-        this.state.health += 0.023;
-      }
-      
-      if (this.state.health > 2)
-        this.state.health = 2;
-      else if (this.state.health < 0)
-        this.state.health = 0;
-    });
+            if (this.playerSide(client)) {
+                this.state.health -= 0.023;
+            }
+            else {
+                this.state.health += 0.023;
+            }
 
-    this.onMessage("noteMiss", (client, message) => {
-      this.keepAliveClient(client);
+            if (this.state.health > 2)
+                this.state.health = 2;
+            else if (this.state.health < 0)
+                this.state.health = 0;
+        });
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
-      if (this.clients[0] == null || this.clients[1] == null) {
-        return;
-      }
+        this.onMessage("noteMiss", (client, message) => {
+            this.keepAliveClient(client);
 
-      this.broadcast("noteMiss", message, { except: client });
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
+            if (this.clients[0] == null || this.clients[1] == null) {
+                return;
+            }
 
-      if (this.playerSide(client)) {
-        this.state.health += 0.0475;
-      }
-      else {
-        this.state.health -= 0.0475;
-      }
+            this.broadcast("noteMiss", message, { except: client });
 
-      if (this.state.health > 2)
-        this.state.health = 2;
-      else if (this.state.health < 0)
-        this.state.health = 0;
-    });
+            if (this.playerSide(client)) {
+                this.state.health += 0.0475;
+            }
+            else {
+                this.state.health -= 0.0475;
+            }
 
-    this.onMessage("noteHold", (client, message) => {
-      this.keepAliveClient(client);
+            if (this.state.health > 2)
+                this.state.health = 2;
+            else if (this.state.health < 0)
+                this.state.health = 0;
+        });
 
-      if (message != true && message != false) return;
-      if (this.clients[0] == null) {
-        return;
-      }
+        this.onMessage("noteHold", (client, message) => {
+            this.keepAliveClient(client);
 
-      this.broadcast("noteHold", message, { except: client });
-    });
+            if (message != true && message != false) return;
+            if (this.clients[0] == null) {
+                return;
+            }
 
-    this.onMessage("updateSongFP", (client, message) => {
-      this.keepAliveClient(client);
+            this.broadcast("noteHold", message, { except: client });
+        });
 
-      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
+        this.onMessage("updateSongFP", (client, message) => {
+            this.keepAliveClient(client);
+
+            if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
 
       this.getStatePlayer(client).songPoints = message;
     });
 
-    this.onMessage("updateMaxCombo", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("updateMaxCombo", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
+            if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
 
       this.getStatePlayer(client).maxCombo = message;
     });
 
-    this.onMessage("chat", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("chat", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
-      if (message.length >= 300) {
-        client.send("log", formatLog("The message is too long!"));
-        return;
-      }
-      if ((message as String).trim() == "") {
-        return;
-      }
-      this.broadcast("log", formatLog(this.getStatePlayer(client).name + ": " + message, this.clientsHue.get(client.sessionId)));
-    });
+            if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
+            if (message.length >= 300) {
+                client.send("log", formatLog("The message is too long!"));
+                return;
+            }
+            if ((message as String).trim() == "") {
+                return;
+            }
+            this.broadcast("log", formatLog(this.getStatePlayer(client).name + ": " + message, this.clientsInfo.get(client.sessionId).hue));
+        });
 
-    this.onMessage("notifyInstall", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("notifyInstall", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
-      if (message.length >= 200) {
-        this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has finished installing the mod!"));
-        return;
-      }
-      this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has finished installing: " + message));
-    });
+            if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
+            if (message.length >= 200) {
+                this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has finished installing the mod!"));
+                return;
+            }
+            this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has finished installing: " + message));
+        });
 
-    this.onMessage("swapSides", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("swapSides", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.hasPerms(client)) {
-        this.state.swagSides = !this.state.swagSides;
-      }
-    });
+            if (this.hasPerms(client)) {
+                this.state.swagSides = !this.state.swagSides;
+            }
+        });
 
-    this.onMessage("anarchyMode", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("anarchyMode", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.hasPerms(client)) {
-        this.state.anarchyMode = !this.state.anarchyMode;
-      }
-    });
+            if (this.hasPerms(client)) {
+                this.state.anarchyMode = !this.state.anarchyMode;
+            }
+        });
 
-    this.onMessage("toggleGF", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("toggleGF", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.hasPerms(client)) {
-        this.state.hideGF = !this.state.hideGF;
-      }
-    });
+            if (this.hasPerms(client)) {
+                this.state.hideGF = !this.state.hideGF;
+            }
+        });
 
-    this.onMessage("toggleSkins", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("toggleSkins", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.hasPerms(client)) {
-        this.state.disableSkins = !this.state.disableSkins;
+            if (this.hasPerms(client)) {
+                this.state.disableSkins = !this.state.disableSkins;
 
         if (this.state.disableSkins) {
           this.forEachPlayerNoNull(player => {
@@ -393,25 +397,25 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
-    this.onMessage("nextWinCondition", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("nextWinCondition", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.hasPerms(client)) {
-        // 0 - accuracy
-        // 1 - score
-        // 2 - misses
-        // 3 - points
-        // 4 - (max) combo
-        let newCond = this.state.winCondition + 1;
-        if (newCond > 4) {
-          newCond = 0;
-        }
-        this.state.winCondition = Math.max(0, newCond);
-      }
-    });
+            if (this.hasPerms(client)) {
+                // 0 - accuracy
+                // 1 - score
+                // 2 - misses
+                // 3 - points
+                // 4 - (max) combo
+                let newCond = this.state.winCondition + 1;
+                if (newCond > 4) {
+                    newCond = 0;
+                }
+                this.state.winCondition = Math.max(0, newCond);
+            }
+        });
 
-    this.onMessage("pong", (client, message:number) => {
-      const daPing = Date.now() - this.lastPingTime;
+        this.onMessage("pong", (client, message: number) => {
+            const daPing = Date.now() - this.lastPingTime;
 
       if (this.isOwner(client)) {
         this.metadata.ping = daPing;
@@ -419,77 +423,77 @@ export class GameRoom extends Room<RoomState> {
 
       this.getStatePlayer(client).ping = daPing;
 
-      this.clientsPingas.set(client.sessionId, Date.now());
-    });
+            this.clientsInfo.get(client.sessionId).lastPing = Date.now();
+        });
 
-    this.onMessage("requestEndSong", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("requestEndSong", (client, message) => {
+            this.keepAliveClient(client);
 
-      //if (this.hasPerms(client)) {
-      this.endSong();
-      // }
-      // else {
-      //   this.broadcast("log", this.getStatePlayer(client).name + " wants to end the song! (ESC)");
-      // }
-    });
+            //if (this.hasPerms(client)) {
+            this.endSong();
+            // }
+            // else {
+            //   this.broadcast("log", this.getStatePlayer(client).name + " wants to end the song! (ESC)");
+            // }
+        });
 
-    this.onMessage("setGameplaySetting", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("setGameplaySetting", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
-      if (this.hasPerms(client)) {
-        if (message[0] == "instakill" || message[0] == "practice" || message[0] == "opponentplay") {
-          return;
-        }
-        this.state.gameplaySettings.set(message[0], message[1].toString());
-      }
-    });
-
-    this.onMessage("toggleLocalModifiers", (client, message) => {
-      this.keepAliveClient(client);
-
-      if (this.hasPerms(client)) {
-        this.state.permitModifiers = !this.state.permitModifiers;
-        if (this.state.permitModifiers) {
-          this.state.gameplaySettings = new MapSchema<any, any>();
-        }
-        else if (!this.checkInvalid(message, VerifyTypes.ARRAY, 0)) {
-          for (const key in message[0]) {
-            const value = message[0][key].toString();
-            if (key == "instakill" || key == "practice" || key == "opponentplay") {
-              continue;
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
+            if (this.hasPerms(client)) {
+                if (message[0] == "instakill" || message[0] == "practice" || message[0] == "opponentplay") {
+                    return;
+                }
+                this.state.gameplaySettings.set(message[0], message[1].toString());
             }
-            this.state.gameplaySettings.set(key, value);
-          }
-        }
-      }
-    });
+        });
 
-    this.onMessage("setSkin", (client, message) => {
-      if (this.state.disableSkins) {
-        return;
-      }
+        this.onMessage("toggleLocalModifiers", (client, message) => {
+            this.keepAliveClient(client);
 
-      this.keepAliveClient(client);
+            if (this.hasPerms(client)) {
+                this.state.permitModifiers = !this.state.permitModifiers;
+                if (this.state.permitModifiers) {
+                    this.state.gameplaySettings = new MapSchema<any, any>();
+                }
+                else if (!this.checkInvalid(message, VerifyTypes.ARRAY, 0)) {
+                    for (const key in message[0]) {
+                        const value = message[0][key].toString();
+                        if (key == "instakill" || key == "practice" || key == "opponentplay") {
+                            continue;
+                        }
+                        this.state.gameplaySettings.set(key, value);
+                    }
+                }
+            }
+        });
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) {
-        this.getStatePlayer(client).skinMod = null;
-        this.getStatePlayer(client).skinName = null;
-        this.getStatePlayer(client).skinURL = null;
-        return;
-      }
+        this.onMessage("setSkin", (client, message) => {
+            if (this.state.disableSkins) {
+                return;
+            }
 
-      this.getStatePlayer(client).skinMod = message[0];
-      this.getStatePlayer(client).skinName = message[1];
-      this.getStatePlayer(client).skinURL = message[2];
-    });
+            this.keepAliveClient(client);
 
-    this.onMessage("updateFP", async (client, message) => {
-      this.keepAliveClient(client);
-      
-      if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) {
+                this.getStatePlayer(client).skinMod = null;
+                this.getStatePlayer(client).skinName = null;
+                this.getStatePlayer(client).skinURL = null;
+                return;
+            }
 
-      const player = await getPlayerByID(this.clientsID.get(client.sessionId));
+            this.getStatePlayer(client).skinMod = message[0];
+            this.getStatePlayer(client).skinName = message[1];
+            this.getStatePlayer(client).skinURL = message[2];
+        });
+
+        this.onMessage("updateFP", async (client, message) => {
+            this.keepAliveClient(client);
+
+            if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
+
+      const player = await getPlayerByID(this.clientsInfo.get(client.sessionId).networkId);
       if (!player)
         return;
 
@@ -511,22 +515,22 @@ export class GameRoom extends Room<RoomState> {
       }
     });
 
-    this.onMessage("status", (client, message) => {
-      if (this.checkInvalid(message, VerifyTypes.STRING) || message.length >= 30) return;
+        this.onMessage("status", (client, message) => {
+            if (this.checkInvalid(message, VerifyTypes.STRING) || message.length >= 30) return;
 
       this.getStatePlayer(client).status = message;
     });
 
-    this.onMessage("botplay", (client, _) => {
-      this.keepAliveClient(client);
+        this.onMessage("botplay", (client, _) => {
+            this.keepAliveClient(client);
 
       this.getStatePlayer(client).botplay = true;
     });
 
-    this.onMessage("updateArrColors", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("updateArrColors", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
 
       const player = this.getStatePlayer(client);
 
@@ -541,10 +545,10 @@ export class GameRoom extends Room<RoomState> {
       player.arrowColorP3 = message[1][3];
     });
 
-    this.onMessage("updateNoteSkinData", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("updateNoteSkinData", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
 
       const player = this.getStatePlayer(client);
 
@@ -553,38 +557,38 @@ export class GameRoom extends Room<RoomState> {
       player.noteSkinURL = message[2];
     });
 
-    this.onMessage("command", (client, message) => {
-      this.keepAliveClient(client);
+        this.onMessage("command", (client, message) => {
+            this.keepAliveClient(client);
 
-      if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
 
-      switch (message[0]) {
-        case "roll":
-          this.broadcast("log", formatLog("> " + this.getStatePlayer(client).name + " has rolled " + Math.floor(Math.random() * (6 - 1 + 1) + 1)));
-          break;
-        case "kick":
-          if (!this.isOwner(client)) {
-            client.send("log", formatLog("> Just leave the game bro"));
-            return;
-          }
+            switch (message[0]) {
+                case "roll":
+                    this.broadcast("log", formatLog("> " + this.getStatePlayer(client).name + " has rolled " + Math.floor(Math.random() * (6 - 1 + 1) + 1)));
+                    break;
+                case "kick":
+                    if (!this.isOwner(client)) {
+                        client.send("log", formatLog("> Just leave the game bro"));
+                        return;
+                    }
 
-          let kickCount = 0;
-          for (const cl of this.clients) {
-            if (!this.isOwner(cl) && (message[1] ? this.getStatePlayer(cl).name == message[1] : true)) {
-              this.removePlayer(cl);
-              kickCount++;
+                    let kickCount = 0;
+                    for (const cl of this.clients) {
+                        if (!this.isOwner(cl) && (message[1] ? this.getStatePlayer(cl).name == message[1] : true)) {
+                            this.removePlayer(cl);
+                            kickCount++;
+                        }
+                    }
+                    client.send("log", formatLog("> Kicked " + kickCount + " player(s)"));
+                    break;
+                case "help":
+                    client.send("log", formatLog("> Global Commands: /roll, /kick"));
+                    break;
+                default:
+                    client.send("log", formatLog("> Unknown command; try /help to see the command list!"));
+                    break;
             }
-          }
-          client.send("log", formatLog("> Kicked " + kickCount + " player(s)"));
-          break;
-        case "help":
-          client.send("log", formatLog("> Global Commands: /roll, /kick"));
-          break;
-        default:
-          client.send("log", formatLog("> Unknown command; try /help to see the command list!"));
-          break;
-      }
-    });
+        });
 
     this.onMessage("custom", (client, message) => {
       this.keepAliveClient(client);
@@ -594,53 +598,42 @@ export class GameRoom extends Room<RoomState> {
     });
 
     this.onMessage("queueClientIndexUpdate", (client, message) => {
-      const clientID = this.clients.indexOf(client);
-      client.send("updateClientIndex", clientID);
-      this.clientsIndexID.set(client.sessionId, clientID);
+      const clientIndex = this.clients.indexOf(client);
+      client.send("updateClientIndex", clientIndex);
+      this.clientsInfo.get(client.sessionId).index = clientIndex;
     });
 
-    this.clock.setInterval(() => {
-      this.lastPingTime = Date.now();
-      this.broadcast("ping");
-    }, 1000 * 3); //every 3 seconds
+        this.clock.setInterval(() => {
+            this.lastPingTime = Date.now();
+            this.broadcast("ping");
+        }, 1000 * 3); //every 3 seconds
 
-    this.clock.setInterval(() => {
-      if (this.clients.length < 1 || !this.metadata.ping) {
-        this.destroy();
-      }
-      
-      for (const client of this.clients) {
-        if (!this.clientsPingas.has(client.sessionId)) {
-          this.clientsPingas.set(client.sessionId, Date.now());
-        }
-        if (!this.clientsDinner.has(client.sessionId)) {
-          this.keepAliveClient(client);
-        }
-      }
+        this.clock.setInterval(() => {
+            if (this.clients.length < 1 || !this.metadata.ping) {
+                this.destroy();
+            }
 
-      this.clientsPingas.forEach((pingas, clientSusID) => {
-        if (Date.now() - pingas > 1000 * 60) { // if the player wasnt responding for 60 seconds
-          if (process.env.DEBUG == "true")
-            console.log(clientSusID + " wasn't pinging on " + this.roomId + "! kicking... ");
+            for (const [clientSusID, info] of this.clientsInfo) {
+                if (Date.now() - info.lastPing > 1000 * 60) { // if the player wasnt responding for 60 seconds
+                    if (process.env.DEBUG == "true")
+                        console.log(clientSusID + " wasn't pinging on " + this.roomId + "! kicking... ");
 
-          const kiclient = this.clients.getById(clientSusID);
-          if (kiclient)
-            this.removePlayer(kiclient);
-        }
-      });
+                    const kiclient = this.clients.getById(clientSusID);
+                    if (kiclient)
+                        this.removePlayer(kiclient);
+                }
 
-      this.clientsDinner.forEach((pingas, clientSusID) => {
-        if (Date.now() - pingas > 1000 * 60 * 20) { // if the player wasnt active for 20 minutes
-          if (process.env.DEBUG == "true")
-            console.log(clientSusID + " wasn't active on " + this.roomId + "! kicking... ");
+                if (Date.now() - info.aliveTime > 1000 * 60 * 20) { // if the player wasnt active for 20 minutes
+                    if (process.env.DEBUG == "true")
+                        console.log(clientSusID + " wasn't active on " + this.roomId + "! kicking... ");
 
-          const kiclient = this.clients.getById(clientSusID);
-          if (kiclient)
-            this.removePlayer(kiclient);
-        }
-      });
-    }, 1000 * 60); //every minute
-  }
+                    const kiclient = this.clients.getById(clientSusID);
+                    if (kiclient)
+                        this.removePlayer(kiclient);
+                }
+            }
+        }, 1000 * 60); //every minute
+    }
 
   endSong() {
     this.forEachPlayerNoNull(player => {
@@ -648,76 +641,77 @@ export class GameRoom extends Room<RoomState> {
       player.botplay = false;
     });
 
-    this.state.isStarted = false;
+        this.state.isStarted = false;
 
-    this.broadcast("endSong", "", { afterNextPatch: true });
-  }
-
-  //why does this function exist
-  async onAuth(client: Client, options: any, request: IncomingMessage) {
-    const latestVersion = Data.PROTOCOL_VERSION;
-    if (options == null || options.name == null || (options.name + "").trim().length < 3) {
-      throw new ServerError(5000, "Too short name!"); // too short name error
-    }
-    else if (filterUsername(options.name) != options.name) {
-      throw new ServerError(5004, "Username contains invalid characters!");
-    }
-    else if (latestVersion != options.protocol) {
-      throw new ServerError(5003, "This client version is not supported on this server!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
-    }
-    else if (options.name.length > 14) {
-      throw new ServerError(5001, "Too long name!");
-    }
-    
-    if (!await this.isClientAllowed(client, request)) {
-      throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
+        this.broadcast("endSong", "", { afterNextPatch: true });
     }
 
-    const playerIp = this.getRequestIP(request);
-    const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
-    if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
-      if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
-        Data.COUNTRY_PLAYERS[ipInfo.country] = [];
-
-      if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
-        Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
-    }
-
-    return true;
-  }
-
-  async onJoin (client: Client, options: any) {
-    if (!this.ownerUUID)
-      this.ownerUUID = client.sessionId;
-    this.clientsPingas.set(client.sessionId, Date.now());
-    this.keepAliveClient(client);
-
-    let playerName = options.name;
-    let playerPoints = options.points;
-    let isVerified = false;
-    const player = await getPlayerByID(options.networkId);
-    if (options.networkId && options.networkToken && player) {
-      if (!hasAccess(player, 'room.auth')) {
-        client.error(418, "get fucked lmao");
-        this.removePlayer(client);
-        return;
-      }
-
-      jwt.verify(options.networkToken, player.secret as string, (err: any, user: any) => {
-        if (err) {
-          client.error(401, "Couldn't authorize to the network!");
-          this.removePlayer(client);
-          return;
+    //why does this function exist
+    async onAuth(client: Client, options: any, request: IncomingMessage) {
+        const latestVersion = Data.PROTOCOL_VERSION;
+        if (options == null || options.name == null || (options.name + "").trim().length < 3) {
+            throw new ServerError(5000, "Too short name!"); // too short name error
+        }
+        else if (filterUsername(options.name) != options.name) {
+            throw new ServerError(5004, "Username contains invalid characters!");
+        }
+        else if (latestVersion != options.protocol) {
+            throw new ServerError(5003, "This client version is not supported on this server!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
+        }
+        else if (options.name.length > 14) {
+            throw new ServerError(5001, "Too long name!");
         }
 
-        isVerified = true;
-        this.clientsID.set(client.sessionId, options.networkId);
-        this.clientsHue.set(client.sessionId, player.profileHue ?? 250);
-        Data.MAP_USERNAME_PLAYINGROOM.set(player.name, this);
-        playerName = player.name;
-        playerPoints = player.points;
-      })
+        if (!await this.isClientAllowed(client, request)) {
+            throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
+        }
+
+        const playerIp = this.getRequestIP(request);
+        const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
+        if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
+            if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
+                Data.COUNTRY_PLAYERS[ipInfo.country] = [];
+
+            if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
+                Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
+        }
+
+        return true;
     }
+
+    async onJoin(client: Client, options: any) {
+        if (!this.ownerUUID)
+            this.ownerUUID = client.sessionId;
+
+        this.clientsInfo.get(client.sessionId).lastPing = Date.now();
+        this.keepAliveClient(client);
+
+        let playerName = options.name;
+        let playerPoints = options.points;
+        let isVerified = false;
+        const player = await getPlayerByID(options.networkId);
+        if (options.networkId && options.networkToken && player) {
+            if (!hasAccess(player, 'room.auth')) {
+                client.error(418, "get fucked lmao");
+                this.removePlayer(client);
+                return;
+            }
+
+            jwt.verify(options.networkToken, player.secret as string, (err: any, user: any) => {
+                if (err) {
+                    client.error(401, "Couldn't authorize to the network!");
+                    this.removePlayer(client);
+                    return;
+                }
+
+                isVerified = true;
+                this.clientsInfo.get(client.sessionId).networkId = options.networkId;
+                this.clientsInfo.get(client.sessionId).hue = player.profileHue ?? 250;
+                Data.MAP_USERNAME_PLAYINGROOM.set(player.name, this);
+                playerName = player.name;
+                playerPoints = player.points;
+            })
+        }
 
     if (!isVerified && this.networkOnly) {
       client.error(400, "Only Registered Network players can join!");
@@ -732,8 +726,8 @@ export class GameRoom extends Room<RoomState> {
       return;
     }
 
-    if (process.env.DEBUG == "true")
-      console.log(client.sessionId + " has joined on " + this.roomId);
+        if (process.env.DEBUG == "true")
+            console.log(client.sessionId + " has joined on " + this.roomId);
 
     if(this.state.players === undefined || this.state.players === null) {
       this.state.players = new ArraySchema<Player>();
@@ -780,64 +774,57 @@ export class GameRoom extends Room<RoomState> {
 
     this.state.players[this.clients.indexOf(client)] = playerSchema;
 
-    this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has joined the room!"), { afterNextPatch: true });
+        this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has joined the room!"), { afterNextPatch: true });
 
-    client.send("checkChart", "", { afterNextPatch: true });
-
-    this.clock.setTimeout(() => {
-      if (client != null)
         client.send("checkChart", "", { afterNextPatch: true });
-    }, 1000);
-  }
 
-  async onLeave (client: Client, consented: boolean) {
-    if (process.env.DEBUG == "true")
-      console.log(client.sessionId + " has left " + this.roomId + " " + (consented ? 'with consent' : 'without consent'));
-
-    try {
-      if (process.env.DEBUG == "true")
-        console.log(client.sessionId + " is " + (!consented && !this.clientsRemoved.includes(client.sessionId) ? 'allowed ' : 'not allowed') + " to reconnect with token " + client._reconnectionToken + " " + this.roomId);
-
-      await this.allowReconnection(client, !consented && !this.clientsRemoved.includes(client.sessionId) ? 20 : 0);
-      if (process.env.DEBUG == "true")
-        console.log(client.sessionId + " has reconnected on " + this.roomId);
-    }
-    catch (err) {
-      if (process.env.DEBUG == "true")
-        console.log(client.sessionId + " has failed to reconnect on " + this.roomId);
-
-      this.removePlayer(client);
-      delete this.clientsRemoved[this.clientsRemoved.indexOf(client.sessionId)];
-    }
-  }
-
-  async removePlayer(client:Client) {
-    if (this.state.isStarted) {
-      this.endSong();
-    }
-    else {
-      this.forEachPlayerNoNull(player => {
-        player.isReady = false;
-      });
+        this.clock.setTimeout(() => {
+            if (client != null)
+                client.send("checkChart", "", { afterNextPatch: true });
+        }, 1000);
     }
 
-    const clientIndex = this.clientsIndexID.get(client.sessionId);
-    console.log(clientIndex);
+    async onLeave(client: Client, consented: boolean) {
+        if (process.env.DEBUG == "true")
+            console.log(client.sessionId + " has left " + this.roomId + " " + (consented ? 'with consent' : 'without consent'));
 
-    this.presence.hset(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId), ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsIP.get(client.sessionId))) - 1) + ""));
-    this.clientsIP.delete(client.sessionId);
-    this.clientsID.delete(client.sessionId);
-    this.clientsHue.delete(client.sessionId);
-    this.clientsPingas.delete(client.sessionId);
-    this.clientsDinner.delete(client.sessionId);
-    this.clientsIndexID.delete(client.sessionId);
+        try {
+            if (process.env.DEBUG == "true")
+                console.log(client.sessionId + " is " + (!consented && !this.clientsRemoved.includes(client.sessionId) ? 'allowed ' : 'not allowed') + " to reconnect with token " + client._reconnectionToken + " " + this.roomId);
 
-    this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has left the room!"));
-    Data.MAP_USERNAME_PLAYINGROOM.delete(this.getStatePlayer(client).name);
+            await this.allowReconnection(client, !consented && !this.clientsRemoved.includes(client.sessionId) ? 20 : 0);
+            if (process.env.DEBUG == "true")
+                console.log(client.sessionId + " has reconnected on " + this.roomId);
+        }
+        catch (err) {
+            if (process.env.DEBUG == "true")
+                console.log(client.sessionId + " has failed to reconnect on " + this.roomId);
 
-    this.clientsRemoved.push(client.sessionId);
-    this.clients.delete(client);
-    client.leave();
+            this.removePlayer(client);
+            delete this.clientsRemoved[this.clientsRemoved.indexOf(client.sessionId)];
+        }
+    }
+
+    async removePlayer(client: Client) {
+        if (this.state.isStarted) {
+            this.endSong();
+        }
+        else {
+          this.forEachPlayerNoNull(player => {
+            player.isReady = false;
+          });
+        }
+
+        const clientIndex = this.clientsInfo.get(client.sessionId).index;
+
+        this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has left the room!"));
+
+        Data.MAP_USERNAME_PLAYINGROOM.delete(this.getStatePlayer(client).name);
+        this.presence.hset(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip)) - 1) + ""));
+        this.clientsInfo.delete(client.sessionId);
+        this.clientsRemoved.push(client.sessionId);
+        this.clients.delete(client);
+        client.leave();
 
     if (this.clients.length < 1 || this.isOwner(client))
         this.destroy();
@@ -848,51 +835,55 @@ export class GameRoom extends Room<RoomState> {
       this.unlock();
     }
 
-    this.clientsIndexID.clear();
     this.clients.forEach((client, index) => {
       client.send("updateClientIndex", index);
-      this.clientsIndexID.set(client.sessionId, index);
+      this.clientsInfo.get(client.sessionId).index = index;
     });
   }
 
-  async onDispose() {
-    if (process.env.DEBUG == "true")
-      console.log("room has been disposed: " + this.roomId);
+    async onDispose() {
+        if (process.env.DEBUG == "true")
+            console.log("room has been disposed: " + this.roomId);
 
-    this.destroy(true);
-    this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
-  }
-
-  destroy(ing?:boolean) {
-    for (const client of this.clients) {
-      this.removePlayer(client);
+        for (const [username, room] of Data.MAP_USERNAME_PLAYINGROOM) {
+            if (room == this) {
+                Data.MAP_USERNAME_PLAYINGROOM.delete(username);
+            }
+        }
+        this.destroy(true);
+        this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
     }
-    if (!ing) {
-      this.disconnect();
+
+    destroy(ing?: boolean) {
+        for (const client of this.clients) {
+            this.removePlayer(client);
+        }
+        if (!ing) {
+            this.disconnect();
+        }
     }
-  }
 
-  hasPerms(client: Client) {
-    return this.isOwner(client) || this.state.anarchyMode;
-  }
-
-  isOwner(client: Client) {
-    return client.sessionId == this.ownerUUID;
-  }
-
-  playerSide(client: Client) {
-    return this.state.swagSides ? !this.isOwner(client) : this.isOwner(client);
-  }
-
-  isGf(client:Client) {
-    return this.clients.indexOf(client) == 2;
-  }
-
-  getStatePlayer(client:Client):Player {
-    if (this.isGf(client)) {
-      return null;
-      //return this.state.player3;
+    hasPerms(client: Client) {
+        return this.isOwner(client) || this.state.anarchyMode;
     }
+
+    isOwner(client: Client) {
+        return client.sessionId == this.ownerUUID;
+    }
+
+    playerSide(client: Client) {
+        return this.state.swagSides ? !this.isOwner(client) : this.isOwner(client);
+    }
+
+    isGf(client: Client) {
+        return this.clients.indexOf(client) == 2;
+    }
+
+    getStatePlayer(client: Client): Player {
+        if (this.isGf(client)) {
+            return null;
+            //return this.state.player3;
+        }
 
     const clientIndex = this.clients.indexOf(client);
     return this.state.players[clientIndex];
@@ -907,77 +898,78 @@ export class GameRoom extends Room<RoomState> {
     });
   }
 
-  checkInvalid(v:any, type: VerifyTypes, indexes?:number) {
-    if (v == null) return true;
-    switch (type) {
-      case VerifyTypes.NUMBER:
-        return !Number.isFinite(v);
-      case VerifyTypes.STRING:
-        return typeof v !== 'string';
-      case VerifyTypes.ARRAY:
-        if (!indexes) indexes = 0;
-        return !Array.isArray(v) || v.length < indexes + 1;
-    }
-    return false;
-  }
-
-  // Generate a single 4 capital letter room ID.
-  generateRoomIdSingle(): string {
-    let result = '';
-    for (var i = 0; i < 4; i++) {
-      result += LETTERS.charAt(Math.floor(Math.random() * LETTERS.length));
-    }
-    return result;
-  }
-
-  setPlayerPoints(player:any, v: number): void {
-    if (this.checkInvalid(v, VerifyTypes.NUMBER)) return;
-    player.points = v;
-  }
-
-  // 1. Get room IDs already registered with the Presence API.
-  // 2. Generate room IDs until you generate one that is not already used.
-  // 3. Register the new room ID with the Presence API.
-  async generateRoomId(): Promise<string> {
-    const currentIds = await this.presence.smembers(this.LOBBY_CHANNEL);
-    let id;
-    do {
-      id = this.generateRoomIdSingle();
-    } while (currentIds.includes(id));
-
-    await this.presence.sadd(this.LOBBY_CHANNEL, id);
-    return id;
-  }
-
-  async isClientAllowed(client: Client, request: IncomingMessage): Promise<Boolean> {
-    if (process.env.DISABLE_IP_LOCK == "true") {
-      return true;
+    checkInvalid(v: any, type: VerifyTypes, indexes?: number) {
+        if (v == null) return true;
+        switch (type) {
+            case VerifyTypes.NUMBER:
+                return !Number.isFinite(v);
+            case VerifyTypes.STRING:
+                return typeof v !== 'string';
+            case VerifyTypes.ARRAY:
+                if (!indexes) indexes = 0;
+                return !Array.isArray(v) || v.length < indexes + 1;
+        }
+        return false;
     }
 
-    var requesterIP = this.getRequestIP(request);
+    // Generate a single 4 capital letter room ID.
+    generateRoomIdSingle(): string {
+        let result = '';
+        for (var i = 0; i < 4; i++) {
+            result += LETTERS.charAt(Math.floor(Math.random() * LETTERS.length));
+        }
+        return result;
+    }
 
-    const currentIps = await this.presence.hget(this.IPS_CHANNEL, requesterIP);
-    var ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);
-    if (ipOccurs < 4) {
-      await this.presence.hset(this.IPS_CHANNEL, requesterIP, (ipOccurs + 1) + "");
-      this.clientsIP.set(client.sessionId, requesterIP);
-      return true;
+    setPlayerPoints(player: any, v: number): void {
+        if (this.checkInvalid(v, VerifyTypes.NUMBER)) return;
+        player.points = v;
     }
-    return false;
-  }
 
-  getRequestIP(req: IncomingMessage) {
-    if (req.headers['x-forwarded-for']) {
-      return (req.headers['x-forwarded-for'] as String).split(",")[0].trim();
+    // 1. Get room IDs already registered with the Presence API.
+    // 2. Generate room IDs until you generate one that is not already used.
+    // 3. Register the new room ID with the Presence API.
+    async generateRoomId(): Promise<string> {
+        const currentIds = await this.presence.smembers(this.LOBBY_CHANNEL);
+        let id;
+        do {
+            id = this.generateRoomIdSingle();
+        } while (currentIds.includes(id));
+
+        await this.presence.sadd(this.LOBBY_CHANNEL, id);
+        return id;
     }
-    else {
-      return req.socket.remoteAddress;
+
+    async isClientAllowed(client: Client, request: IncomingMessage): Promise<Boolean> {
+        if (process.env.DISABLE_IP_LOCK == "true") {
+            return true;
+        }
+
+        var requesterIP = this.getRequestIP(request);
+
+        const currentIps = await this.presence.hget(this.IPS_CHANNEL, requesterIP);
+        var ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);
+        if (ipOccurs < 4) {
+            await this.presence.hset(this.IPS_CHANNEL, requesterIP, (ipOccurs + 1) + "");
+            this.clientsInfo.set(client.sessionId, new ClientInfo());
+            this.clientsInfo.get(client.sessionId).ip = requesterIP;
+            return true;
+        }
+        return false;
     }
-  }
+
+    getRequestIP(req: IncomingMessage) {
+        if (req.headers['x-forwarded-for']) {
+            return (req.headers['x-forwarded-for'] as String).split(",")[0].trim();
+        }
+        else {
+            return req.socket.remoteAddress;
+        }
+    }
 }
 
 enum VerifyTypes {
-  NUMBER,
-  STRING,
-  ARRAY,
+    NUMBER,
+    STRING,
+    ARRAY,
 }

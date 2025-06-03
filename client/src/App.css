@@ -9,10 +9,14 @@
   --text-profile-color: #ff7d7d;
   --row-profile-color: #362d3b;
   --row-profile-color-two: rgb(46, 40, 51);
+
+  --profile-sidebar-width: 150px;
+  --content-width: 800px;
 }
 
 p, h1, h2, h3, h4, h5, h6, span, a {
   font-family: 'PhantomMuff';
+  overflow-wrap: anywhere;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -80,15 +84,17 @@ a:hover {
 
 .Bar {
   background-color: #31353d;
-  height: 50px;
   width: 100%;
   display: flex;
   font-size: 30px;
   align-items: center;
-  overflow: hidden;
+  overflow: auto;
   padding-top: 5px;
   padding-bottom: 5px;
-  overflow: auto;
+}
+
+.Bar > * {
+  overflow-wrap: normal;
 }
 
 .Bar a {
@@ -102,27 +108,31 @@ a:hover {
 .Bar .BarProfile {
   margin-left: auto;
   margin-right: 20px;
-  max-height: 50px;
+  max-height: 40px;
   display: flex;
   align-items: center;
   background: var(--head-profile-color);
 }
 
 .BarProfileText {
+  white-space: pre;
   padding: 10px;
   font-size: 15px;
-  font-weight: bold;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
 }
 
-.Avatar {
-  width: 140px;
-  max-width: 140px;
+.BarProfileText * {
+  min-width: 100%;
+}
 
-  height: 140px;
-  max-height: 140px;
+.Avatar {
+  width: calc(var(--profile-sidebar-width) - 10px);
+  max-width: calc(var(--profile-sidebar-width) - 10px);
+
+  height: calc(var(--profile-sidebar-width) - 10px);
+  max-height: calc(var(--profile-sidebar-width) - 10px);
 
   border-radius: 20%;
 }
@@ -164,11 +174,11 @@ a:hover {
 .FrenBox {
   width: 95%;
   max-width: 95%;
-  max-height: 200px;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   scrollbar-width: thin;
   padding-top: 5px;
+  text-align: center;
 }
 
 .FrenBox * {
@@ -259,7 +269,7 @@ a:hover {
 
 .Content {
   background: var(--content-profile-color);
-  max-width: 800px;
+  max-width: var(--content-width);
   min-width: 300px;
   display: flex;
   color: white;
@@ -289,10 +299,16 @@ a:hover {
 
   margin-left: auto;
   margin-right: auto;
+
+  overflow-wrap: anywhere;
 }
 
-.Comment * {
+.Comment > * {
   padding: 4px;
+}
+
+#ProfileContent > div { /* ">" only includes the first child */
+  width: calc(var(--content-width) - var(--profile-sidebar-width));
 }
 
 .Content > div { /* ">" only includes the first child */
@@ -300,7 +316,7 @@ a:hover {
 }
 
 .Sidebar {
-  max-width: 150px;
+  max-width: var(--profile-sidebar-width);
   float: left;
   width: 100%;
 }
@@ -343,7 +359,7 @@ a:hover {
 
 .NameContainer {
   display: flex;
-  width: 141px;
+  width: calc(var(--profile-sidebar-width) - 10px);
   text-align: center;
   overflow-wrap: break-word;
   align-items: center;
@@ -354,7 +370,7 @@ a:hover {
 }
 
 .AvatarCaption {
-  font-size: 20px;
+  font-size: 120%;
   font-weight: bold;
 }
 
@@ -489,8 +505,8 @@ select {
 .Over {
   display: inline-block;
   position: relative;
-  max-width: 140px;
-  max-height: 140px;
+  max-width: calc(var(--profile-sidebar-width) - 10px);;
+  max-height: calc(var(--profile-sidebar-width) - 10px);;
 }
 
 .OverFloat {

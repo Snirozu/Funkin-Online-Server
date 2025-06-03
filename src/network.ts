@@ -840,6 +840,28 @@ export async function getScoresPlayer(id: string, page:number) {
     }
 }
 
+export async function getSong(id: string) {
+    try {
+        return (await prisma.song.findUnique({
+            where: {
+                id: id
+            },
+            select: {
+                maxPoints: true,
+                _count: {
+                    select: {
+                        comments: true,
+                        scores: true
+                    }
+                }
+            }
+        }))
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
 export async function getSongComments(id: string) {
     try {
         return (await prisma.songComment.findMany({

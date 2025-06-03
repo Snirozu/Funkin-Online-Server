@@ -32,7 +32,7 @@ export function headProfileColor(hue, fp) {
 	if (hue === undefined || hue === null)
 		hue = 250;
 	if (fp > 500)
-		return 'linear-gradient(0.7turn, hsl(' + hue + ',25%,30%), hsl(' + (hue + 10) + ',30%,20%))';
+		return 'linear-gradient(0.7turn, hsl(' + hue + ',25%,30%), hsl(' + (+hue + 10) + ',30%,20%))';
     return "hsl(" + hue + ",20%,30%)";
 }
 
@@ -48,7 +48,7 @@ export function contentProfileColor(hue, fp) {
 	if (hue === undefined || hue === null)
 		hue = 250;
 	if (fp > 500)
-		return 'linear-gradient(hsl(' + hue + ',25%,20%), hsl(' + (hue + 10) + ',25%,10%))';
+		return 'linear-gradient(hsl(' + hue + ',25%,20%), hsl(' + (+hue + 10) + ',25%,10%))';
 	return "hsl(" + hue + ",20%,20%)";
 }
 

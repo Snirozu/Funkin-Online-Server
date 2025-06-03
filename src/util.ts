@@ -38,13 +38,13 @@ export async function isUserNameInRoom(userName:string, room?:GameRoom) {
 
 export async function isUserIDInRoom(userID: string, room?: GameRoom) {
     if (!room) room = Data.MAP_USERNAME_PLAYINGROOM.get(await getPlayerNameByID(userID));
-    return room && room.clients.length > 0 && hasValue(room.clientsID, userID);
+    return room && room.clients.length > 0 && findPlayerSIDByNID(room, userID);
 }
 
-export function getKeyOfValue(map: Map<string, any>, value: any) {
-    for (const [k, v] of map) {
-        if (v == value)
-            return k;
+export function findPlayerSIDByNID(room: GameRoom, networkId: any) {
+    for (const [clientSessionId, info] of room.clientsInfo) {
+        if (info.networkId == networkId)
+            return clientSessionId;
     }
     return null;
 }

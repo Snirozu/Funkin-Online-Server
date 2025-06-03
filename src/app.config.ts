@@ -8,7 +8,7 @@ import config from "@colyseus/tools";
 import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkAccess, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages, validateEmail, getPriority, grantPlayerRole } from "./network";
+import { genAccessToken, createUser, submitScore, checkAccess, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages, validateEmail, getPriority, grantPlayerRole, getSong } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -18,7 +18,7 @@ import fileUpload, { UploadedFile } from "express-fileupload";
 import { networkRoom, NetworkRoom } from "./rooms/NetworkRoom";
 import nodemailer from 'nodemailer';
 import * as crypto from "crypto";
-import { getKeyOfValue, isUserIDInRoom, isUserNameInRoom } from "./util";
+import { findPlayerSIDByNID, isUserIDInRoom, isUserNameInRoom } from "./util";
 import { DEFAULT_ROLE, loadConfig, ROLES } from "./Config";
 
 TimeAgo.addDefaultLocale(en);
@@ -908,7 +908,7 @@ export default config({
 
                     if (await isUserIDInRoom(id)) {
                         const room = Data.MAP_USERNAME_PLAYINGROOM.get(await getPlayerNameByID(id));
-                        const clientSSID = getKeyOfValue(room.clientsID, id);
+                        const clientSSID = findPlayerSIDByNID(room, id);
                         let client = null;
                         for (const c of room.clients) {
                             if (c.sessionId == clientSSID)
@@ -1270,6 +1270,8 @@ export default config({
     }
 });
 
+export const moneyFormatter = new Intl.NumberFormat();
+
 async function showIndex(req: { hostname: string; params: string[]; }, res: { send: (arg0: string) => void; sendStatus: (arg0: number) => void; }) {
     try {
         const indexPath = process.cwd() + '/client/build/index.html';
@@ -1287,8 +1289,8 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 const player = await getPlayerByName(params[1]);
                 if (!player)
                     break;
-                title = player.name + "'s Profile - Psych Online";
-                description = player.points + "FP";
+                title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '');
+                description = (player.role ?? DEFAULT_ROLE) + " | " + moneyFormatter.format(player.points) + " FP" + "\nAvg. Accuracy: " + ((player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0) * 100).toFixed(2) + '%';
                 if (await hasAvatar(player.id))
                     image = "https://" + req.hostname + "/api/avatar/" + encodeURIComponent(player.name);
                 else 
@@ -1297,7 +1299,11 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 break;
             case "song":
                 const song = params[1].split('-');
-                title = song[0] + " [" + song[1] + "] Leaderboard - Psych Online";
+                title = song[0] + " [" + song[1] + "] Leaderboard";
+                const daSong = await getSong(params[1]);
+                if (daSong) {
+                    description = 'FP Record: ' + moneyFormatter.format(daSong.maxPoints) + "\n" + daSong._count.scores + ' Score(s) | ' + daSong._count.comments + ' Comment(s)';
+                }
                 break;
         }
         response = response.replace('%___OG_TITLE___%', title);
@@ -1310,6 +1316,14 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
         res.sendStatus(404);
     }
 }
+
+function getFlagEmoji(countryCode:string) {
+    const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+}  
 
 /**
  * @returns [playerCount, roomFreeCount, playingCount]
