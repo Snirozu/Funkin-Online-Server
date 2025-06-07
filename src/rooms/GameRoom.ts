@@ -12,11 +12,11 @@ import { Data } from "../Data";
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 class ClientInfo {
-    public ip: string;
-    public networkId: string;
+    public ip: string = null;
+    public networkId: string = null;
     public hue: number = 250;
-    public lastPing: number;
-    public aliveTime: number;
+    public lastPing: number = 0;
+    public aliveTime: number = 0;
 }
 
 export class GameRoom extends Room<RoomState> {
