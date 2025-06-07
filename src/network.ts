@@ -211,7 +211,8 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
                     id: score.id,
                 },
             },
-            points: (submitter.points - (leaderboardScore?.points ?? 0)) + replay.points,
+            //points: (submitter.points - (leaderboardScore?.points ?? 0)) + replay.points,
+	    points: await countPlayerFP(submitter.id) ?? 0,
             avgAccSumAmount: (submitter.avgAccSumAmount ?? 0) + 1,
             avgAccSum: (submitter.avgAccSum ?? 0) + replay.accuracy / 100
         },
@@ -243,6 +244,22 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
         message: "Submitted!",
         gained_points: replay.points - (leaderboardScore?.points ?? 0),
         climbed_ranks: prevRank - newRank
+    }
+}
+
+async function countPlayerFP(id: string) {
+    try {
+        return (await prisma.score.aggregate({
+            where: {
+                player: id,
+            },
+            _sum: {
+                points: true
+            }
+        }))._sum.points;
+    }
+    catch (exc) {
+        return null;
     }
 }
 
