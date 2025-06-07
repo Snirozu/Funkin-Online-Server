@@ -212,7 +212,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
                 },
             },
             //points: (submitter.points - (leaderboardScore?.points ?? 0)) + replay.points,
-	    points: await countPlayerFP(submitter.id) ?? 0,
+            points: (await countPlayerFP(submitter.id) ?? 0) + replay.points,
             avgAccSumAmount: (submitter.avgAccSumAmount ?? 0) + 1,
             avgAccSum: (submitter.avgAccSum ?? 0) + replay.accuracy / 100
         },
@@ -1441,6 +1441,29 @@ export async function perishScores() {
 //     console.log('done migrating roles');
 // }
 
+async function recountPlayersFP() {
+    try {
+        for (const user of await prisma.user.findMany({
+            select: {
+                id: true,
+            }
+        })) {
+            await prisma.user.update({
+                where: {
+                    id: user.id,
+                },
+                data: {
+                    points: await countPlayerFP(user.id) ?? 0,
+                },
+            })
+        }
+        return true;
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
 export async function getPlayerRank(name: string): Promise<number> {
     try {
         const everyone = await prisma.user.findMany({
@@ -1510,6 +1533,7 @@ export async function initDatabaseCache() {
         cachePlayerUniques(user.id, user.name);
         cachedProfileNameHue.set(user.name, user.profileHue ?? 250);
     }
+    await recountPlayersFP();
     console.log('successfully cached the database!');
 }
 
