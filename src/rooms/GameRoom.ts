@@ -709,7 +709,7 @@ export class GameRoom extends Room<RoomState> {
         }
 
         this.clientsInfo.set(client.sessionId, new ClientInfo());
-        this.clientsInfo.get(client.sessionId).ip = requesterIP;
+        this.clientsInfo.get(client.sessionId).ip = playerIp;
 
         return true;
     }
