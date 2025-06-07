@@ -977,7 +977,7 @@ export class GameRoom extends Room<RoomState> {
         var ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);
         if (ipOccurs < 4) {
             await this.presence.hset(this.IPS_CHANNEL, requesterIP, (ipOccurs + 1) + "");
-            this.clientsInfo.set(client.sessionId, new ClientInfo());
+            this.clientsInfo.set(client.sessionId, {});
             this.clientsInfo.get(client.sessionId).ip = requesterIP;
             return true;
         }
