@@ -1533,7 +1533,7 @@ export async function initDatabaseCache() {
         cachePlayerUniques(user.id, user.name);
         cachedProfileNameHue.set(user.name, user.profileHue ?? 250);
     }
-    await recountPlayersFP();
+    //await recountPlayersFP();
     console.log('successfully cached the database!');
 }
 
