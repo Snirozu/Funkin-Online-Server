@@ -1,7 +1,8 @@
 import { GameRoom } from "./rooms/GameRoom";
 
 export class Data {
-    public static PROTOCOL_VERSION = 8;
+    public static PROTOCOL_VERSION = 9;
+    public static NETWORK_PROTOCOL_VERSION = 8;
     public static DAY_PLAYERS: any[] = [];
     public static COUNTRY_PLAYERS: any = {};
     public static ONLINE_PLAYERS: string[] = [];

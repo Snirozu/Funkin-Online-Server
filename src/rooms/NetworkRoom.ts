@@ -5,6 +5,7 @@ import { Data } from "../Data";
 import { authPlayer, getPlayerByID, getPlayerByName, getPlayerIDByName, hasAccess } from "../network";
 import { NetworkSchema } from "./schema/NetworkSchema";
 import { formatLog, isUserIDInRoom } from "../util";
+import { DiscordBot } from "../discord";
 
 export let networkRoom: NetworkRoom; 
 
@@ -19,7 +20,7 @@ export function notifyPlayer(toId:string, content:string) {
   catch (exc) {}
 }
 
-export function logToAll(content: string) {
+export function logToAll(content: string, notDiscord?:boolean) {
   try {
     if (!networkRoom) {
       return;
@@ -30,6 +31,8 @@ export function logToAll(content: string) {
       Data.PUBLIC.LOGGED_MESSAGES.shift();
     }
     networkRoom.broadcast('log', content);
+    if (!notDiscord)
+      DiscordBot.networkChannel.send(JSON.parse(content).content);
   }
   catch (exc) { }
 }
@@ -98,7 +101,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
           client.send("log", formatLog('Online: ' + onlines.join(', ')));
         }
         else if (message.startsWith('/help')) {
-          client.send("log", formatLog('DM players with the following format >{user} {message}\nSee the online player list with /list!\nIf you want to receive notifications for all messages then type /notify!'));
+          client.send("log", formatLog('DM players with the following format >{user} {message}\nSee the online player list with /list!\nIf you want to receive notifications for all messages then type /notify!\nTo view someone\'s profile use /profile <user>'));
         }
         else if (message.startsWith('/announce')) {
           const playAdm = await getPlayerByID(this.SSIDtoID.get(client.sessionId) + '');
@@ -164,7 +167,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
   }
   
   async onAuth(client: Client, options: any, request: IncomingMessage) {
-    const latestVersion = Data.PROTOCOL_VERSION;
+    const latestVersion = Data.NETWORK_PROTOCOL_VERSION;
     if (latestVersion != options.protocol) {
       throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
     }

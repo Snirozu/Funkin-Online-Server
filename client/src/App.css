@@ -14,13 +14,50 @@
   --content-width: 800px;
 }
 
-p, h1, h2, h3, h4, h5, h6, span, a {
+.davefont {
+  font-family: 'PhantomMuff';
+}
+
+p, span, a {
   font-family: 'PhantomMuff';
   overflow-wrap: anywhere;
 }
 
-h1, h2, h3, h4, h5, h6 {
+/* h1, h2, h3, h4, h5, h6 {
   line-height: 20px;
+} */
+
+h2, h3 {
+  overflow: hidden;
+  text-align: center;
+}
+
+h2::before, h2::after {
+  height: 3px;
+}
+
+h3::before, h3::after {
+  height: 2px;
+}
+
+h3::before, h3::after {
+  background-color: #646464;
+  content: "";
+  height: 2px;
+  display: inline-block;
+  position: relative;
+  vertical-align: middle;
+  width: 50%;
+}
+
+h2::before, h3::before {
+  right: 0.5em;
+  margin-left: -50%;
+}
+
+h2::after, h3::after {
+  left: 0.5em;
+  margin-right: -50%;
 }
 
 p {

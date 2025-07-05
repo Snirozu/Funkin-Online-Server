@@ -287,6 +287,24 @@ function User() {
                             <div className='UserBio' dangerouslySetInnerHTML={{ __html: data.bio }} />
                         }
                         <UserScores user={name} adminMode={adminMode}></UserScores>
+                        {/* <br/>
+                        <h2> Statistics </h2>
+                        <h3> Total </h3>
+                        <b>Points: </b> {data.points}FP <br />
+                        <b>Average Accuracy: </b> {(data.avgAccuracy * 100).toFixed(2)}% <br />
+                        <b>Note Hits: </b> 6400 000 000 <br />
+                        <b>Score: </b> 600 000 <br />
+                        <h3> Song Record by Highest Acc. </h3>
+                        <b>FP: </b> 64FP <a href="/song/no">(DadBattle [Nightmare])</a> <br />
+                        <b>Accuracy: </b> 99.9% <a href="/song/no">(DadBattle [Nightmare])</a> <br />
+                        <b>Combo: </b> 6400 <a href="/song/no">(DadBattle [Nightmare])</a> <br />
+                        <b>Score: </b> 6400 <a href="/song/no">(DadBattle [Nightmare])</a> <br />
+                        <b>Misses: </b> 6400 <a href="/song/no">(DadBattle [Nightmare])</a> <br />
+                        <h3> Rank <a href="a" className='SmallText' style={{color: 'var(--text-profile-color)', fontWeight: 'normal'}}> (Show for Poland) </a> </h3>
+                        <b>FP Rank: </b> 9999nd <br />
+                        <b>Avg. Accuracy Rank: </b> 9999nd <br />
+                        <h2> Achievements </h2>
+                        TBA ;) */}
                         <Popup trigger={<button id='openavatareditor' style={{display: 'none'}}></button>} modal>
                             <div className='Content'> 
                                 <UserIconEditor/>
@@ -592,7 +610,7 @@ function UserScores(props) {
     return (<>
         {data.length > 0 ? (
             <>
-                <center> <b> Best Performances </b> </center>
+                <h2> Best Performances </h2>
                 {renderScores(data, props.adminMode)}
                 <br></br>
                 {(page > 0) ?

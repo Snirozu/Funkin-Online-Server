@@ -48,7 +48,7 @@ function Song() {
                     <p>Error: {error}</p>
                 ) : (
                     <>
-                        <h1>{prettySong[0]}</h1>
+                        <h1 className="davefont">{prettySong[0]}</h1>
                         <p>Difficulty: {prettySong[1]}</p>
                         {searchParams.get("strum") == 1 ? <span>Opponent Side</span> : <></>}
                         {renderScores(song, data, tablePage)}
@@ -207,7 +207,7 @@ function RenderComments(props) {
 
     return (
         <div className="Comments">
-            <p> Song Comments: </p>
+            <h3> Song Comments: </h3>
             {commentsBody}
         </div>
     );

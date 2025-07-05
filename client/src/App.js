@@ -13,10 +13,6 @@ import Search from './routes/Search';
 import Leaderboard from './routes/Leaderboard';
 
 const App = () => {
-  useEffect(() => {
-    document.title = 'Psych Online';
-  }, []);
-
   return (
     <div className='App'>
       <HeadBar></HeadBar>

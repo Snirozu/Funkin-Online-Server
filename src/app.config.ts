@@ -13,7 +13,7 @@ import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
 import { Data } from "./Data";
-import express from 'express';
+import express, { Request, Response } from 'express';
 import fileUpload, { UploadedFile } from "express-fileupload";
 import { networkRoom, NetworkRoom } from "./rooms/NetworkRoom";
 import nodemailer from 'nodemailer';
@@ -675,6 +675,11 @@ export default config({
                     const [id, token] = getIDToken(req);
                     const player = await pingPlayer(id);
 
+                    if (!player) {
+                        res.sendStatus(403);
+                        return;
+                    }
+
                     if (!Data.ONLINE_PLAYERS.includes(player.name)) {
                         Data.ONLINE_PLAYERS.push(player.name);
                     }
@@ -1272,7 +1277,7 @@ export default config({
 
 export const moneyFormatter = new Intl.NumberFormat();
 
-async function showIndex(req: { hostname: string; params: string[]; }, res: { send: (arg0: string) => void; sendStatus: (arg0: number) => void; }) {
+async function showIndex(req: Request, res: Response) {
     try {
         const indexPath = process.cwd() + '/client/build/index.html';
         if (!fs.existsSync(indexPath)) {
@@ -1283,13 +1288,13 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
         let title = "Psych Online";
         let description = "The FNF Multiplayer mod based on Psych Engine!";
         let image = "https://" + req.hostname + "/fingerthumb.png";
-        const params = ((req.params as Array<string>)[0] ?? '').split("/");
+        const params = req.path.substring(1).split('/');
         switch (params[0]) {
             case "user":
                 const player = await getPlayerByName(params[1]);
                 if (!player)
                     break;
-                title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '');
+                title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '') + '· Profile';
                 description = (player.role ?? DEFAULT_ROLE) + " | " + moneyFormatter.format(player.points) + " FP" + "\nAvg. Accuracy: " + ((player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0) * 100).toFixed(2) + '%';
                 if (await hasAvatar(player.id))
                     image = "https://" + req.hostname + "/api/avatar/" + encodeURIComponent(player.name);
@@ -1299,14 +1304,29 @@ async function showIndex(req: { hostname: string; params: string[]; }, res: { se
                 break;
             case "song":
                 const song = params[1].split('-');
-                title = song[0] + " [" + song[1] + "] Leaderboard";
+                title = song[0] + " [" + song[1] + "]";
                 const daSong = await getSong(params[1]);
                 if (daSong) {
                     description = 'FP Record: ' + moneyFormatter.format(daSong.maxPoints) + "\n" + daSong._count.scores + ' Score(s) | ' + daSong._count.comments + ' Comment(s)';
                 }
                 break;
+            case "top":
+                title = 'FP Leaderboard' + (req.query.country ? ' in ' + getFlagEmoji(req.query.country as string) : '');
+                break;
+            case "friends":
+                title = 'Friend List';
+                break;
+            case "search":
+                title = 'Search' + (req.query.q ? ' for "' + req.query.q + '"' : '');
+                break;
+            case "stats":
+                title = 'Statistics';
+                break;
+            case "network":
+                title = 'Psych Online Network';
+                break;
         }
-        response = response.replace('%___OG_TITLE___%', title);
+        response = response.replaceAll('%___OG_TITLE___%', title);
         response = response.replace('%___OG_DESC___%', description);
         response = response.replace('%___OG_IMAGE___%', image);
         res.send(response);

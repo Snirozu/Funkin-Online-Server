@@ -50,6 +50,7 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "cross-spawn": "^7.0.6",
+    "discord.js": "^14.21.0",
     "elliptic": "^6.6.1",
     "express": "^4.21.0",
     "express-fileupload": "^1.5.1",

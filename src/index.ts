@@ -6,6 +6,7 @@ import { Data, PublicData } from "./Data";
 import { initDatabaseCache, prisma } from "./network";
 import sanitizeHtml from 'sanitize-html';
 import { loadConfig } from "./Config";
+import { DiscordBot } from "./discord";
 
 process.on('uncaughtException', function (exception) {
     console.error(exception);
@@ -65,6 +66,10 @@ async function main() {
                 // }
 
                 await initDatabaseCache();
+
+                if (process.env["DISCORD_TOKEN"]) {
+                    DiscordBot.init();
+                }
             })
             .catch(reason => {
                 console.log("Server failed to start!");

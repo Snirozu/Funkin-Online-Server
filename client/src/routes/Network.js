@@ -49,7 +49,7 @@ function Network() {
     return (
         <div className="Content">
             <div className="Main">
-                <p> Online Players </p>
+                <h2> Online Players </h2>
                 <div className="CenterFlex">
                     {loading ? (
                         <p>Loading...</p>
@@ -60,7 +60,7 @@ function Network() {
                     )}
                 </div>
                 <p> Currently in a Match: {data.playing}</p>
-                <p> Available Rooms </p>
+                <h2> Available Rooms </h2>
                 <div className="CenterFlex">
                     {loading ? (
                         <p>Loading...</p>
@@ -70,7 +70,7 @@ function Network() {
                         renderRooms(data.rooms)
                     )}
                 </div>
-                <p> Last Global Messages </p>
+                <h2> Last Global Messages </h2>
                 <div className="Comments">
                     {sezLoading ? (
                         <p>Loading...</p>

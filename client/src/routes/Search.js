@@ -36,10 +36,8 @@ function Search() {
                         <>
                             <br></br>
                             <br></br>
-                            <h2>Searching for: {daQuery}</h2>
-                            <hr></hr>
+                            <h2>Searching for: "{daQuery}"</h2>
                             <PlayerSearchList query={daQuery}></PlayerSearchList>
-                            <hr></hr>
                             <SongSearchList query={daQuery}></SongSearchList>
                         </>
                     ): (<></>)}
@@ -106,7 +104,7 @@ function SongSearchList(props) {
                 <span>No songs found!</span>
             ) : (
                 <>
-                    <p> Found Songs: </p>
+                    <h3> Found Songs: </h3>
                     <div className="CenterFlex">
                         {daSongs}
                     </div>
@@ -189,7 +187,7 @@ function PlayerSearchList(props) {
                 <span>No players found!</span>
             ) : (
                 <>
-                    <p> Found Players: </p>
+                    <h3> Found Players: </h3>
                     <div className="CenterFlex">
                         {daUsers}
                     </div>

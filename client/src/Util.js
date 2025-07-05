@@ -21,7 +21,7 @@ export function ordinalNum(num) {
 }
 
 export function getHost() {
-    //return "https://funkin.sniro.boo";
+    return "https://funkin.sniro.boo";
     if (window.location.hostname === "localhost") {
         return "http://localhost:2567";
     }
@@ -323,6 +323,7 @@ export const allCountries = new Map([
 	['UY', 'Uruguay'],
 	['UZ', 'Uzbekistan'],
 	['VU', 'Vanuatu'],
+	['VA', 'Vatican City State'],
 	['VE', 'Venezuela'],
 	['VN', 'Vietnam'],
 	['VG', 'Virgin Islands, British'],

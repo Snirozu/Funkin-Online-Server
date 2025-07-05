@@ -10,7 +10,6 @@ function Stats() {
         <div className="Content">
             <div className="Main">
                 <RenderOnlineChart></RenderOnlineChart>
-                <hr></hr>
                 <RenderCountryChart></RenderCountryChart>
             </div>
         </div>

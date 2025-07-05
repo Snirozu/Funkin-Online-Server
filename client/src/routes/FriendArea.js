@@ -40,7 +40,7 @@ function FriendArea() {
     return <>
         <div className='Content'>
             <div className="Main">
-                <p> Friends </p>
+                <h2> Friends </h2>
                 <div className="CenterFlex">
                     {loading ? (
                         <p>Loading...</p>
@@ -50,7 +50,7 @@ function FriendArea() {
                         renderFriends(data.friends)
                     )}
                 </div>
-                <p> Pending Invite from </p>
+                <h3> Pending Invite from </h3>
                 <div className="CenterFlex">
                     {loading ? (
                         <p>Loading...</p>
@@ -60,7 +60,7 @@ function FriendArea() {
                         renderPlayers(data.requests)
                     )}
                 </div>
-                <p> Pending Invite to </p>
+                <h3> Pending Invite to </h3>
                 <div className="CenterFlex">
                     {loading ? (
                         <p>Loading...</p>

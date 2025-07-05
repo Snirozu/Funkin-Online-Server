@@ -57,6 +57,24 @@ export function hasValue(map:Map<any, any>, value:any) {
     return false;
 }
 
+export function intToHue(num:number) {
+    num >>>= 0;
+    var b = num & 0xFF,
+        g = (num & 0xFF00) >>> 8,
+        r = (num & 0xFF0000) >>> 16;
+
+    const cMax = Math.max(r, g , b);
+    const cMin = Math.min(r, g, b);
+
+    if (cMax == r)
+        return 60 * ((g - b) / (cMax - cMin));
+    if (cMax == g)
+        return 60 * (2.0 + (b - r) / (cMax - cMin));
+
+    // cMax is b
+    return 60 * (4.0 + (r - g) / (cMax - cMin));
+}
+
 export const validCountries = [
     null,
     'AF',
@@ -292,6 +310,7 @@ export const validCountries = [
     'UY',
     'UZ',
     'VU',
+    'VA',
     'VE',
     'VN',
     'VG',

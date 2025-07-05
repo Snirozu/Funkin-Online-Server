@@ -52,7 +52,7 @@ function Leaderboard() {
                         <p>Error: {error}</p>
                     ) : (
                         <>
-                            <h1>Top Players by FP{country ? ' from ' + allCountries.get(country) : ''}</h1>
+                            <h1 className="davefont">Top Players by FP{country ? ' from ' + allCountries.get(country) : ''}</h1>
                             {renderPlayers(data, page)}
                             <br></br>
                             <center> Filter by Country: <CountrySelect onSelect={(selCountry) => {
