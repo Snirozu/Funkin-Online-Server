@@ -378,7 +378,7 @@ export async function submitSongComment(userId: string, reqJson: any) {
 
 export async function viewReports() {
     if (!process.env["DATABASE_URL"]) {
-        throw { error_message: "No database set on the server!" }
+        return null;
     }
 
     return (await prisma.report.findMany());
@@ -386,7 +386,7 @@ export async function viewReports() {
 
 export async function removeReport(id:string) {
     if (!process.env["DATABASE_URL"]) {
-        throw { error_message: "No database set on the server!" }
+        return null;
     }
 
     return (await prisma.report.delete({
@@ -498,7 +498,7 @@ export function validateEmail(email:string) {
 
 export async function resetSecret(id: string) {
     if (!process.env["DATABASE_URL"]) {
-        throw { error_message: "No database set on the server!" }
+        return null;
     }
 
     return (await prisma.user.update({
@@ -582,7 +582,7 @@ export async function renamePlayer(id: string, name: string) {
 
 export async function grantPlayerRole(name: string, role: string) {
     if (!process.env["DATABASE_URL"]) {
-        throw { error_message: "No database set on the server!" }
+        return null;
     }
 
     if ((await getPlayerByName(name)).role == role) {
