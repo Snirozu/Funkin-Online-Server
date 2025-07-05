@@ -146,7 +146,7 @@ export default config({
                     var rooms = await matchMaker.query();
                     if (rooms.length >= 1) {
                         rooms.forEach((room) => {
-                            if (!room.private && !room.locked && room.roomId != networkRoom.roomId)
+                            if (!room.private && !room.locked && (!networkRoom || room.roomId != networkRoom.roomId))
                                 roomArray.push({
                                     code: room.roomId,
                                     player: room?.metadata?.name ?? "???",
@@ -494,7 +494,7 @@ export default config({
                         playing_rooms: Data.MAP_USERNAME_PLAYINGROOM
                     };
                     for (const room of await matchMaker.query()) {
-                        if (room.roomId != networkRoom.roomId) {
+                        if (!networkRoom || room.roomId != networkRoom.roomId) {
                             jsonRooms.rooms.push({
                                 id: room.roomId,
                                 meta: room.metadata,
@@ -1357,7 +1357,7 @@ export async function countPlayers():Promise<number[]> {
     var rooms = await matchMaker.query();
     if (rooms.length >= 1) {
         rooms.forEach((room) => {
-            if (room.roomId != networkRoom.roomId) {
+            if (!networkRoom || room.roomId != networkRoom.roomId) {
                 playerCount += room.clients;
                 playingCount += room.clients;
                 if (!room.private && !room.locked)
