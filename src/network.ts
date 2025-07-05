@@ -32,6 +32,10 @@ export function getIDToken(req:any):Array<string> {
 }
 
 export async function checkAccess(req: any, res: any, next: any) {
+    if (!process.env["DATABASE_URL"]) {
+        return res.sendStatus(401);
+    }
+
     const [id, token] = getIDToken(req);
     const player = await getLoginPlayerByID(id);
 
@@ -51,6 +55,10 @@ export async function checkAccess(req: any, res: any, next: any) {
 }
 
 export async function authPlayer(req: any, checkPerms:boolean = true) {
+    if (!process.env["DATABASE_URL"]) {
+        return;
+    }
+
     const [id, token] = getIDToken(req);
     const player = await getPlayerByID(id);
 
@@ -107,6 +115,10 @@ function matchWildcard(match:string, to:string) {
 //DATABASE STUFF
 
 export async function submitScore(submitterID: string, replay: ReplayData) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     if (replay.version != 3) {
         throw { error_message: "Replay version mismatch error, can't submit!\nPlease update!" }
     }
@@ -248,6 +260,10 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
 }
 
 async function countPlayerFP(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return (await prisma.score.aggregate({
             where: {
@@ -264,6 +280,10 @@ async function countPlayerFP(id: string) {
 }
 
 async function updateSongMaxPoints(songId:string) {
+    if (!process.env["DATABASE_URL"]) {
+        return;
+    }
+
     const data = await prisma.score.aggregate({
         where: {
             songId: songId
@@ -284,6 +304,10 @@ async function updateSongMaxPoints(songId:string) {
 }
 
 export async function submitReport(id: string, reqJson: any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     const submitter = await getPlayerByID(id);
     if (!submitter)
         throw { error_message: "Not registered!" }
@@ -301,6 +325,10 @@ export async function submitReport(id: string, reqJson: any) {
 }
 
 export async function removeSongComment(userId: string, songId: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     await prisma.songComment.deleteMany({
         where: {
             songid: {
@@ -314,6 +342,10 @@ export async function removeSongComment(userId: string, songId: string) {
 }
 
 export async function submitSongComment(userId: string, reqJson: any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     const submitter = await getPlayerByID(userId);
     if (!submitter)
         throw { error_message: "Not registered!" }
@@ -345,10 +377,18 @@ export async function submitSongComment(userId: string, reqJson: any) {
 }
 
 export async function viewReports() {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     return (await prisma.report.findMany());
 }
 
 export async function removeReport(id:string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     return (await prisma.report.delete({
         where: {
             id: id
@@ -357,6 +397,10 @@ export async function removeReport(id:string) {
 }
 
 export async function removeScore(id: string, checkPlayer?: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     if (checkPlayer) {
         if (!id || (await prisma.score.findFirstOrThrow({
             where: {
@@ -404,6 +448,10 @@ export async function removeScore(id: string, checkPlayer?: string) {
 }
 
 export async function createUser(name: string, email: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     if (filterUsername(name) != name) {
         throw {
             error_message: "Your username contains invalid characters!"
@@ -449,6 +497,10 @@ export function validateEmail(email:string) {
 } 
 
 export async function resetSecret(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     return (await prisma.user.update({
         data: {
             secret: crypto.randomBytes(64).toString('hex')
@@ -460,6 +512,10 @@ export async function resetSecret(id: string) {
 }
 
 export async function setEmail(id: string, email: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     if (await getPlayerByEmail(email))
         throw { error_message: "Can't set the same email for two accounts!" }
 
@@ -474,6 +530,10 @@ export async function setEmail(id: string, email: string) {
 }
 
 export async function renamePlayer(id: string, name: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     if (filterUsername(name) != name) {
         throw {
             error_message: "Your username contains invalid characters!"
@@ -521,6 +581,10 @@ export async function renamePlayer(id: string, name: string) {
 }
 
 export async function grantPlayerRole(name: string, role: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     if ((await getPlayerByName(name)).role == role) {
         //console.log(name + ' is already already a: ' + role);
         return null;
@@ -537,6 +601,10 @@ export async function grantPlayerRole(name: string, role: string) {
 }
 
 export async function setPlayerBio(id: string, bio: string, hue: number, country: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     if (bio.length > 1500) {
         throw {
             error_message: "Your bio reaches 1500 characters!"
@@ -568,7 +636,7 @@ export async function setPlayerBio(id: string, bio: string, hue: number, country
 }
 
 export async function getPlayerByName(name: string) {
-    if (!name)
+    if (!name || !process.env["DATABASE_URL"])
         return null;
 
     try {
@@ -587,7 +655,7 @@ export async function getPlayerByName(name: string) {
 }
 
 export async function getPlayerByEmail(email: string) {
-    if (!email)
+    if (!email || !process.env["DATABASE_URL"])
         return null;
 
     try {
@@ -606,7 +674,7 @@ export async function getPlayerByEmail(email: string) {
 }
 
 export async function getLoginPlayerByID(id: string) {
-    if (!id)
+    if (!id || !process.env["DATABASE_URL"])
         return null;
 
     try {
@@ -628,7 +696,7 @@ export async function getLoginPlayerByID(id: string) {
 }
 
 export async function getPlayerByID(id: string) {
-    if (!id)
+    if (!id || !process.env["DATABASE_URL"])
         return null;
 
     try {
@@ -646,7 +714,7 @@ export async function getPlayerByID(id: string) {
 }
 
 export async function getPlayerNameByID(id: string) {
-    if (!id)
+    if (!id || !process.env["DATABASE_URL"])
         return null;
 
     try {
@@ -672,7 +740,7 @@ export async function getPlayerNameByID(id: string) {
 }
 
 export async function getPlayerIDByName(name: string) {
-    if (!name)
+    if (!name || !process.env["DATABASE_URL"])
         return null;
 
     try {
@@ -698,6 +766,10 @@ export async function getPlayerIDByName(name: string) {
 }
 
 export async function pingPlayer(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return (await prisma.user.update({
             data: {
@@ -725,6 +797,10 @@ export async function pingPlayer(id: string) {
 }
 
 export async function topScores(id: string, strum:number, page: number): Promise<Array<ScoreData>> {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return await prisma.score.findMany({
             where: {
@@ -771,6 +847,10 @@ export async function topScores(id: string, strum:number, page: number): Promise
 }
 
 export async function topPlayers(page:number, country?:string): Promise<Array<any>> {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         if (!country || !validCountries.includes(country)) {
             country = undefined;
@@ -804,6 +884,10 @@ export async function topPlayers(page:number, country?:string): Promise<Array<an
 }
 
 export async function getScore(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return (await prisma.score.findUnique({
             where: {
@@ -817,6 +901,10 @@ export async function getScore(id: string) {
 }
 
 export async function getReplayFile(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return (await prisma.fileReplay.findUnique({
             where: {
@@ -830,6 +918,10 @@ export async function getReplayFile(id: string) {
 }
 
 export async function getScoresPlayer(id: string, page:number) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return (await prisma.score.findMany({
             where: {
@@ -858,6 +950,10 @@ export async function getScoresPlayer(id: string, page:number) {
 }
 
 export async function getSong(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return (await prisma.song.findUnique({
             where: {
@@ -880,6 +976,10 @@ export async function getSong(id: string) {
 }
 
 export async function getSongComments(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return (await prisma.songComment.findMany({
             where: {
@@ -896,6 +996,10 @@ export async function getSongComments(id: string) {
 }
 
 export async function searchSongs(query: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     if (query.trim().length < 3) {
         throw {
             error_message: "Search query needs to be longer than 3!"
@@ -932,6 +1036,10 @@ export async function searchSongs(query: string) {
 }
 
 export async function searchUsers(query: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     if (query.trim().length < 3) {
         throw {
             error_message: "Search query needs to be longer than 3!"
@@ -960,6 +1068,10 @@ export async function searchUsers(query: string) {
 }
 
 export async function removeFriendFromUser(req: any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
     const me = await getPlayerByName(req.query.name as string);
     const remove = await authPlayer(req, false);
 
@@ -995,6 +1107,10 @@ export async function removeFriendFromUser(req: any) {
 }
 
 export async function requestFriendRequest(req:any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+    
     // to and from is confusing for me sorry lol
     const me = await getPlayerByName(req.query.name as string);
     const want = await authPlayer(req, false);
@@ -1068,6 +1184,10 @@ export async function requestFriendRequest(req:any) {
 }
 
 export async function getUserFriends(friends: Array<string>) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     let value: Array<string> = [];
     for (const friendID of friends) {
         const friend = await getPlayerNameByID(friendID);
@@ -1077,6 +1197,10 @@ export async function getUserFriends(friends: Array<string>) {
 }
 
 export async function searchFriendRequests(id:string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     let value: Array<string> = [];
     for (const pender of await prisma.user.findMany({
         where: {
@@ -1094,7 +1218,7 @@ export async function searchFriendRequests(id:string) {
 }
 
 export async function deleteUser(id:string):Promise<any> {
-    if (!id) {
+    if (!id || !process.env["DATABASE_URL"]) {
         return null;
     }
 
@@ -1121,7 +1245,7 @@ export async function deleteUser(id:string):Promise<any> {
 }
 
 export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
-    if (!id) {
+    if (!id || !process.env["DATABASE_URL"]) {
         return null;
     }
 
@@ -1198,6 +1322,10 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
 }
 
 export async function uploadAvatar(userId:string, data:Buffer) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         await prisma.fileAvatar.deleteMany({
             where: {
@@ -1222,6 +1350,10 @@ export async function uploadAvatar(userId:string, data:Buffer) {
 }
 
 export async function getAvatar(userId: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return await prisma.fileAvatar.findUnique({
             where: {
@@ -1235,6 +1367,10 @@ export async function getAvatar(userId: string) {
 }
 
 export async function hasAvatar(userId: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return await prisma.fileAvatar.count({
             where: {
@@ -1248,6 +1384,10 @@ export async function hasAvatar(userId: string) {
 }
 
 export async function uploadBackground(userId: string, data: Buffer) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         await prisma.fileBackground.deleteMany({
             where: {
@@ -1272,6 +1412,10 @@ export async function uploadBackground(userId: string, data: Buffer) {
 }
 
 export async function getBackground(userId: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return await prisma.fileBackground.findUnique({
             where: {
@@ -1285,6 +1429,10 @@ export async function getBackground(userId: string) {
 }
 
 export async function hasBackground(userId: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         return await prisma.fileBackground.count({
             where: {
@@ -1298,6 +1446,10 @@ export async function hasBackground(userId: string) {
 }
 
 export async function removeImages(userId: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return false;
+    }
+
     try {
         await prisma.fileBackground.deleteMany({
             where: {
@@ -1336,6 +1488,10 @@ export async function removeImages(userId: string) {
 // }
 
 export async function migrateReplay(scoreId: string, data?:string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         if (!data) {
             data = (await prisma.score.findFirst({
@@ -1382,6 +1538,11 @@ export async function migrateReplay(scoreId: string, data?:string) {
 }
 
 export async function perishScores() {
+    if (!process.env["DATABASE_URL"]) {
+        console.log("no database set");
+        return;
+    }
+
     console.log("deleting rankings");
     await prisma.score.deleteMany();
     await prisma.fileReplay.deleteMany();
@@ -1442,6 +1603,10 @@ export async function perishScores() {
 // }
 
 async function recountPlayersFP() {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         for (const user of await prisma.user.findMany({
             select: {
@@ -1465,6 +1630,10 @@ async function recountPlayersFP() {
 }
 
 export async function getPlayerRank(name: string): Promise<number> {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
     try {
         const everyone = await prisma.user.findMany({
             orderBy: [
@@ -1484,7 +1653,7 @@ export async function getPlayerRank(name: string): Promise<number> {
 }
 
 export async function getPlayerProfileHue(name: string) {
-    if (!name)
+    if (!name || !process.env["DATABASE_URL"])
         return null;
 
     try {
@@ -1522,6 +1691,10 @@ export async function cachePlayerUniques(id:string, name:string) {
 }
 
 export async function initDatabaseCache() {
+    if (!process.env["DATABASE_URL"]) {
+        return;
+    }
+
     console.log('caching the database...');
     for (const user of await prisma.user.findMany({
         select: {

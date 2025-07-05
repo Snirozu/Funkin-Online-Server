@@ -42,8 +42,10 @@ export default config({
          * Define your room handlers:
          */
         gameServer.define('room', GameRoom);
-        gameServer.define('network', NetworkRoom);
-        await matchMaker.createRoom("network", {});
+        if (process.env["NETWORK_ENABLED"] == "true") {
+            gameServer.define('network', NetworkRoom);
+            await matchMaker.createRoom("network", {});
+        }
     },
 
     initializeExpress: (app) => {

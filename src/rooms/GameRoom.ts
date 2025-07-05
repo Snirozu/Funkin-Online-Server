@@ -609,7 +609,7 @@ export class GameRoom extends Room<RoomState> {
             if (!requester)
                 return;
             
-            const user = requester.verified ? await getPlayerByID(this.clientsInfo.get(client.sessionId).networkId) : null;
+            const user = requester.verified && process.env["DATABASE_URL"] ? await getPlayerByID(this.clientsInfo.get(client.sessionId).networkId) : null;
             if (user) {
                 this.setPlayerPoints(requester, user.points);
                 requester.name = user.name;
@@ -835,7 +835,10 @@ export class GameRoom extends Room<RoomState> {
         let playerName = options.name;
         let playerPoints = options.points;
         let isVerified = false;
-        const player = await getPlayerByID(options.networkId);
+        let player = null;
+        if (process.env["DATABASE_URL"]) {
+            player = await getPlayerByID(options.networkId);
+        }
         if (options.networkId && options.networkToken && player) {
             if (!hasAccess(player, 'room.auth')) {
                 client.error(418, "get fucked lmao");

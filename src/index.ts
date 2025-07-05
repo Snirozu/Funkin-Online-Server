@@ -65,7 +65,9 @@ async function main() {
                 //     }
                 // }
 
-                await initDatabaseCache();
+                if (process.env["DATABASE_URL"]) {
+                    await initDatabaseCache();
+                }
 
                 if (process.env["DISCORD_TOKEN"]) {
                     DiscordBot.init();
