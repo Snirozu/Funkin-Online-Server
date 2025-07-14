@@ -133,9 +133,6 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     if (noteEvents <= 0 || replay.inputs.length <= 0)
         throw { error_message: "Empty Replay" }
 
-    if (replay.inputs.length < noteEvents)
-        throw { error_message: "Dismatched Inputs to Score" }
-
     if (replay.points < 0 || replay.points > 10000 || replay.score > 100000000)
         throw { error_message: "Illegal Score Value in the Replay Data" }
 
