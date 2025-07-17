@@ -810,13 +810,19 @@ export class GameRoom extends Room<RoomState> {
         }
 
         const playerIp = this.getRequestIP(request);
-        const ipInfo = await (await fetch("http://ip-api.com/json/" + playerIp)).json();
-        if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
-            if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
-                Data.COUNTRY_PLAYERS[ipInfo.country] = [];
+        try {
+            const ipInfo = await (await fetch("http://ip-api.com/json/" + encodeURIComponent(playerIp))).json();
+            if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
+                if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
+                    Data.COUNTRY_PLAYERS[ipInfo.country] = [];
 
-            if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
-                Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
+                if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
+                    Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
+            }
+        }
+        catch (exc) {
+            console.log(playerIp);
+            console.error(exc);
         }
 
         this.clientsInfo.set(client.sessionId, new ClientInfo());

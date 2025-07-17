@@ -48,7 +48,10 @@ export async function checkAccess(req: any, res: any, next: any) {
     }
 
     jwt.verify(token, player.secret as string, (err: any, user: any) => {
-        if (err) return res.sendStatus(403)
+        if (err) {
+            console.error(err);
+            return res.sendStatus(403)
+        }
 
         next()
     })
