@@ -377,27 +377,7 @@ function UserIconEditor() {
 
             canvas.toBlob(
                 (file) => {
-                    if (file.size > 1024 * 100) {
-                        alert("Compressed Image has exceeded 100kB!\n\nTry adjusting the compression value to make it lighter! (" + (file.size * 0.001) + "kB)");
-                        return;
-                    }
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    const config = {
-                        headers: {
-                            'content-type': 'multipart/form-data',
-                            'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken')),
-                        },
-                    };
-                    axios.post(getHost() + '/api/account/avatar', formData, config).then((response) => {
-                        if (response.status === 415) {
-                            alert('Image should be a PNG type!');
-                        }
-                        window.location.reload();
-                    }).catch(exc => {
-                        document.body.innerHTML = exc;
-                        console.error(exc);
-                    });
+                    uploadAvatarFile(file);
                 },
                 asPNG ? "image/png" : "image/jpeg",
                 jpegCompression
@@ -471,6 +451,30 @@ function UserIconEditor() {
             </center> */}
         </div>
     );
+}
+
+function uploadAvatarFile(file) {
+    if (file.size > 1024 * 100) {
+        alert("Compressed Image has exceeded 100kB!\n\nTry adjusting the compression value to make it lighter! (" + (file.size * 0.001) + "kB)");
+        return;
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    const config = {
+        headers: {
+            'content-type': 'multipart/form-data',
+            'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken')),
+        },
+    };
+    axios.post(getHost() + '/api/account/avatar', formData, config).then((response) => {
+        if (response.status === 415) {
+            alert('Image should be a PNG/JPEG/GIF type!');
+        }
+        window.location.reload();
+    }).catch(exc => {
+        document.body.innerHTML = exc;
+        console.error(exc);
+    });
 }
 
 function renderFriends(friends) {
@@ -636,12 +640,17 @@ const AvatarUpload = () => {
 
     const upload = (event) => {
         daUploadedAvatar = event.target.files[0];
-        document.getElementById('openavatareditor').click();
+        if (daUploadedAvatar.type === "image/gif") {
+            uploadAvatarFile(daUploadedAvatar);
+        }
+        else {
+            document.getElementById('openavatareditor').click();
+        }
     }
 
     return (
         <>
-            <input accept="image/png, image/jpeg" type="file" id="upload-avatar" hidden ref={actualBtnRef} onChange={upload} />
+            <input accept="image/png, image/jpeg, image/gif" type="file" id="upload-avatar" hidden ref={actualBtnRef} onChange={upload} />
             {/* <button className='SvgButton' title='Upload Avatar' onClick={() => {
                 document.getElementById('upload-avatar').click();
             }}>

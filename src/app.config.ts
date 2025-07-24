@@ -796,7 +796,7 @@ export default config({
                     if (file.size > 1024 * 100) {
                         return res.sendStatus(413);
                     }
-                    if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg') {
+                    if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg' && file.mimetype != 'image/gif') {
                         return res.sendStatus(415);
                     }
                     if (!await uploadAvatar(id, file.data)) {
