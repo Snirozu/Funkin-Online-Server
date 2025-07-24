@@ -85,7 +85,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
 
         if (this.nameToClient.has(player.toLowerCase())) {
           this.nameToClient.get(player.toLowerCase()).send("log", formatLog("[" + sender + "->YOU]: " + msg, 40, true));
-          client.send("log", formatLog("[YOU->" + sender + "]: " + msg, 40));
+          client.send("log", formatLog("[YOU->" + player + "]: " + msg, 40));
         }
         else {
           client.send("log", formatLog("Player not found!"));
