@@ -1374,6 +1374,9 @@ export async function countPlayers():Promise<number[]> {
 }
 
 export async function sendCodeMail(email:string, code:string) {
+    console.log('your code for ' + email + ' is ' + code);
+    return;
+
     transMail.sendMail({
         from: 'Psych Online',
         to: email,
