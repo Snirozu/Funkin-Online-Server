@@ -48,7 +48,7 @@ export function contentProfileColor(hue, fp) {
 	if (hue === undefined || hue === null)
 		hue = 250;
 	if (fp > 500)
-		return 'linear-gradient(hsl(' + hue + ',25%,20%), hsl(' + (+hue + 10) + ',25%,10%))';
+		return 'linear-gradient(hsl(' + hue + ',25%,20%), hsl(' + (+hue + 5) + ',25%,10%))';
 	return "hsl(" + hue + ",20%,20%)";
 }
 
