@@ -454,8 +454,8 @@ function UserIconEditor() {
 }
 
 function uploadAvatarFile(file) {
-    if (file.size > 1024 * 100) {
-        alert("Compressed Image has exceeded 100kB!\n\nTry adjusting the compression value to make it lighter! (" + (file.size * 0.001) + "kB)");
+    if (file.size > 1024 * 200) {
+        alert("Compressed Image has exceeded 200kB!\n\nTry adjusting the compression value to make it lighter! (" + (file.size * 0.001) + "kB)");
         return;
     }
     const formData = new FormData();
@@ -665,8 +665,8 @@ const BackgroundUpload = () => {
 
     const upload = (event) => {
         const file = event.target.files[0];
-        if (file.size > 1024 * 100) {
-            alert("Compressed Image has exceeded 100kB!\n\nTry adjusting the compression value to make it lighter! (" + (file.size * 0.001) + "kB)");
+        if (file.size > 1024 * 1000) {
+            alert("Compressed Image has exceeded 1MB!\n\nTry adjusting the compression value to make it lighter! (" + (file.size * 0.001) + "kB)");
             return;
         }
         const formData = new FormData();

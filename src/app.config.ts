@@ -793,7 +793,7 @@ export default config({
                     const [id, _] = getIDToken(req);
 
                     const file = req.files.file as UploadedFile;
-                    if (file.size > 1024 * 100) {
+                    if (file.size > 1024 * 200) {
                         return res.sendStatus(413);
                     }
                     if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg' && file.mimetype != 'image/gif') {
@@ -820,7 +820,7 @@ export default config({
                     }
 
                     const file = req.files.file as UploadedFile;
-                    if (file.size > 1024 * 100) {
+                    if (file.size > 1024 * 1000) {
                         return res.sendStatus(413);
                     }
                     if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg') {
