@@ -37,6 +37,15 @@ export function logToAll(content: string, notDiscord?:boolean) {
   catch (exc) { }
 }
 
+export async function discordChatMessage(user: string, content: string) {
+  const webhook = await DiscordBot.getWebhook();
+  webhook.send({
+    content: content,
+    username: user,
+    avatarURL: "https://funkin.sniro.boo/api/avatar/" + user // maybe make a .env value for domain? because i hate this with a burning passion
+});
+}
+
 export class NetworkRoom extends Room<NetworkSchema> {
   //at least it's fast /shrug
   SSIDtoID: Map<string, string> = new Map<string, string>();
@@ -118,7 +127,8 @@ export class NetworkRoom extends Room<NetworkSchema> {
         return;
       }
 
-      logToAll(formatLog(sender + ": " + message, this.nameToHue.get(sender.toLowerCase())));
+      logToAll(formatLog(sender + ": " + message, this.nameToHue.get(sender.toLowerCase())), true);
+      discordChatMessage(sender, message);
     });
 
     this.onMessage("inviteplayertoroom", async (client, message: string) => {

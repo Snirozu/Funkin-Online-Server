@@ -27,5 +27,19 @@ export class DiscordBot {
 
         client.login(process.env["DISCORD_TOKEN"]);
     }
+
+    static async getWebhook() {
+        const webhooks = await DiscordBot.networkChannel.fetchWebhooks();
+        let webhook = webhooks.find(wh => wh.token);
+
+        if(!webhook) {
+            webhook = await DiscordBot.networkChannel.createWebhook({
+                name: 'Psych Online Weeb-Hook',
+                avatar: ''
+            });
+        }
+
+        return webhook;
+    }
 }
 
