@@ -89,12 +89,12 @@ function renderScores(song, scores, page) {
             </td>
             <td>
                 <a href={"/user/" + encodeURIComponent(score.player)}> {score.player} </a>
-                <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={"/api/score/replay?id=" + score.id}>
+                <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'var(--text-profile-color)' }} href={"/api/score/replay?id=" + score.id}>
                     <Icon width={20} icon="mdi:eye" />
                 </a>
                 {
                     (score.modURL && (score.modURL + '').startsWith('https://')) ?
-                        <a title='View Mod URL' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'red' }} href={score.modURL}>
+                        <a title='View Mod URL' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'var(--text-profile-color)' }} href={score.modURL}>
                             <Icon width={20} icon="material-symbols:dataset-linked-outline-rounded" />
                         </a>
                         :

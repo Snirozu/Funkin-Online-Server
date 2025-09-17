@@ -4,7 +4,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { allCountries, contentProfileColor, getHost, hasAccess, headProfileColor, moneyFormatter, ordinalNum, textProfileColor, textProfileRow, timeAgo } from '../Util';
+import { allCountries, contentProfileColor, getHost, hasAccess, headProfileColor, moneyFormatter, ordinalNum, tabButtonColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
 import { Icon } from '@iconify/react';
 import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
@@ -28,6 +28,7 @@ function User() {
         friends: [],
         canFriend: false,
         profileHue: -1,
+        profileHue2: undefined,
         avgAccuracy: 0,
         rank: -1,
         country: ''
@@ -55,14 +56,6 @@ function User() {
                 throw new Error('User not found.');
             }
 
-            document.documentElement.style.setProperty('--content-profile-color', contentProfileColor(data.profileHue, data.points));
-            document.documentElement.style.setProperty('--text-profile-color', textProfileColor(data.profileHue));
-            document.documentElement.style.setProperty('--row-profile-color', textProfileRow(data.profileHue));
-            document.documentElement.style.setProperty('--row-profile-color-two', textProfileRow(data.profileHue, true));
-            if (data.isSelf) {
-                document.documentElement.style.setProperty('--head-profile-color', headProfileColor(data.profileHue));
-            }
-
             setError(null);
             setData(response.data);
             setLoading(false);
@@ -81,6 +74,7 @@ function User() {
                 const response = await axios.post(getHost() + '/api/account/profile/set', {
                     bio: bioHTML ?? data.bio,
                     hue: document.getElementById('ProfileColorSlider').value,
+                    hue2: document.getElementById('ProfileColorSlider2').value,
                     country: country
                 }, {
                     headers: {
@@ -135,14 +129,17 @@ function User() {
         fetchData();
     }
 
-    function onColorChange(e) {
-        const color = e?.target?.value ?? data.profileHue;
-        document.documentElement.style.setProperty('--content-profile-color', contentProfileColor(color, data.points));
+    function onColorChange(_) {
+        const color = document?.getElementById('ProfileColorSlider')?.value ?? data.profileHue;
+        const color2 = document?.getElementById('ProfileColorSlider2')?.value ?? data.profileHue2;
+
+        document.documentElement.style.setProperty('--content-profile-color', contentProfileColor(color, color2));
         document.documentElement.style.setProperty('--text-profile-color', textProfileColor(color));
         document.documentElement.style.setProperty('--row-profile-color', textProfileRow(color));
         document.documentElement.style.setProperty('--row-profile-color-two', textProfileRow(color, true));
         if (data.isSelf) {
             document.documentElement.style.setProperty('--head-profile-color', headProfileColor(color));
+            document.documentElement.style.setProperty('--tab-button-color', tabButtonColor(color));
         }
     }
 
@@ -151,9 +148,7 @@ function User() {
     }, []);
 
     useLayoutEffect(() => {
-        try {
-            onColorChange();
-        } catch (exc) { }
+        onColorChange(null);
     }, [data, setData, setLoading])
 
     function toggleAdmin() {
@@ -200,7 +195,9 @@ function User() {
                             <div className='NameContainer'>
                                 <span className='AvatarCaption'> {name} </span>
                                 {data.country ?
-                                    <Flag code={data.country}></Flag>
+                                    <a href={'/top?country=' + data.country}>
+                                        <Flag code={data.country}></Flag>
+                                    </a>
                                 : <></>}
                             </div>
                             {data.role ? (
@@ -268,10 +265,19 @@ function User() {
                                     <br></br>
                                     BG Color:
                                     <input id='ProfileColorSlider' type="range" min="0" max="360" defaultValue={data.profileHue} onInput={onColorChange} />
+                                    { data.points >= 500 ? (
+                                        <>
+                                            BG Color 2:
+                                             <input id='ProfileColorSlider2' type="range" min="0" max="360" defaultValue={data.profileHue2} onInput={onColorChange} />
+                                        </>
+                                    ) : <></>}
                                     <br></br>
                                     Country:
                                     <br></br>
                                     <CountrySelect country={data.country}/>
+                                    <br></br>
+                                    <br></br>
+                                     <a className='TabButton' href="/login">LOGOUT</a>
                                 </>
                             :
                                 <></>
@@ -483,7 +489,7 @@ function renderFriends(friends) {
     for (const friend of friends) {
         children.push(
             <a key={friend} href={"/user/" + encodeURIComponent(friend)}>
-                <AvatarImg className='FrenAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(friend)}></AvatarImg>
+                <AvatarImg className='FrenAvatar' title={friend} src={getHost() + "/api/avatar/" + encodeURIComponent(friend)}></AvatarImg>
             </a>
         );
     }
@@ -546,7 +552,7 @@ function UserScores(props) {
             const songURL = "/song/" + score.songId + "?strum=" + score.strum;
             children.push(<tr key={score.submitted}>
                 <td>
-                    <a href={songURL}> {score.name} </a>
+                    <a href={songURL}> {score.name} <img alt={score.strum !== 2 ? ' (op)' : ' (bf)'} src={'/images/' + (score.strum !== 2 ? 'op' : 'bf') + '_icon.png'} style={{maxHeight: '20px'}}></img> </a>
                     {
                         isAdmin && hasAccess('/api/admin/score/delete') ?
                             <>

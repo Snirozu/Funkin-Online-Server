@@ -2,13 +2,14 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import AvatarImg from './AvatarImg';
-import { getHost, hasAccess, headProfileColor } from './Util';
+import { getHost, hasAccess, headProfileColor, tabButtonColor } from './Util';
 
 function HeadBar() {
     const [data, setData] = useState({
         name: '',
         points: 0,
-        profileHue: 250
+        profileHue: 250,
+        profileHue2: undefined
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -28,6 +29,7 @@ function HeadBar() {
             Cookies.set('access_list', data.access.join(','), { sameSite: 'strict' });
 
             document.documentElement.style.setProperty('--head-profile-color', headProfileColor(data.profileHue));
+            document.documentElement.style.setProperty('--tab-button-color', tabButtonColor(data.profileHue));
 
             setError(null);
             setData(data);
@@ -42,29 +44,41 @@ function HeadBar() {
         fetchData();
     }, []);
 
+    // if (loading) {
+    //     return (<>
+    //         <div className="Bar"> </div>
+    //     </>);
+    // }
+
     return (
         <>
             <div className="Bar">
-                <a href="/">HOME</a>
-                <a href="/network">NETWORK</a>
-                <a href="/stats">STATS</a>
-                <a href="/search">SEARCH</a>
-                <a href="/top">TOP</a>
-                {Cookies.get('authid') ? <a href="/friends">FRIENDS</a> : <></>}
-                {hasAccess('/admin') ? <a href="/admin" style={{color: 'tomato'}}>ADMIN</a> : <></>}
+                <a href="/" style={{ display: 'flex', height: '45px', width: '45px' }}><img alt="HOME" src='/images/locon.png'></img></a>
+                <a className='TabButton' href="/network">NETWORK</a>
+                <a className='TabButton' href="/stats">STATS</a>
+                <a className='TabButton' href="/search">SEARCH</a>
+                <a className='TabButton' href="/top">TOP</a>
+                {Cookies.get('authid') ? <a className='TabButton' href="/friends">FRIENDS</a> : <></>}
+                {hasAccess('/admin') ? <a className='TabButton' href="/admin" style={{color: 'tomato'}}>ADMIN</a> : <></>}
                 {loading ? (
                     <></>
                 ) : error ? (
-                    <></>
+                    <>
+                        <a className='TabButton' href="/login" style={{
+                            marginLeft: 'auto',
+                            marginRight: '10px'
+                        }}>LOGIN</a>
+                    </>
                 ) : (
                     <>
-                        <a className='BarProfile' href={"/user/" + encodeURIComponent(data.name)}>
+                        <a className='TabButton' id='BarProfile' href={"/user/" + encodeURIComponent(data.name)}>
                             <AvatarImg className='SmallerAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(data.name)}/>
                             <div className='BarProfileText'>
                                 <b>Welcome, {data.name}! </b> <br></br>
                                 Points: {data.points}
                             </div>
                         </a>
+
                     </>
                 )}
             </div>

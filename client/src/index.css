@@ -1,5 +1,5 @@
 :root {
-  --background-image: '';
+  --background-image: url('bg.png');
 }
 
 body {
@@ -18,9 +18,13 @@ code {
 
 html {
   background-color: #161516;
-  background-image: var(--background-image), url('bg.png');
+  background-image: var(--background-image);
   background-repeat: no-repeat;
   /* background-size: 2145px 1035px; */
   background-size: cover;
   background-position: center;
+}
+
+* {
+  scrollbar-width: thin;
 }

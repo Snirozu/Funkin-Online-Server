@@ -28,12 +28,18 @@ export function getHost() {
     return window.location.protocol + "//" + window.location.host;
 }
 
-export function headProfileColor(hue, fp) {
+export function tabButtonColor(hue) {
 	if (hue === undefined || hue === null)
 		hue = 250;
-	if (fp > 500)
-		return 'linear-gradient(0.7turn, hsl(' + hue + ',25%,30%), hsl(' + (+hue + 10) + ',30%,20%))';
-    return "hsl(" + hue + ",20%,30%)";
+	return "hsl(" + hue + ",25%,25%)";
+}
+
+export function headProfileColor(hue, hue2) {
+	if (hue === undefined || hue === null)
+		hue = 250;
+	if (hue2 || hue2 === 0)
+		return 'linear-gradient(0.2turn, hsl(' + hue + ',35%,30%), hsl(' + hue2 + ',40%,25%))';
+	return "hsl(" + hue + ",35%,30%)";
 }
 
 export function miniProfileColor(hue) {
@@ -42,14 +48,14 @@ export function miniProfileColor(hue) {
 	return "hsl(" + hue + ",25%,10%)";
 }
 
-export function contentProfileColor(hue, fp) {
+export function contentProfileColor(hue, hue2) {
 	if (hue < 0)
 		return "#282c34";
 	if (hue === undefined || hue === null)
 		hue = 250;
-	if (fp > 500)
-		return 'linear-gradient(hsl(' + hue + ',25%,20%), hsl(' + (+hue + 5) + ',25%,10%))';
-	return "hsl(" + hue + ",20%,20%)";
+	if (hue2 || hue2 === 0)
+		return 'linear-gradient(hsl(' + hue + ',35%,20%), hsl(' + hue2 + ',40%,15%))';
+	return "hsl(" + hue + ",35%,20%)"
 }
 
 export function textProfileColor(hue) {

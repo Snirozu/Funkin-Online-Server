@@ -229,6 +229,11 @@ export class GameRoom extends Room<RoomState> {
                     player.hasSong = sid == client.sessionId;
                 }
 
+                const requester = this.getStatePlayer(client);
+                if (!requester)
+                    return;
+
+                this.broadcast("log", formatLog(requester.name + ' has picked song: "' + this.state.song + '"'));
                 this.broadcast("checkChart", "", { afterNextPatch: true });
             }
             else {
@@ -250,6 +255,11 @@ export class GameRoom extends Room<RoomState> {
                     player.isReady = false;
                 }
 
+                const requester = this.getStatePlayer(client);
+                if (!requester)
+                    return;
+
+                this.broadcast("log", formatLog(requester.name + ' has picked stage: "' + this.state.stageName + '"'));
                 this.broadcast("checkStage", "", { afterNextPatch: true });
             }
             else {
@@ -298,6 +308,10 @@ export class GameRoom extends Room<RoomState> {
             if (!requester)
                 return;
 
+            if (requester.hasLoaded)
+                return;
+
+            this.broadcast("log", formatLog(requester.name + ' is ready!'));
             requester.hasLoaded = true;
 
             for (const dummy of this.dummies) {
@@ -687,7 +701,7 @@ export class GameRoom extends Room<RoomState> {
 
             switch (message[0]) {
                 case "roll":
-                    this.broadcast("log", formatLog("> " + requester.name + " has rolled " + Math.floor(Math.random() * (6 - 1 + 1) + 1)));
+                    this.broadcast("log", formatLog("> " + requester.name + " has rolled " + Math.floor(Math.random() * 6 + 1)));
                     break;
                 case "kick":
                     if (!this.isOwner(client)) {

@@ -6,6 +6,7 @@
 :root {
   --head-profile-color: #282c34;
   --content-profile-color: #282c34;
+  --tab-button-color: #475063;
   --text-profile-color: #ff7d7d;
   --row-profile-color: #362d3b;
   --row-profile-color-two: rgb(46, 40, 51);
@@ -85,6 +86,11 @@ a:hover {
   align-items: center;
   padding: 6px;
   padding-left: 7px;
+  transition: 0.1s;
+}
+
+.TopContainer:hover {
+  scale: 1.02;
 }
 
 .TopContainer div {
@@ -120,29 +126,49 @@ a:hover {
 }
 
 .Bar {
-  background-color: #31353d;
+  /* background: var(--head-profile-color); */
+  background-color: #141414;
+  opacity: 0.9;
   width: 100%;
   display: flex;
-  font-size: 30px;
+  font-size: 25px;
   align-items: center;
-  overflow: auto;
+  overflow-y: hidden;
+  overflow-x: auto;
   padding-top: 5px;
   padding-bottom: 5px;
+  /* height: 40px; */
+  height: 50px;
+  transition: 0.2s;
+  position: fixed;
+  z-index: 9999;
+  top: 0px;
+}
+
+.Bar:hover {
+  opacity: 1.0;
+  height: 55px;
 }
 
 .Bar > * {
   overflow-wrap: normal;
+  margin-left: 20px;
+  transition: 0.1s;
 }
 
-.Bar a {
-  margin-left: 20px;
-  color: white;
-  background-color: #475063;
+.TabButton {
   padding: 5px;
+  color: white;
+  background-color: #363636;
+  /* background-color: var(--tab-button-color); */
   border-radius: 10px;
 }
 
-.Bar .BarProfile {
+.Bar a:hover, .TabButton:hover {
+  scale: 1.05;
+}
+
+.Bar #BarProfile {
   margin-left: auto;
   margin-right: 20px;
   max-height: 40px;
@@ -206,6 +232,11 @@ a:hover {
 
   height: 30px;
   max-height: 30px;
+  transition: 0.2s;
+}
+
+.FrenAvatar:hover {
+  scale: 1.3;
 }
 
 .FrenBox {
@@ -273,6 +304,11 @@ a:hover {
   background-color: #121418;
   padding: 20px;
   max-width: 20%;
+  transition: 0.2s;
+}
+
+.Downloads a:hover {
+  scale: 1.1;
 }
 
 .Downloads p {
@@ -286,6 +322,11 @@ a:hover {
   color: white;
   max-width: fit-content;
   margin: 5px;
+  transition: 0.1s;
+}
+
+.Coolbox:hover {
+  scale: 1.1;
 }
 
 .Coolbox a {
@@ -311,7 +352,7 @@ a:hover {
   display: flex;
   color: white;
   padding: 20px;
-  margin: 30px;
+  margin: 80px;
   border-radius: 25px;
   overflow: auto;
 
@@ -508,7 +549,7 @@ tbody tr:nth-child(even) {
   cursor: pointer;
 }
 
-#ProfileColorSlider {
+#ProfileColorSlider, #ProfileColorSlider2 {
   margin-top: 10px;
   width: 90%;
 }

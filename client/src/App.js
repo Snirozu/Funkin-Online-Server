@@ -11,6 +11,7 @@ import FriendArea from './routes/FriendArea';
 import NotFound from './routes/NotFound';
 import Search from './routes/Search';
 import Leaderboard from './routes/Leaderboard';
+import Login from './routes/Login';
 
 const App = () => {
   return (
@@ -26,6 +27,7 @@ const App = () => {
         <Route path="/friends" element={<FriendArea />} />
         <Route path="/search" element={<Search />} />
         <Route path="/top" element={<Leaderboard />} />
+        <Route path="/login" element={<Login />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </div>

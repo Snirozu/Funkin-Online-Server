@@ -15,6 +15,7 @@ function Leaderboard() {
         player: '',
         points: 0,
         profileHue: 0,
+        profileHue2: undefined,
         country: ''
     }]);
     const [loading, setLoading] = useState(true);
@@ -87,7 +88,7 @@ function renderPlayers(data, page) {
         const daRank = daPlayers.length + 1 + (page * 15);
         daPlayers.push(
             <div className="FlexBox">
-                <a href={"/user/" + encodeURIComponent(player.player)} className='TopContainer' style={{ background: headProfileColor(player.profileHue, player.points)}}>
+                <a href={"/user/" + encodeURIComponent(player.player)} className='TopContainer' style={{ background: headProfileColor(player.profileHue, player.profileHue2)}}>
                     <AvatarImg className='TopAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(player.player)}></AvatarImg>
                     <div className="FlexBox">
                         <span style={{fontSize: '20px', color: (

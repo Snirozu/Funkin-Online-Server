@@ -7,6 +7,8 @@ import { initDatabaseCache, prisma } from "./network";
 import sanitizeHtml from 'sanitize-html';
 import { loadConfig } from "./Config";
 import { DiscordBot } from "./discord";
+import { initNetworkExpress } from "./networkSite";
+import express from 'express';
 
 process.on('uncaughtException', function (exception) {
     console.error(exception);
@@ -71,6 +73,14 @@ async function main() {
 
                 if (process.env["DISCORD_TOKEN"]) {
                     DiscordBot.init();
+                }
+
+                if (process.env["SITE_ENABLED"] == "true") {
+                    // const app = express();
+                    // initNetworkExpress(app);
+                    // app.listen(3000, () => {
+                    //     console.log("Site is enabled")
+                    // });
                 }
             })
             .catch(reason => {

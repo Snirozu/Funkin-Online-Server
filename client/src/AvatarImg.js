@@ -5,7 +5,7 @@ function AvatarImg(props) {
     };
 
     return (
-        <img className={props.className ? props.className : 'Avatar'} onError={onFailAvatar} alt='' src={props.src} onClick={props.onClick} ></img>
+        <img className={props.className ? props.className : 'Avatar'} onError={onFailAvatar} alt={props.alt} title={props.title} src={props.src} onClick={props.onClick} ></img>
     )
 }
 

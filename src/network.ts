@@ -572,7 +572,7 @@ export async function renamePlayer(id: string, name: string) {
     cachedProfileNameHue.delete(oldPlayer.name);
 
     cachePlayerUniques(data.id, data.name);
-    cachedProfileNameHue.set(data.name, data.profileHue ?? 250);
+    cachedProfileNameHue.set(data.name, [data.profileHue ?? 250, data.profileHue2]);
 
     return {
         new: data.name,
@@ -600,7 +600,7 @@ export async function grantPlayerRole(name: string, role: string) {
     }));
 }
 
-export async function setPlayerBio(id: string, bio: string, hue: number, country: string) {
+export async function setPlayerBio(id: string, bio: string, hue: number, country: string, hue2: number) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
@@ -616,16 +616,26 @@ export async function setPlayerBio(id: string, bio: string, hue: number, country
     if (hue < 0)
         hue = 0;
 
+    if (hue2 > 360)
+        hue2 = 360;
+    if (hue2 < 0)
+        hue2 = 0;
+
     const sanitizedHtml = sanitizeHtml(bio);
 
     if (!validCountries.includes(country)) {
         country = null;
     }
 
+    const user = await getPlayerByID(id);
+    if (user.points < 500)
+        hue2 = undefined;
+
     return (await prisma.user.update({
         data: {
             bio: sanitizedHtml,
             profileHue: hue,
+            profileHue2: hue2,
             country: country
         },
         where: {
@@ -644,7 +654,7 @@ export async function getPlayerByName(name: string) {
             where: {
                 name: {
                     equals: name,
-                    mode: "insensitive"
+                    mode: "default"
                 }
             }
         });
@@ -663,7 +673,7 @@ export async function getPlayerByEmail(email: string) {
             where: {
                 email: {
                     equals: email,
-                    mode: "insensitive"
+                    mode: "default"
                 }
             }
         });
@@ -785,6 +795,7 @@ export async function pingPlayer(id: string) {
                 joined: true,
                 lastActive: true,
                 profileHue: true,
+                profileHue2: true,
                 avgAccSum: true,
                 avgAccSumAmount: true,
                 country: true
@@ -872,6 +883,7 @@ export async function topPlayers(page:number, country?:string): Promise<Array<an
                 name: true,
                 points: true,
                 profileHue: true,
+                profileHue2: true,
                 country: true
             },
             take: 15,
@@ -1658,17 +1670,18 @@ export async function getPlayerProfileHue(name: string) {
 
     try {
         if (!cachedProfileNameHue.has(name)) {
-            const daHue = (await prisma.user.findFirstOrThrow({
+            const data = (await prisma.user.findFirstOrThrow({
                 where: {
                     name: {
                         equals: name
                     }
                 },
                 select: {
-                    profileHue: true
+                    profileHue: true,
+                    profileHue2: true
                 }
-            })).profileHue ?? 250;
-            cachedProfileNameHue.set(name, daHue);
+            }));
+            cachedProfileNameHue.set(name, [data.profileHue ?? 250, data.profileHue2]);
         }
 
         return cachedProfileNameHue.get(name);
@@ -1683,7 +1696,7 @@ export async function getPlayerProfileHue(name: string) {
 export let cachedIDtoName: Map<string, string> = new Map<string, string>();
 export let cachedNameToID: Map<string, string> = new Map<string, string>();
 
-export let cachedProfileNameHue: Map<string, number> = new Map<string, number>();
+export let cachedProfileNameHue: Map<string, number[]> = new Map<string, number[]>();
 
 export async function cachePlayerUniques(id:string, name:string) {
     cachedIDtoName.set(id, name);
@@ -1700,11 +1713,12 @@ export async function initDatabaseCache() {
         select: {
             id: true,
             name: true,
-            profileHue: true
+            profileHue: true,
+            profileHue2: true
         }
     })) {
         cachePlayerUniques(user.id, user.name);
-        cachedProfileNameHue.set(user.name, user.profileHue ?? 250);
+        cachedProfileNameHue.set(user.name, [user.profileHue ?? 250, user.profileHue2]);
     }
     //await recountPlayersFP();
     console.log('successfully cached the database!');

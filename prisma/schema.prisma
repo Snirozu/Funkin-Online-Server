@@ -27,6 +27,7 @@ model User {
   email String? @unique
   bio String?
   profileHue Int?
+  profileHue2 Int?
   avgAccSum Float?
   avgAccSumAmount Int?
   country String?

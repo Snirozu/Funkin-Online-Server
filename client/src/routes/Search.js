@@ -119,7 +119,8 @@ function PlayerSearchList(props) {
         name: '',
         role: '',
         points: 0,
-        profileHue: 0
+        profileHue: 0,
+        profileHue2: undefined
     }]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
