@@ -74,7 +74,7 @@ function User() {
                 const response = await axios.post(getHost() + '/api/account/profile/set', {
                     bio: bioHTML ?? data.bio,
                     hue: document.getElementById('ProfileColorSlider').value,
-                    hue2: document.getElementById('ProfileColorSlider2').value,
+                    hue2: document?.getElementById('ProfileColorSlider2')?.value,
                     country: country
                 }, {
                     headers: {
