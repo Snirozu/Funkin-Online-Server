@@ -888,7 +888,7 @@ export function initNetworkExpress(app: Express) {
             try {
                 const [id, _] = getIDToken(req);
 
-                await setPlayerBio(id, req.body.bio, Number.parseInt(req.body.hue), req.body.country, Number.parseInt(req.body.hue2 ?? 0));
+                await setPlayerBio(id, req.body.bio, Number.parseInt(req.body.hue), req.body.country, Number.parseInt(req.body.hue2 as string ?? "0"));
                 res.sendStatus(200);
             }
             catch (exc: any) {
