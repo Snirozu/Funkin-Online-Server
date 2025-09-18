@@ -84,7 +84,11 @@ function User() {
                 if (response.status !== 200) {
                     throw new Error('Failed.');
                 }
-            } catch (error) {}
+                window.alert('Changes Saved!');
+            } catch (error) {
+                console.error(error);
+                window.alert(error);
+            }
         }
 
         setBioEditMode(!editBioMode);
