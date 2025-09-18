@@ -892,6 +892,7 @@ export function initNetworkExpress(app: Express) {
                 res.sendStatus(200);
             }
             catch (exc: any) {
+                console.error(exc);
                 res.status(400).json({
                     error: exc.error_message ?? "Couldn't set bio..."
                 });
