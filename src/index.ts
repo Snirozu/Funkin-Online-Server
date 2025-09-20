@@ -73,6 +73,12 @@ async function main() {
 
                 if (process.env["DISCORD_TOKEN"]) {
                     DiscordBot.init();
+                    setInterval(async () => {
+                        if (!DiscordBot.client.isReady()) {
+                            await DiscordBot.client.destroy();
+                            DiscordBot.init();
+                        }
+                    }, 1000 * 60);
                 }
 
                 if (process.env["SITE_ENABLED"] == "true") {
