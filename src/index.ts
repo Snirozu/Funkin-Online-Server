@@ -74,8 +74,10 @@ async function main() {
                 if (process.env["DISCORD_TOKEN"]) {
                     DiscordBot.init();
                     setInterval(async () => {
-                        if (!DiscordBot.client.isReady()) {
-                            await DiscordBot.client.destroy();
+                        if (!DiscordBot.networkChannel || !DiscordBot.client.isReady()) {
+                            try {
+                                await DiscordBot.client.destroy();
+                            } catch (_) { }
                             DiscordBot.init();
                         }
                     }, 1000 * 60);

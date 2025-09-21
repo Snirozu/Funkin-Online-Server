@@ -34,6 +34,13 @@ export class DiscordBot {
     }
 
     static async getWebhook() {
+        if (!DiscordBot.networkChannel || !DiscordBot.client.isReady()) {
+            try {
+                await DiscordBot.client.destroy();
+            } catch (_) {}
+            DiscordBot.init();
+        }
+
         const webhooks = await DiscordBot.networkChannel.fetchWebhooks();
         let webhook = webhooks.find(wh => wh.token);
 
