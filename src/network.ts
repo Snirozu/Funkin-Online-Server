@@ -522,17 +522,7 @@ export async function removePlayerFromClub(playerID: string) {
 
     //if there are no members left disband the club
     if (clubMembers.length == 0) {
-        await prisma.fileClubBanner.delete({
-            where: {
-                clubTag: club.tag
-            }
-        });
-
-        await prisma.club.delete({
-            where: {
-                id: club.id
-            }
-        })
+        await deleteClub(club.tag);
         return;
     }
 
