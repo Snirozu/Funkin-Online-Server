@@ -14,13 +14,14 @@ access = [
 
 
 [[roles]]
-# manages users
+# manages users and clubs
 name = "Moderator"
 priority = 2
 access = [
     '/api/admin/user/set/email',
     '/api/admin/user/ban',
     '/api/admin/players',
+    '/api/admin/club/delete',
     'command.announce'
 ]
 extends = 'Helper'
@@ -47,6 +48,7 @@ access = [
     '/api/song/*',
     '/api/score/*',
     '/api/user/*',
+    '/api/club/*',
     'room.auth',
     # '/api/account/info',
     # '/api/account/me',

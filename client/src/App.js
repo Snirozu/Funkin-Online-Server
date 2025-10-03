@@ -10,8 +10,11 @@ import Stats from './routes/Stats';
 import FriendArea from './routes/FriendArea';
 import NotFound from './routes/NotFound';
 import Search from './routes/Search';
-import Leaderboard from './routes/Leaderboard';
 import Login from './routes/Login';
+import Club from './routes/Club';
+import ClubHome from './routes/ClubHome';
+import TopPlayers from './routes/TopPlayers';
+import TopClubs from './routes/TopClubs';
 
 const App = () => {
   return (
@@ -26,8 +29,11 @@ const App = () => {
         <Route path="/stats" element={<Stats />} />
         <Route path="/friends" element={<FriendArea />} />
         <Route path="/search" element={<Search />} />
-        <Route path="/top" element={<Leaderboard />} />
+        <Route path="/top/players" element={<TopPlayers />} />
+        <Route path="/top/clubs" element={<TopClubs />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/club" element={<ClubHome />} />
+        <Route path="/club/:tag" element={<Club />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </div>

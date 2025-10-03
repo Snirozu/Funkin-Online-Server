@@ -96,6 +96,20 @@ model SongComment {
   songid  String
 }
 
+model Club {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  name    String @unique
+  tag     String @unique
+  members String[]
+  pending String[]
+  leaders String[]
+  content String?
+  hue     Int?
+  points  BigInt
+  created DateTime @default(now())
+  banner  FileClubBanner?
+}
+
 model FileReplay {
   id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
   data    Bytes
@@ -120,4 +134,13 @@ model FileBackground {
   date    DateTime @default(now())
   ownerRe User     @relation(fields: [owner], references: [id])
   owner   String   @db.ObjectId @unique
+}
+
+model FileClubBanner {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  data    Bytes
+  size    BigInt
+  date    DateTime @default(now())
+  clubRe  Club     @relation(fields: [clubTag], references: [tag])
+  clubTag String   @unique
 }

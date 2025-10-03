@@ -19,7 +19,7 @@
   font-family: 'PhantomMuff';
 }
 
-p, span, a {
+p, span, a, .SeamlessInput {
   font-family: 'PhantomMuff';
   overflow-wrap: anywhere;
 }
@@ -61,10 +61,16 @@ h2::after, h3::after {
   margin-right: -50%;
 }
 
-p {
+p, .SeamlessInput {
   font-size: 20px;
   margin-bottom: 15px;
   margin-top: 10px;
+}
+
+.SeamlessInput {
+  text-decoration: none;
+  background: transparent;
+  color: white;
 }
 
 img {
@@ -86,6 +92,7 @@ a:hover {
   align-items: center;
   padding: 6px;
   padding-left: 7px;
+  padding-right: 15px;
   transition: 0.1s;
 }
 
@@ -147,7 +154,7 @@ a:hover {
 
 .Bar:hover {
   opacity: 1.0;
-  height: 55px;
+  height: 60px;
 }
 
 .Bar > * {
@@ -464,6 +471,11 @@ a:hover {
   max-width: 38px;
 }
 
+.BiggerClubBanner {
+  border-radius: 3px;
+  height: 80px;
+}
+
 .ProfileInfo {
   padding-left: 10px;
 }
@@ -616,4 +628,8 @@ select {
   background-color: #9b9b9ba8;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.TopClubBanner {
+  height: 90px;
 }

@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkAccess, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages, validateEmail, getPriority, grantPlayerRole, getSong } from "./network";
+import { genAccessToken, createUser, submitScore, checkAccess, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages, validateEmail, getPriority, grantPlayerRole, getSong, createClub, requestJoinClub, acceptJoinClub, getPlayerClub, removePlayerFromClub, promoteClubMember, demoteClubMember, getClub, getPlayerClubTag, getClubBanner, uploadClubBanner, postClubEdit, getClubRank, topClubs, deleteClub } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -13,6 +13,7 @@ import { findPlayerSIDByNID, isUserIDInRoom, isUserNameInRoom } from "./util";
 import { DEFAULT_ROLE, loadConfig, ROLES } from "./Config";
 import cors from 'cors';
 import { matchMaker } from "colyseus";
+import { Image } from "canvas";
 
 TimeAgo.addDefaultLocale(en);
 const timeAgo = new TimeAgo('en-US')
@@ -161,7 +162,8 @@ export function initNetworkExpress(app: Express) {
                     joined: user.joined,
                     lastActive: user.lastActive,
                     points: user.points,
-                    avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0
+                    avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
+                    club: await getPlayerClubTag(id),
                 });
             }
             catch (exc) {
@@ -249,7 +251,8 @@ export function initNetworkExpress(app: Express) {
                     profileHue2: user.profileHue2,
                     avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
                     rank: await getPlayerRank(user.name),
-                    country: user.country
+                    country: user.country,
+                    club: await getPlayerClubTag(user.id)
                 });
             }
             catch (exc) {
@@ -284,7 +287,8 @@ export function initNetworkExpress(app: Express) {
                     profileHue2: user.profileHue2,
                     avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
                     rank: await getPlayerRank(user.name),
-                    country: user.country
+                    country: user.country,
+                    club: await getPlayerClubTag(user.id)
                 });
             }
             catch (exc) {
@@ -432,6 +436,17 @@ export function initNetworkExpress(app: Express) {
                 if (!reqPlayer || getPriority(target) >= getPriority(reqPlayer))
                     return res.sendStatus(403);
                 await deleteUser(target.id);
+                return res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/club/delete", checkAccess, async (req, res) => {
+            try {
+                await deleteClub(req.query.tag as string);
                 return res.sendStatus(200);
             }
             catch (exc) {
@@ -618,7 +633,8 @@ export function initNetworkExpress(app: Express) {
                             points: player.points,
                             profileHue: player.profileHue ?? 250,
                             profileHue2: player.profileHue2,
-                            country: player.country
+                            country: player.country,
+                            club: await getPlayerClubTag(player.id)
                         });
                     }
                 }
@@ -680,7 +696,8 @@ export function initNetworkExpress(app: Express) {
                     profileHue: player.profileHue ?? 250,
                     profileHue2: player.profileHue2,
                     country: player.country,
-                    access: ROLES.get(player.role ?? DEFAULT_ROLE).access ?? []
+                    access: ROLES.get(player.role ?? DEFAULT_ROLE).access ?? [],
+                    club: await getPlayerClubTag(id)
                 });
             }
             catch (exc) {
@@ -1126,17 +1143,325 @@ export function initNetworkExpress(app: Express) {
             }
         });
 
-        app.all("/dev/test", async (req, res) => {
+        app.get("/api/club/details", async (req, res) => {
             try {
-                res.send(await getPlayerRank(req.query.name as string) + "");
+                if (!req.query.tag)
+                    return res.sendStatus(400);
+
+                const club = await getClub(req.query.tag as string);
+
+                let members = [];
+                for (const member of club.members) {
+                    const user = await getPlayerByID(member);
+                    members.push({
+                        player: user.name,
+                        points: user.points,
+                        profileHue: user.profileHue ?? 250,
+                        profileHue2: user.profileHue2,
+                        country: user.country
+                    });
+                }
+
+                let leaders = [];
+                for (const member of club.leaders)
+                    leaders.push(await getPlayerNameByID(member));
+
+                members.sort((a, b) => {
+                    return leaders.includes(a.player) ? -1 : 0;
+                });
+
+                res.status(200).json({
+                    name: club.name,
+                    tag: club.tag,
+                    members: members,
+                    leaders: leaders,
+                    content: club.content,
+                    created: club.created,
+                    points: Number(club.points),
+                    rank: await getClubRank(club.tag),
+                    hue: club.hue
+                });
             }
             catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.get("/api/club/banner/:tag", async (req, res) => {
+            try {
+                if (!req.params.tag)
+                    return res.sendStatus(400);
+
+                const file = await getClubBanner(req.params.tag);
+                if (!file)
+                    return res.sendStatus(404);
+
+                res.send(file.data);
+            }
+            catch (exc) {
                 console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/club/pending", checkAccess, async (req, res) => {
+            try {
+                const [id, _] = getIDToken(req);
+                const club = await getPlayerClub(id);
+                if (!club.leaders.includes(id)) {
+                    throw { error_message: 'Only club leaders can do that!' }
+                }
+
+                let pending = [];
+                for (const user of club.pending)
+                    pending.push(await getPlayerNameByID(user));
+
+                res.status(200).json(pending);
+            }
+            catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.post("/api/club/create", checkAccess, async (req, res) => {
+            try {
+                const [id, _] = getIDToken(req);
+                const club = await createClub(id, req.body);
+                res.status(200).send(club.tag);
+            }
+            catch (exc: any) {
+                if (!exc?.error_message)
+                    console.error(exc);
+
                 res.status(400).json({
-                    error: exc.error_message ?? "Error has accured..."
+                    error: exc.error_message ?? "Couldn't create a club..."
                 });
             }
         });
+
+        app.get("/api/club/join", checkAccess, async (req, res) => {
+            try {
+                if (!req.query.tag)
+                    return res.sendStatus(400);
+
+                const [id, _] = getIDToken(req);
+                await requestJoinClub(req.query.tag as string, id);
+                res.sendStatus(200);
+            }
+            catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.get("/api/club/accept", checkAccess, async (req, res) => {
+            try {
+                if (!req.query.user)
+                    return res.sendStatus(400);
+
+                const [id, _] = getIDToken(req);
+                const club = await getPlayerClub(id);
+                if (!club.leaders.includes(id)) {
+                    throw { error_message: 'Only club leaders can do that!' }
+                }
+                await acceptJoinClub(club.tag, await getPlayerIDByName(req.query.user as string));
+                res.sendStatus(200);
+            }
+            catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.get("/api/club/kick", checkAccess, async (req, res) => {
+            try {
+                if (!req.query.user)
+                    return res.sendStatus(400);
+
+                const [id, _] = getIDToken(req);
+                const club = await getPlayerClub(id);
+                const reqID = await getPlayerIDByName(req.query.user as string);
+                if (reqID == id) {
+                    throw { error_message: 'You cannot kick yourself!' }
+                }
+                const clubReq = await getPlayerClub(reqID);
+                if (!club.leaders.includes(id)) {
+                    throw { error_message: 'Only club leaders can do that!' }
+                }
+                if (club.id != clubReq.id) {
+                    throw { error_message: 'You can\'t manage this club!' }
+                }
+                await removePlayerFromClub(reqID);
+                res.sendStatus(200);
+            }
+            catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.get("/api/club/promote", checkAccess, async (req, res) => {
+            try {
+                if (!req.query.user)
+                    return res.sendStatus(400);
+
+                const [id, _] = getIDToken(req);
+                const club = await getPlayerClub(id);
+                const clubReq = await getPlayerClub(await getPlayerIDByName(req.query.user as string));
+                if (!club.leaders.includes(id)) {
+                    throw { error_message: 'Only club leaders can do that!' }
+                }
+                if (club.id != clubReq.id) {
+                    throw { error_message: 'You can\'t manage this club!' }
+                }
+                await promoteClubMember(await getPlayerIDByName(req.query.user as string));
+                res.sendStatus(200);
+            }
+            catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.get("/api/club/demote", checkAccess, async (req, res) => {
+            try {
+                if (!req.query.user)
+                    return res.sendStatus(400);
+
+                const [id, _] = getIDToken(req);
+                const club = await getPlayerClub(id);
+                const clubReq = await getPlayerClub(await getPlayerIDByName(req.query.user as string));
+                if (!club.leaders.includes(id)) {
+                    throw { error_message: 'Only club leaders can do that!' }
+                }
+                if (club.id != clubReq.id) {
+                    throw { error_message: 'You can\'t manage this club!' }
+                }
+                await demoteClubMember(await getPlayerIDByName(req.query.user as string));
+                res.sendStatus(200);
+            }
+            catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+        
+        app.get("/api/club/leave", checkAccess, async (req, res) => {
+            try {
+                const [id, _] = getIDToken(req);
+                const club = await getPlayerClub(id);
+                if (!club) {
+                    throw { error_message: 'You are not in a club!' }
+                }
+                await removePlayerFromClub(id);
+                res.sendStatus(200);
+            }
+            catch (exc: any) {
+                console.error(exc);
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.post("/api/club/banner", checkAccess, async (req, res) => {
+            try {
+                const [id, _] = getIDToken(req);
+                const club = await getPlayerClub(id);
+                if (!club.leaders.includes(id)) {
+                    throw { error_message: 'Only club leaders can do that!' }
+                }
+
+                const file = req.files.file as UploadedFile;
+                if (file.size > 1024 * 350) {
+                    return res.sendStatus(413);
+                }
+
+                if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg' && file.mimetype != 'image/gif') {
+                    return res.sendStatus(415);
+                }
+
+                const img = new Image();
+                img.onload = async function () {
+                    if (img.width != 256 && img.height != 128) {
+                        return res.status(400).json({
+                            error: 'Image must be in size of 128x256!'
+                        });
+                    }
+
+                    if (!await uploadClubBanner(club.tag, file.data)) {
+                        return res.sendStatus(500);
+                    }
+                    res.sendStatus(200);
+                }
+                img.onerror = async function () {
+                    res.status(500).json({
+                        error: 'Server failed to read the image.'
+                    });
+                }
+                img.src = "data:" + file.mimetype + ";base64," + file.data.toString("base64");
+            }
+            catch (exc: any) {
+                console.log(exc);
+                res.status(400).json({
+                    error: exc.error_message ?? "Couldn't upload..."
+                });
+            }
+        });
+
+        app.get("/api/account/club", checkAccess, async (req, res) => {
+            try {
+                const [id, _] = getIDToken(req);
+                const clubTag = await getPlayerClubTag(id);
+
+                if (!clubTag) {
+                    res.sendStatus(404);
+                    return;
+                }
+
+                res.status(200).send(clubTag as string);
+            }
+            catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.post("/api/club/edit", checkAccess, async (req, res) => {
+            try {
+                const [id, _] = getIDToken(req);
+                const club = await getPlayerClub(id);
+                if (!club.leaders.includes(id)) {
+                    throw { error_message: 'Only club leaders can do that!' }
+                }
+                await postClubEdit(club.tag, req.body);
+                res.sendStatus(200);
+            }
+            catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.get("/api/top/clubs", async (req, res) => {
+            try {
+                if (!req.query.page)
+                    return res.sendStatus(400);
+
+                const top = await topClubs(parseInt(req.query.page as string));
+                if (!top)
+                    return res.sendStatus(404);
+
+                res.send(top);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        // app.all("/dev/test", async (req, res) => {
+        //     try {
+        //         res.send(await getPlayerRank(req.query.name as string) + "");
+        //     }
+        //     catch (exc: any) {
+        //         console.error(exc);
+        //         res.status(400).json({
+        //             error: exc.error_message ?? "Error has accured..."
+        //         });
+        //     }
+        // });
 
         // app.all("/perish_all", checkAccess, async (req, res) => {
         //     try {
@@ -1297,7 +1622,14 @@ async function showIndex(req: Request, res: Response) {
                 }
                 break;
             case "top":
-                title = 'FP Leaderboard' + (req.query.country ? ' in ' + getFlagEmoji(req.query.country as string) : '');
+                switch (params[1]) {
+                    case 'players':
+                        title = 'FP Leaderboard' + (req.query.country ? ' in ' + getFlagEmoji(req.query.country as string) : '');
+                        break;
+                    case 'clubs':
+                        title = 'Clubs Leaderboard';
+                        break;
+                }
                 break;
             case "friends":
                 title = 'Friend List';

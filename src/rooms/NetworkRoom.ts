@@ -2,7 +2,7 @@ import { Room, Client } from "@colyseus/core";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
 import { Data } from "../Data";
-import { authPlayer, getPlayerByID, getPlayerByName, getPlayerIDByName, hasAccess } from "../network";
+import { authPlayer, getPlayerByID, getPlayerByName, getPlayerClubTag, getPlayerIDByName, hasAccess } from "../network";
 import { NetworkSchema } from "./schema/NetworkSchema";
 import { formatLog, isUserIDInRoom } from "../util";
 import { DiscordBot } from "../discord";
@@ -39,9 +39,10 @@ export function logToAll(content: string, notDiscord?:boolean) {
 
 export async function discordChatMessage(user: string, content: string) {
   const webhook = await DiscordBot.getWebhook();
+  const tag = await getPlayerClubTag(await getPlayerIDByName(user))
   webhook.send({
     content: content,
-    username: user,
+    username: user + (tag ? ' [' + tag + ']' : ''),
     avatarURL: "https://funkin.sniro.boo/api/avatar/" + user // maybe make a .env value for domain? because i hate this with a burning passion
 });
 }

@@ -13,6 +13,7 @@ function HeadBar() {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [topTab, setTopTab] = useState(false);
 
     const fetchData = async () => {
         try {
@@ -52,14 +53,27 @@ function HeadBar() {
 
     return (
         <>
-            <div className="Bar">
+            <div className="Bar" onMouseLeave={() => {
+                setTopTab(false);
+            }}>
                 <a href="/" style={{ display: 'flex', height: '45px', width: '45px' }}><img alt="HOME" src='/images/locon.png'></img></a>
-                <a className='TabButton' href="/network">NETWORK</a>
-                <a className='TabButton' href="/stats">STATS</a>
-                <a className='TabButton' href="/search">SEARCH</a>
-                <a className='TabButton' href="/top">TOP</a>
-                {Cookies.get('authid') ? <a className='TabButton' href="/friends">FRIENDS</a> : <></>}
-                {hasAccess('/admin') ? <a className='TabButton' href="/admin" style={{color: 'tomato'}}>ADMIN</a> : <></>}
+                {
+                    !topTab ? <>
+                        <a className='TabButton' href="/network">NETWORK</a>
+                        <a className='TabButton' href="/stats">STATS</a>
+                        <a className='TabButton' href="/search">SEARCH</a>
+                        <a className='TabButton' href="##" onClick={() => {
+                            setTopTab(true);
+                        }}>TOP</a>
+                        <a className='TabButton' href="/club">CLUB</a>
+                        {Cookies.get('authid') ? <a className='TabButton' href="/friends">FRIENDS</a> : <></>}
+                        {hasAccess('/admin') ? <a className='TabButton' href="/admin" style={{ color: 'tomato' }}>ADMIN</a> : <></>}
+                    </> : 
+                    <>
+                        <a className='TabButton' href="/top/players">PLAYERS</a>
+                        <a className='TabButton' href="/top/clubs">CLUBS</a>
+                    </>
+                }
                 {loading ? (
                     <></>
                 ) : error ? (

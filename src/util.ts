@@ -75,6 +75,15 @@ export function intToHue(num:number) {
     return 60 * (4.0 + (r - g) / (cMax - cMin));
 }
 
+export function hasOnlyLettersAndNumbers(str:string) {
+    return /^[A-Za-z0-9]*$/.test(str);
+}
+
+export function removeFromArray(arr:Array<any>, item:any) {
+    arr.splice(arr.indexOf(item, 0), 1);
+    return arr;
+}
+
 export const validCountries = [
     null,
     'AF',

@@ -21,7 +21,7 @@ export function ordinalNum(num) {
 }
 
 export function getHost() {
-    return "https://funkin.sniro.boo";
+    // return "https://funkin.sniro.boo";
     if (window.location.hostname === "localhost") {
         return "http://localhost:2567";
     }
@@ -47,6 +47,13 @@ export function miniProfileColor(hue) {
 		hue = 250;
 	return "hsl(" + hue + ",25%,10%)";
 }
+
+export function clubProfileColor(hue) {
+	if (hue === undefined || hue === null)
+		hue = 250;
+	return "hsl(" + hue + ",25%,15%)";
+}
+
 
 export function contentProfileColor(hue, hue2) {
 	if (hue < 0)
@@ -92,6 +99,11 @@ function matchWildcard(match, to) {
 	let w = match.replace(/[.+^${}()|[\]\\]/g, '\\$&');
 	const re = new RegExp(`^${w.replace(/\*/g, '.*').replace(/\?/g, '.')}$`, 'i');
 	return re.test(to) !== isNegative;
+}
+
+export function returnDate(time) {
+	const date = new Date(time);
+	return date.getDate() + '/' + (date.getMonth() + 1) + "/" + (date.getFullYear() + "").substring(2);
 }
 
 export const allCountries = new Map([

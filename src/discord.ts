@@ -1,4 +1,4 @@
-import { ActivityType, Client, Events, GatewayIntentBits, TextChannel } from 'discord.js';
+import { ActivityType, Client, Events, GatewayIntentBits, MessageType, TextChannel } from 'discord.js';
 import { logToAll } from './rooms/NetworkRoom';
 import { intToHue } from './util';
 
@@ -17,8 +17,12 @@ export class DiscordBot {
 
         DiscordBot.client.on(Events.MessageCreate, async message => {
             if (!message.author.bot && message.channel.id === process.env["DISCORD_NETWORK_CHANNEL_ID"]) {
+                let suffix = '';
+                if (message.type == MessageType.Reply) {
+                    suffix = ' (replying to @' + (await message.fetchReference()).author.username + ')';
+                }
                 logToAll(JSON.stringify({
-                    content: '[DC] @' + message.author.username + ': ' + message.content,
+                    content: '[DC] @' + message.author.username + suffix + ': ' + message.content,
                     hue: intToHue(message.member.displayColor),
                     date: message.createdAt.getTime(),
                     isPM: false

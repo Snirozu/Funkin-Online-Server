@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
-import { filterSongName, filterUsername, formatLog, ordinalNum, validCountries } from "./util";
+import { filterSongName, filterUsername, formatLog, hasOnlyLettersAndNumbers, ordinalNum, removeFromArray, validCountries } from "./util";
 import { logToAll, networkRoom, notifyPlayer } from "./rooms/NetworkRoom";
 import sanitizeHtml from 'sanitize-html';
 import { Data } from "./Data";
@@ -40,10 +40,12 @@ export async function checkAccess(req: any, res: any, next: any) {
     const player = await getLoginPlayerByID(id);
 
     if (player == null || token == null || id == null) {
+        console.log(player, token, id);
         return res.sendStatus(401)
     }
 
     if (!hasAccess(player, req.path)) {
+        console.log('no access');
         return res.sendStatus(401)
     }
 
@@ -250,6 +252,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     })
 
     await updateSongMaxPoints(song.id);
+    await updateClubPoints(await getPlayerClubTag(submitter.id));
 
     return {
         song: song.id,
@@ -322,6 +325,412 @@ export async function submitReport(id: string, reqJson: any) {
             content: reqJson.content
         },
     }));
+}
+
+export async function demoteClubMember(userID: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const club = await getPlayerClub(userID);
+    if (!club)
+        throw { error_message: "The user is not in a club!" }
+
+    if (!club.leaders.includes(userID))
+        throw { error_message: "The user is not a mod!" }
+
+    if (club.leaders.length == 1) {
+        throw { error_message: "A club can't have no leaders!" }
+    }
+
+    return (await prisma.club.update({
+        where: {
+            tag: club.tag
+        },
+        data: {
+            leaders: removeFromArray(club.leaders, userID)
+        },
+    }));
+}
+
+export async function promoteClubMember(userID: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const club = await getPlayerClub(userID);
+    if (!club)
+        throw { error_message: "The user is not in a club!" }
+
+    if (club.leaders.includes(userID))
+        throw { error_message: "The user is already a mod!" }
+
+    return (await prisma.club.update({
+        where: {
+            tag: club.tag
+        },
+        data: {
+            leaders: {
+                push: userID
+            }
+        },
+    }));
+}
+
+export async function acceptJoinClub(clubTag: string, userID: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const userClub = await getPlayerClub(userID);
+
+    if (userClub) {
+        await prisma.club.update({
+            where: {
+                id: userClub.id
+            },
+            data: {
+                pending: removeFromArray(userClub.pending, userID)
+            },
+        });
+        throw { error_message: "The user is already in a club!" }
+    }
+
+    const club = await getClub(clubTag);
+    if (!club.pending.includes(userID))
+        throw { error_message: "The user hasn't sent a request!" }
+
+    cachedUserIDClubTag.set(userID, clubTag);
+
+    await prisma.club.update({
+        where: {
+            tag: clubTag
+        },
+        data: {
+            pending: removeFromArray(club.pending, userID),
+            members: {
+                push: userID
+            }
+        },
+    });
+
+    await updateClubPoints(clubTag);
+}
+
+export async function requestJoinClub(clubTag: string, userID: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    if (await getPlayerClub(userID))
+        throw { error_message: "You're already in a club!" }
+
+    const club = await getClub(clubTag);
+    if (club.pending.includes(userID))
+        throw { error_message: "Already pending!" }
+
+    return (await prisma.club.update({
+        where: {
+            tag: clubTag
+        },
+        data: {
+            pending: {
+                push: userID
+            }
+        },
+    }));
+}
+
+export async function createClub(ownerID: string, reqBody: any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const submitter = await getPlayerByID(ownerID);
+    if (!submitter)
+        throw { error_message: "Not registered!" }
+
+    if (await getPlayerClub(ownerID))
+        throw { error_message: "You're already in a club!" }
+
+    if (submitter.points < 250)
+        throw { error_message: 'You need at least 250FP!' }
+
+    if (!reqBody.name || !reqBody.tag) {
+        throw { error_message: "Missing fields!" }
+    }
+
+    reqBody.name = reqBody.name.trim();
+
+    if (reqBody.name.length > 20) {
+        throw { error_message: "Name too long!" }
+    }
+
+    if (reqBody.tag.length < 2 || reqBody.tag.length > 5) {
+        throw { error_message: "Too short/long tag!" }
+    }
+
+    if (!hasOnlyLettersAndNumbers(reqBody.tag)) {
+        throw { error_message: "Tag can't contain non latin letters!" }
+    }
+
+    reqBody.tag = (reqBody.tag as string).toUpperCase();
+
+    if (await getClub(reqBody.tag))
+        throw { error_message: "Tag taken!" }
+
+    return (await prisma.club.create({
+        data: {
+            name: reqBody.name,
+            tag: reqBody.tag,
+            leaders: [ownerID],
+            members: [ownerID],
+            points: submitter.points
+        },
+    }));
+}
+
+export async function removePlayerFromClub(playerID: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const submitter = await getPlayerByID(playerID);
+    if (!submitter)
+        throw { error_message: "Not registered!" }
+
+    const club = await getPlayerClub(playerID);
+    if (!club)
+        throw { error_message: "Not in a club!" }
+    
+    let clubMembers = removeFromArray(club.members, playerID);
+    let clubLeaders = removeFromArray(club.leaders, playerID);
+
+    //remove from member list first
+    await prisma.club.update({
+        where: {
+            id: club.id
+        },
+        data: {
+            members: clubMembers,
+            leaders: clubLeaders
+        }
+    })
+
+    cachedUserIDClubTag.delete(playerID);
+    await updateClubPoints(club.tag);
+
+    //if there are no members left disband the club
+    if (clubMembers.length == 0) {
+        await prisma.fileClubBanner.delete({
+            where: {
+                clubTag: club.tag
+            }
+        });
+
+        await prisma.club.delete({
+            where: {
+                id: club.id
+            }
+        })
+        return;
+    }
+
+    //if the last leader left switch to another person
+    if (clubLeaders.length == 0) {
+        // if mods are in a club the earliest picked will be chosen otherwise the earliest member
+        let newOwner: string = clubMembers[0];
+        if (clubLeaders.length > 0) {
+            newOwner = clubLeaders[0];
+        }
+
+        await prisma.club.update({
+            where: {
+                id: club.id
+            },
+            data: {
+                leaders: {
+                    push: newOwner
+                }
+            }
+        })
+    }
+}
+
+export async function deleteClub(tag: string) {
+    const deleted = await prisma.club.delete({
+        where: {
+            tag: tag
+        }
+    })
+
+    for (const playerID of deleted.members) {
+        cachedUserIDClubTag.delete(playerID);
+    }
+
+    await prisma.fileClubBanner.delete({
+        where: {
+            clubTag: tag
+        }
+    })
+}
+
+export async function getPlayerClub(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    try {
+        const club = await prisma.club.findFirstOrThrow({
+            where: {
+                members: {
+                    has: id
+                }
+            }
+        });
+        cachedUserIDClubTag.set(id, club.tag);
+        return club;
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function postClubEdit(tag: string, body: any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    body.name = body.name.trim();
+    if (body.name.length > 20) {
+        throw { error_message: "Name too long!" }
+    }
+
+    if (body.hue > 360)
+        body.hue = 360;
+    if (body.hue < 0)
+        body.hue = 0;
+
+    try {
+        const club = await prisma.club.update({
+            where: {
+                tag: tag
+            },
+            data: {
+                content: sanitizeHtml(body.content),
+                name: body.name,
+                hue: body.hue
+            }
+        });
+        return club;
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function getClub(tag: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    try {
+        return (await prisma.club.findFirstOrThrow({
+            where: {
+                tag: tag
+            }
+        }));
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function getPlayerClubTag(id: string) {
+    if (cachedUserIDClubTag.has(id)) {
+        return cachedUserIDClubTag.get(id);
+    }
+    const club = await getPlayerClub(id);
+    if (!club) {
+        return null;
+    }
+    cachedUserIDClubTag.set(id, club.tag);
+    return club.tag;
+}
+
+export async function updateClubPoints(tag: string) {
+    const club = await getClub(tag);
+    if (!club)
+        return;
+
+    let points = 0;
+
+    for (const pid of club.members) {
+        const player = await getPlayerByID(pid);
+        points += player.points;
+    }
+
+    prisma.club.update({
+        where: {
+            id: club.id
+        },
+        data: {
+            points: points
+        }
+    });
+}
+
+export async function getClubRank(tag: string): Promise<number> {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
+    try {
+        const everyone = await prisma.club.findMany({
+            orderBy: [
+                {
+                    points: 'desc'
+                }
+            ],
+            select: {
+                tag: true,
+            }
+        });
+        return everyone.findIndex(club => club.tag == tag) + 1;
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function topClubs(page: number): Promise<Array<any>> {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
+    try {
+        return (await prisma.club.findMany({
+            orderBy: [
+                {
+                    points: 'desc'
+                },
+                {
+                    created: 'desc'
+                }
+            ],
+            select: {
+                name: true,
+                points: true,
+                tag: true,
+                hue: true
+            },
+            take: 15,
+            skip: 15 * page
+        }));
+    }
+    catch (exc) {
+        return null;
+    }
 }
 
 export async function removeSongComment(userId: string, songId: string) {
@@ -441,6 +850,8 @@ export async function removeScore(id: string, checkPlayer?: string) {
                 id: score.player
             }
         })
+
+        await updateClubPoints(await getPlayerClubTag(score.player));
     }
     catch (exc) {
         console.error(exc);
@@ -880,6 +1291,7 @@ export async function topPlayers(page:number, country?:string): Promise<Array<an
                 country: country
             } : undefined,
             select: {
+                id: true,
                 name: true,
                 points: true,
                 profileHue: true,
@@ -1324,6 +1736,8 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
             }
         })
 
+        await removePlayerFromClub(id);
+        
         try {
             networkRoom.IDtoClient.get(player.id).leave(403);
         }
@@ -1331,6 +1745,51 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
     }
 
     console.log("Set " + id + "'s ban status to " + to);
+}
+
+export async function uploadClubBanner(tag: string, data: Buffer) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
+    try {
+        await prisma.fileClubBanner.deleteMany({
+            where: {
+                clubTag: tag
+            }
+        })
+        return await prisma.fileClubBanner.create({
+            data: {
+                data: data,
+                size: data.byteLength,
+                clubRe: {
+                    connect: {
+                        tag: tag
+                    }
+                }
+            }
+        });
+    }
+    catch (exc) {
+        return null;
+    }
+}
+
+export async function getClubBanner(tag: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
+    try {
+        return await prisma.fileClubBanner.findUnique({
+            where: {
+                clubTag: tag
+            }
+        });
+    }
+    catch (exc) {
+        return null;
+    }
 }
 
 export async function uploadAvatar(userId:string, data:Buffer) {
@@ -1575,6 +2034,12 @@ export async function perishScores() {
         }
     })
     console.log("deleted ranking shit");
+
+    await prisma.club.updateMany({
+        data: {
+            points: 0
+        }
+    })
 }
 
 // export async function migrateRoles() {
@@ -1697,6 +2162,7 @@ export let cachedIDtoName: Map<string, string> = new Map<string, string>();
 export let cachedNameToID: Map<string, string> = new Map<string, string>();
 
 export let cachedProfileNameHue: Map<string, number[]> = new Map<string, number[]>();
+export let cachedUserIDClubTag: Map<string, string> = new Map<string, string>();
 
 export async function cachePlayerUniques(id:string, name:string) {
     cachedIDtoName.set(id, name);
@@ -1720,6 +2186,18 @@ export async function initDatabaseCache() {
         cachePlayerUniques(user.id, user.name);
         cachedProfileNameHue.set(user.name, [user.profileHue ?? 250, user.profileHue2]);
     }
+
+    for (const club of await prisma.club.findMany({
+        select: {
+            members: true,
+            tag: true
+        }
+    })) {
+        for (const member of club.members) {
+            cachedUserIDClubTag.set(member, club.tag);
+        }
+    }
+
     //await recountPlayersFP();
     console.log('successfully cached the database!');
 }

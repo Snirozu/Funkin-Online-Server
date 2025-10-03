@@ -1,23 +1,20 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { allCountries, contentProfileColor, getHost, hasAccess, headProfileColor, moneyFormatter, ordinalNum, tabButtonColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
+import { allCountries, contentProfileColor, getHost, hasAccess, headProfileColor, moneyFormatter, ordinalNum, returnDate, tabButtonColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
 import { Icon } from '@iconify/react';
 import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
 import Popup from 'reactjs-popup';
 
-function ReturnDate(time) {
-    const date = new Date(time);
-    return date.getDate() + '/' + (date.getMonth() + 1) + "/" + (date.getFullYear() + "").substring(2);
-}
-
 function User() {
     let { name } = useParams();
     name = decodeURIComponent(name);
+
+    const navigate = useNavigate();
 
     const [data, setData] = useState({
         joined: 0,
@@ -31,7 +28,8 @@ function User() {
         profileHue2: undefined,
         avgAccuracy: 0,
         rank: -1,
-        country: ''
+        country: '',
+        club: ''
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -199,10 +197,15 @@ function User() {
                             <div className='NameContainer'>
                                 <span className='AvatarCaption'> {name} </span>
                                 {data.country ?
-                                    <a href={'/top?country=' + data.country}>
+                                    <a href={'/top/players?country=' + data.country}>
                                         <Flag code={data.country}></Flag>
                                     </a>
                                 : <></>}
+                                {data.club ? (
+                                    <>
+                                    <center> <a href={'/club/' + data.club} style={{color: 'white'}}> [{data.club}] </a> </center>
+                                    </>
+                                ) : <></>}
                             </div>
                             {data.role ? (
                                 <center> <b> {data.role} </b> </center>
@@ -212,7 +215,7 @@ function User() {
                         <b>Points: </b> {moneyFormatter.format(data.points)} <br />
                         <b>Accuracy: </b> {(data.avgAccuracy * 100).toFixed(2)}% <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
-                        <b>Joined: </b> {ReturnDate(Date.parse(data.joined))} <br />
+                        <b>Joined: </b> {returnDate(Date.parse(data.joined))} <br />
                         {
                             data?.friends.length > 0 ?
                                 <>
@@ -255,7 +258,12 @@ function User() {
                         : <></>}
                         {
                             adminMode && hasAccess('/api/admin/user/ban') ? 
-                                <a title='Ban' target="_blank" rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} href={"/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true")}>
+                                <a title='Ban' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
+                                    if (!window.confirm('Are you sure?'))
+                                        return;
+
+                                    navigate("/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true"));
+                                }} href='##'>
                                     <button className='SvgButton'>
                                         {(data.role === "Banned" ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
                                     </button>
@@ -281,7 +289,7 @@ function User() {
                                     <CountrySelect country={data.country}/>
                                     <br></br>
                                     <br></br>
-                                     <a className='TabButton' href="/login">LOGOUT</a>
+                                    <a className='TabButton' href="/login">LOGOUT</a>
                                 </>
                             :
                                 <></>
@@ -607,6 +615,9 @@ function UserScores(props) {
     }
 
     async function removeScore(scoreId) {
+        if (!window.confirm('Are you sure?'))
+            return;
+
         try {
             const response = await axios.get(getHost() + "/api/admin/score/delete?id=" + scoreId, {
                 headers: {

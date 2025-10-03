@@ -5,7 +5,7 @@ import AvatarImg from "../AvatarImg";
 import { CountrySelect, Flag } from "./User";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-function Leaderboard() {
+function TopPlayers() {
     const [searchParams] = useSearchParams();
     let page = Number.parseInt(searchParams.get('page') ?? '0');
     let country = searchParams.get('country');
@@ -16,7 +16,8 @@ function Leaderboard() {
         points: 0,
         profileHue: 0,
         profileHue2: undefined,
-        country: ''
+        country: '',
+        club: undefined
     }]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -26,7 +27,7 @@ function Leaderboard() {
             setLoading(true);
             page = newPage ?? page;
             country = newCountry ?? country;
-            navigate('/top?page=' + page + (country ? '&country=' + country : ''));
+            navigate('/top/players?page=' + page + (country ? '&country=' + country : ''));
             const response = await fetch(getHost() + '/api/top/players?page=' + page + (country ? '&country=' + country : ''));
             if (!response.ok) {
                 throw new Error('Couldn\'t return players.');
@@ -97,12 +98,15 @@ function renderPlayers(data, page) {
                             daRank === 3 ? 'lightsteelblue' : 
                             'darkgray' 
                         )}}>{ordinalNum(daRank)}</span>
-                        <span style={{ fontSize: '35px' }}> {player.player} </span> 
+                        <span style={{ fontSize: '35px' }}> {player.player} </span>
                         {player.country ?
                             <Flag className='BiggerFlag' code={player.country}></Flag>
                         : <></>}
                         <br></br>
                         <span style={{fontSize: '20px', color: 'gainsboro'}}> {moneyFormatter.format(player.points)} FP </span>
+                    </div>
+                    <div style={{ marginLeft: 'auto' }}>
+                        <img className='BiggerClubBanner' src={getHost() + '/api/club/banner/' + player.club} alt={player.club ?? ''} /> 
                     </div>
                 </a>
             </div>
@@ -112,4 +116,4 @@ function renderPlayers(data, page) {
     return daPlayers;
 }
 
-export default Leaderboard;
+export default TopPlayers;

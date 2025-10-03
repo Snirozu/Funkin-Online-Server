@@ -10,6 +10,10 @@ import { DiscordBot } from "./discord";
 import { initNetworkExpress } from "./networkSite";
 import express from 'express';
 
+BigInt.prototype['toJSON'] = function () {
+    return this.toString()
+}
+
 process.on('uncaughtException', function (exception) {
     console.error(exception);
 });
