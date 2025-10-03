@@ -1389,7 +1389,7 @@ export function initNetworkExpress(app: Express) {
                 img.onload = async function () {
                     if (img.width != 256 && img.height != 128) {
                         return res.status(400).json({
-                            error: 'Image must be in size of 128x256!'
+                            error: 'Image must be in size of 256x128!'
                         });
                     }
 

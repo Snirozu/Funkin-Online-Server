@@ -295,7 +295,7 @@ function Club() {
                         </div>
                         {clanEditMode ? <>
                             <div className="CenterFlex">
-                                <b>Upload Banner (128x256px)</b>
+                                <b>Upload Banner (256x128px)</b>
                             </div>
                             <div className="CenterFlex">
                                 <input accept="image/png, image/jpeg, image/gif" type="file" onChange={setBanner} />
