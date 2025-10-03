@@ -574,7 +574,7 @@ function UserScores(props) {
                             </>
                             : <></>
                     }
-                    <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'var(--text-profile-color)' }} href={"/api/score/replay?id=" + score.id}>
+                    <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'var(--text-profile-color)' }} href={"psych-online://replay/" + score.id}>
                         <Icon width={20} icon="mdi:eye" />
                     </a>
                     {
