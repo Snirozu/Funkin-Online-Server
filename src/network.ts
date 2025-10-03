@@ -568,11 +568,13 @@ export async function deleteClub(tag: string) {
         cachedUserIDClubTag.delete(playerID);
     }
 
-    await prisma.fileClubBanner.delete({
-        where: {
-            clubTag: tag
-        }
-    })
+    try {
+        await prisma.fileClubBanner.delete({
+            where: {
+                clubTag: tag
+            }
+        })
+    } catch (_) {}
 }
 
 export async function getPlayerClub(id: string) {
@@ -670,12 +672,12 @@ export async function updateClubPoints(tag: string) {
         points += player.points;
     }
 
-    prisma.club.update({
+    await prisma.club.update({
         where: {
             id: club.id
         },
         data: {
-            points: points
+            points: BigInt(points)
         }
     });
 }

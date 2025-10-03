@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { genAccessToken, createUser, submitScore, checkAccess, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages, validateEmail, getPriority, grantPlayerRole, getSong, createClub, requestJoinClub, acceptJoinClub, getPlayerClub, removePlayerFromClub, promoteClubMember, demoteClubMember, getClub, getPlayerClubTag, getClubBanner, uploadClubBanner, postClubEdit, getClubRank, topClubs, deleteClub } from "./network";
+import { genAccessToken, createUser, submitScore, checkAccess, submitReport, getPlayerByID, getPlayerByName, renamePlayer, pingPlayer, getIDToken, topScores, getScore, topPlayers, getScoresPlayer, authPlayer, viewReports, removeReport, removeScore, getSongComments, submitSongComment, removeSongComment, searchSongs, searchUsers, setEmail, getPlayerByEmail, deleteUser, setUserBanStatus, setPlayerBio, requestFriendRequest, removeFriendFromUser, getUserFriends, searchFriendRequests, getPlayerRank, getPlayerIDByName, getPlayerNameByID, getPlayerProfileHue, getReplayFile, uploadAvatar, getAvatar, hasAvatar, uploadBackground, getBackground, removeImages, validateEmail, getPriority, grantPlayerRole, getSong, createClub, requestJoinClub, acceptJoinClub, getPlayerClub, removePlayerFromClub, promoteClubMember, demoteClubMember, getClub, getPlayerClubTag, getClubBanner, uploadClubBanner, postClubEdit, getClubRank, topClubs, deleteClub, updateClubPoints } from "./network";
 import cookieParser from "cookie-parser";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
@@ -447,6 +447,17 @@ export function initNetworkExpress(app: Express) {
         app.get("/api/admin/club/delete", checkAccess, async (req, res) => {
             try {
                 await deleteClub(req.query.tag as string);
+                return res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/club/updatefp", checkAccess, async (req, res) => {
+            try {
+                await updateClubPoints(req.query.tag as string);
                 return res.sendStatus(200);
             }
             catch (exc) {
