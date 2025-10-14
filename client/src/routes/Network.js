@@ -90,7 +90,7 @@ function renderSezs(msgs) {
 
     for (const msg of msgs) {
         render.push(<div className="Comment" style={{maxWidth: '70%'}}>
-            <AvatarImg className="SmallerAvatar" src={getHost() + "/api/avatar/" + encodeURIComponent(msg.player)}></AvatarImg>
+            <AvatarImg className="SmallerAvatar" src={getHost() + "/api/user/avatar/" + encodeURIComponent(msg.player)}></AvatarImg>
             <div>
                 <a href={"/user/" + msg.player}>{msg.player}</a> <br></br>
                 <span>{msg.message}</span> <br></br>
@@ -112,7 +112,7 @@ function renderPlayers(players) {
         render.push(
             <div className="Coolbox">
                 <a href={"/user/" + encodeURIComponent(player)}>
-                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(player)}></AvatarImg>
+                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(player)}></AvatarImg>
                     <br></br><span>{player}</span>
                 </a>
             </div>

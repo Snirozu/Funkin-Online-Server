@@ -1,15 +1,16 @@
-import { Data } from "./Data";
-import { getPlayerIDByName, getPlayerNameByID } from "./network";
+import { Data } from "./data";
+import { getPlayerIDByName, getPlayerNameByID } from "./network/database";
 import { GameRoom } from "./rooms/GameRoom";
 
+const songNameRegex = /[A-Z]|[a-z]|[0-9]/g;
+const userNameRegex = /[^<>\r\n\t]+/g;
+
 export function filterSongName(str:string) {
-    var re = /[A-Z]|[a-z]|[0-9]/g;
-    return (str.match(re) || []).join('');
+    return (str.match(songNameRegex) || []).join('');
 }
 
 export function filterUsername(str:string) {
-    var re = /[^<>\r\n\t]+/g;
-    return (str.match(re) || []).join('').trim();
+    return (str.match(userNameRegex) || []).join('').trim();
 }
 
 export function formatLog(content:string, hue:number = null, isPM:boolean = false):string {
@@ -32,16 +33,16 @@ export function ordinalNum(num:number) {
 }
 
 export async function isUserNameInRoom(userName:string, room?:GameRoom) {
-    if (!room) room = Data.MAP_USERNAME_PLAYINGROOM.get(userName);
+    if (!room) room = Data.INFO.MAP_USERNAME_PLAYINGROOM.get(userName);
     return await isUserIDInRoom(await getPlayerIDByName(userName), room);
 }
 
 export async function isUserIDInRoom(userID: string, room?: GameRoom) {
-    if (!room) room = Data.MAP_USERNAME_PLAYINGROOM.get(await getPlayerNameByID(userID));
+    if (!room) room = Data.INFO.MAP_USERNAME_PLAYINGROOM.get(await getPlayerNameByID(userID));
     return room && room.clients.length > 0 && findPlayerSIDByNID(room, userID);
 }
 
-export function findPlayerSIDByNID(room: GameRoom, networkId: any) {
+export function findPlayerSIDByNID(room: GameRoom, networkId: string) {
     for (const [clientSessionId, info] of room.clientsInfo) {
         if (info.networkId == networkId)
             return clientSessionId;
@@ -49,7 +50,7 @@ export function findPlayerSIDByNID(room: GameRoom, networkId: any) {
     return null;
 }
 
-export function hasValue(map:Map<any, any>, value:any) {
+export function hasValue(map: Map<any, any>, value: any) {
     for (const v of map.values()) {
         if (v == value)
             return true;
@@ -59,7 +60,7 @@ export function hasValue(map:Map<any, any>, value:any) {
 
 export function intToHue(num:number) {
     num >>>= 0;
-    var b = num & 0xFF,
+    const b = num & 0xFF,
         g = (num & 0xFF00) >>> 8,
         r = (num & 0xFF0000) >>> 16;
 
@@ -79,9 +80,23 @@ export function hasOnlyLettersAndNumbers(str:string) {
     return /^[A-Za-z0-9]*$/.test(str);
 }
 
-export function removeFromArray(arr:Array<any>, item:any) {
-    arr.splice(arr.indexOf(item, 0), 1);
+export function removeFromArray(arr:any[], item:any) {
+    const index = arr.indexOf(item, 0);
+    if (index == -1)
+        return arr;
+    arr.splice(index, 1);
     return arr;
+}
+
+export function filterChatMessage(msg:string) {
+    msg = msg.replaceAll('\n', ' ');
+
+    const words = [];
+    for (const word of msg.split(' ')) {
+        const filter = Data.CONFIG.CHAT_FILTER.get(word.toLowerCase());
+        words.push(filter ?? word);
+    }
+    return words.join(' ');
 }
 
 export const validCountries = [

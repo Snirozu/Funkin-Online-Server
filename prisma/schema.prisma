@@ -21,6 +21,7 @@ model User {
   joined  DateTime @default(now())
   lastActive  DateTime @default(now())
   points    Int
+  pointsWeekly    Int?
   role String?
   pendingFriends String[] //list of players to accept invites from
   friends String[] // friends ids
@@ -37,6 +38,7 @@ model User {
   songComments SongComment[]
   avatar FileAvatar?
   background FileBackground?
+  notifications Notification[]
 }
 
 // recommended to have `maxPoints` descending index set
@@ -62,6 +64,7 @@ model Score {
 
   playbackRate Float
   strum    Int
+  category String?
 
   submitted DateTime @default(now())
   modURL String?
@@ -108,6 +111,17 @@ model Club {
   points  BigInt
   created DateTime @default(now())
   banner  FileClubBanner?
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  date      DateTime @default(now())
+  userRe    User     @relation(fields: [to], references: [id])
+  to        String   @db.ObjectId
+  title     String
+  content   String?
+  image     String?
+  href      String?
 }
 
 model FileReplay {

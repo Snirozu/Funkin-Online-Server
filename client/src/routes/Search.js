@@ -155,7 +155,7 @@ function PlayerSearchList(props) {
                         {
                             user.role !== "Banned" ? (
                                 <>
-                                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(user.name)}></AvatarImg>
+                                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(user.name)}></AvatarImg>
                                     <br></br>
                                     <span>{user.name}</span>
                                     <br></br>

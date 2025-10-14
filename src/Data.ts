@@ -1,22 +1,38 @@
+import fs from 'fs';
 import { GameRoom } from "./rooms/GameRoom";
+import { ConfigData } from "./data.config";
+import { PersistentData } from "./data.persistent";
 
 export class Data {
-    public static PROTOCOL_VERSION = 9;
-    public static NETWORK_PROTOCOL_VERSION = 8;
-    public static DAY_PLAYERS: any[] = [];
-    public static COUNTRY_PLAYERS: any = {};
-    public static ONLINE_PLAYERS: string[] = [];
-    public static MAP_USERNAME_PLAYINGROOM: Map<string, GameRoom> = new Map<string, GameRoom>();
-    public static EMAIL_BLACKLIST: string[] = [];
-    public static PUBLIC: PublicData;
+    public static PERSIST: PersistentData;
+    public static INFO: InfoData;
+    public static CONFIG: ConfigData;
+
+    static async init() {
+        if (!fs.existsSync("database/"))
+            fs.mkdirSync("database/");
+        
+        Data.PERSIST = new PersistentData();
+        Data.PERSIST.load();
+
+        Data.INFO = new InfoData();
+        Data.INFO.load();
+
+        Data.CONFIG = new ConfigData();
+        await Data.CONFIG.load();
+    }
 }
 
-export class PublicData {
-    public FRONT_MESSAGES: SezData[] = [];
-    public LOGGED_MESSAGES: Array<Array<any>> = []; // array<any> is [content, unix_timestamp]
-}
+export class InfoData {
+    public DAY_PLAYERS: any[] = [];
+    public COUNTRY_PLAYERS: any = {};
+    public ONLINE_PLAYERS: string[] = [];
+    public MAP_USERNAME_PLAYINGROOM: Map<string, GameRoom> = new Map<string, GameRoom>();
 
-class SezData {
-    player: string
-    message: string
+    load() {
+        if (fs.existsSync("database/day_players.json"))
+            this.DAY_PLAYERS = JSON.parse(fs.readFileSync("database/day_players.json", 'utf8'));
+        if (fs.existsSync("database/country_players.json"))
+            this.COUNTRY_PLAYERS = JSON.parse(fs.readFileSync("database/country_players.json", 'utf8'));
+    }
 }

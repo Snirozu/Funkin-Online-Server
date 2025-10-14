@@ -6,7 +6,7 @@ export class DiscordBot {
     static networkChannel: TextChannel = null;
     static client: Client;
 
-    static init() {
+    static async init() {
         DiscordBot.client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent], closeTimeout: 30000 });
 
         DiscordBot.client.once(Events.ClientReady, async readyClient => {
@@ -21,7 +21,7 @@ export class DiscordBot {
                 if (message.type == MessageType.Reply) {
                     suffix = ' (replying to @' + (await message.fetchReference()).author.username + ')';
                 }
-                logToAll(JSON.stringify({
+                await logToAll(JSON.stringify({
                     content: '[DC] @' + message.author.username + suffix + ': ' + message.content,
                     hue: intToHue(message.member.displayColor),
                     date: message.createdAt.getTime(),
@@ -34,15 +34,17 @@ export class DiscordBot {
             console.log('DISCORD ERROR: ' + message);
         });
 
-        DiscordBot.client.login(process.env["DISCORD_TOKEN"]);
+        await DiscordBot.client.login(process.env["DISCORD_TOKEN"]);
     }
 
     static async getWebhook() {
         if (!DiscordBot.networkChannel || !DiscordBot.client.isReady()) {
             try {
                 await DiscordBot.client.destroy();
-            } catch (_) {}
-            DiscordBot.init();
+            } catch (exc) {
+                console.error(exc);
+            }
+            await DiscordBot.init();
         }
 
         const webhooks = await DiscordBot.networkChannel.fetchWebhooks();

@@ -9,6 +9,7 @@ import { Icon } from '@iconify/react';
 import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
 import Popup from 'reactjs-popup';
+import { TopCategorySelect, TopSortSelect } from '../components';
 
 function User() {
     let { name } = useParams();
@@ -36,8 +37,10 @@ function User() {
     const [editBioMode, setBioEditMode] = useState(null);
     const [bioHTML, setHTML] = useState(null);
     const [adminMode, setAdminMode] = useState(Cookies.get('admin') ?? undefined);
+    const [topCategory, setTopCategory] = useState(Cookies.get('user_topcategory'));
+    const [topSort, setTopSort] = useState(Cookies.get('user_topsort'));
 
-    document.documentElement.style.setProperty('--background-image', 'url("' + getHost() + "/api/background/" + encodeURIComponent(name) + '")');
+    document.documentElement.style.setProperty('--background-image', 'url("' + getHost() + "/api/user/background/" + encodeURIComponent(name) + '")');
 
     function onChange(e) {
         setHTML(e.target.value);
@@ -169,6 +172,175 @@ function User() {
         }
     }
 
+    function UserScores(props) {
+        const [data, setData] = useState([
+            {
+                name: "?",
+                songId: "?",
+                strum: 0,
+                score: 0,
+                accuracy: 0,
+                points: 0,
+                submitted: 0,
+                id: '',
+                modURL: '',
+                misses: 0
+            }
+        ]);
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState(null);
+        const [page, setPage] = useState(0);
+
+        const fetchData = async () => {
+            setLoading(true);
+            setError(null);
+
+            try {
+                const response = await axios.get(getHost() + '/api/user/scores?name=' + props.user + "&page=" + page + (topCategory ? '&category=' + topCategory : '') + (topSort ? '&sort=' + topSort : ''));
+                if (response.status !== 200) {
+                    throw new Error('User not found.');
+                }
+                setPage(page);
+                setData(response.data);
+                setLoading(false);
+                setError(null);
+            } catch (error) {
+                setError(error.message);
+                setLoading(false);
+            }
+        };
+
+        useEffect(() => {
+            fetchData();
+        }, [page, topCategory]);
+
+        function renderScores(scores, isAdmin) {
+            var children = [];
+
+            let i = 0;
+            for (const score of scores) {
+                const songURL = "/song/" + score.songId + "?strum=" + score.strum + (topCategory ? '&category=' + topCategory : '');
+                children.push(<tr key={score.submitted}>
+                    <td>
+                        <a href={songURL}> {score.name} <img alt={score.strum !== 2 ? ' (op)' : ' (bf)'} src={'/images/' + (score.strum !== 2 ? 'op' : 'bf') + '_icon.png'} style={{ maxHeight: '20px' }}></img> </a>
+                        {
+                            isAdmin && hasAccess('/api/admin/score/delete') ?
+                                <>
+                                    <button title='Remove Score' className='SvgNoButton' style={{ float: 'right', color: 'var(--text-profile-color)' }} onClick={() => removeScore(score.id)}>
+                                        <Icon width={20} icon="mdi:trash-outline" />
+                                    </button>
+                                </>
+                                : <></>
+                        }
+                        <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'var(--text-profile-color)' }} href={"/api/score/replay?id=" + score.id}>
+                            <Icon width={20} icon="mdi:eye" />
+                        </a>
+                        {
+                            (score.modURL && (score.modURL + '').startsWith('https://')) ?
+                                <a title='View Mod URL' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'var(--text-profile-color)' }} href={score.modURL}>
+                                    <Icon width={20} icon="material-symbols:dataset-linked-outline-rounded" />
+                                </a>
+                                :
+                                <></>
+                        }
+                    </td>
+                    <td>
+                        {moneyFormatter.format(score.score)}
+                    </td>
+                    <td>
+                        {score.accuracy}%
+                    </td>
+                    <td>
+                        {score.points}
+                    </td>
+                    {topSort ? topSort.startsWith('submitted') ? <td>
+                        {timeAgo.format(Date.parse(score.submitted))}
+                    </td> : topSort.startsWith('misses') ? <>
+                        {score.misses}
+                    </> : <></> : <></>}
+                </tr>);
+                i++;
+            }
+
+            return (
+                <table>
+                    <tbody>
+                        <tr>
+                            <td> Song </td>
+                            <td> Score </td>
+                            <td> Accuracy </td>
+                            <td> FP </td>
+                            {topSort ? topSort.startsWith('submitted') ? <td>
+                                Submitted
+                            </td> : topSort.startsWith('misses') ? <>
+                                Misses
+                            </> : <></> : <></>}
+                        </tr>
+                        {children}
+                    </tbody>
+                </table>
+            );
+        }
+
+        async function removeScore(scoreId) {
+            if (!window.confirm('Are you sure?'))
+                return;
+
+            try {
+                const response = await axios.get(getHost() + "/api/admin/score/delete?id=" + scoreId, {
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                    }
+                });
+                if (response.status !== 200) {
+                    throw new Error('Failed.');
+                }
+            } catch (error) { }
+
+            fetchData();
+        }
+
+        return (<>
+            <h2> Performances </h2>
+            {
+                loading ? <center> Fetching Scores... </center> :
+                error ? <center> Error: {error} </center> :
+                data.length > 0 ? (
+                <>
+                    {renderScores(data, props.adminMode)}
+                </>
+            ) :
+                (page > 0) ? fetchData(0) : <> <center> None. </center> </>
+            }
+            <br></br>
+            <center> Time: <TopCategorySelect v={topCategory} onSelect={(sel) => {
+                Cookies.set('user_topcategory', sel);
+                if (!sel)
+                    Cookies.remove('user_topcategory');
+                setTopCategory(sel);
+            }} />
+            &nbsp;
+            Sort By: <TopSortSelect v={topSort} onSelect={(sel) => {
+                Cookies.set('user_topsort', sel);
+                if (!sel)
+                    Cookies.remove('user_topsort');
+                setTopSort(sel);
+            }} />
+            </center>
+            {(page > 0) ?
+                <button className='SvgButton' style={{ float: 'left' }} onClick={() => {
+                    setPage(page - 1);
+                }}> <Icon width={20} icon="mdi:arrow-left" /> </button>
+                : <></>}
+
+            {(data.length === 15) ?
+                <button className='SvgButton' style={{ float: 'right' }} onClick={() => {
+                    setPage(page + 1);
+                }}> <Icon width={20} icon="mdi:arrow-right" /> </button>
+                : <></>}
+        </>);
+    }
+
     return (
         <div className='Content' id='ProfileContent'>
             {loading ? (
@@ -192,7 +364,7 @@ function User() {
                                         </div>
                                     </div>
                                 : <></>}
-                                <AvatarImg src={getHost() + "/api/avatar/" + encodeURIComponent(name)} />
+                                <AvatarImg src={getHost() + "/api/user/avatar/" + encodeURIComponent(name)} />
                             </div>
                             <div className='NameContainer'>
                                 <span className='AvatarCaption'> {name} </span>
@@ -201,12 +373,12 @@ function User() {
                                         <Flag code={data.country}></Flag>
                                     </a>
                                 : <></>}
-                                {data.club ? (
-                                    <>
-                                    <center> <a href={'/club/' + data.club} style={{color: 'white'}}> [{data.club}] </a> </center>
-                                    </>
-                                ) : <></>}
                             </div>
+                            {data.club ? (
+                                <>
+                                <center> <a href={'/club/' + data.club} style={{color: 'white'}}> [{data.club}] </a> </center>
+                                </>
+                            ) : <></>}
                             {data.role ? (
                                 <center> <b> {data.role} </b> </center>
                             ) : <></>}
@@ -501,159 +673,12 @@ function renderFriends(friends) {
     for (const friend of friends) {
         children.push(
             <a key={friend} href={"/user/" + encodeURIComponent(friend)}>
-                <AvatarImg className='FrenAvatar' title={friend} src={getHost() + "/api/avatar/" + encodeURIComponent(friend)}></AvatarImg>
+                <AvatarImg className='FrenAvatar' title={friend} src={getHost() + "/api/user/avatar/" + encodeURIComponent(friend)}></AvatarImg>
             </a>
         );
     }
 
     return children;
-}
-
-function UserScores(props) {
-    const [data, setData] = useState([
-        {
-            name: "?",
-            songId: "?",
-            strum: 0,
-            score: 0,
-            accuracy: 0,
-            points: 0,
-            submitted: 0,
-            id: '',
-            modURL: ''
-        }
-    ]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [page, setPage] = useState(0);
-
-    const fetchData = async () => {
-        setLoading(true);
-        setError(null);
-
-        try {
-            const response = await axios.get(getHost() + '/api/user/scores?name=' + props.user + "&page=" + page);
-            if (response.status !== 200) {
-                throw new Error('User not found.');
-            }
-            setPage(page);
-            setData(response.data);
-            setLoading(false);
-            setError(null);
-        } catch (error) {
-            setError(error.message);
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, [page]);
-
-    if (loading)
-        return (<p>Fetching Scores...</p>);
-
-    if (error)
-        return (<p>Error: {error}</p>);
-
-    function renderScores(scores, isAdmin) {
-        var children = [];
-
-        let i = 0;
-        for (const score of scores) {
-            const songURL = "/song/" + score.songId + "?strum=" + score.strum;
-            children.push(<tr key={score.submitted}>
-                <td>
-                    <a href={songURL}> {score.name} <img alt={score.strum !== 2 ? ' (op)' : ' (bf)'} src={'/images/' + (score.strum !== 2 ? 'op' : 'bf') + '_icon.png'} style={{maxHeight: '20px'}}></img> </a>
-                    {
-                        isAdmin && hasAccess('/api/admin/score/delete') ?
-                            <>
-                                <button title='Remove Score' className='SvgNoButton' style={{ float: 'right', color: 'var(--text-profile-color)' }} onClick={() => removeScore(score.id)}>
-                                    <Icon width={20} icon="mdi:trash-outline" />
-                                </button>
-                            </>
-                            : <></>
-                    }
-                    <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'var(--text-profile-color)' }} href={"/api/score/replay?id=" + score.id}>
-                        <Icon width={20} icon="mdi:eye" />
-                    </a>
-                    {
-                        (score.modURL && (score.modURL + '').startsWith('https://')) ?
-                            <a title='View Mod URL' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'var(--text-profile-color)' }} href={score.modURL}>
-                                <Icon width={20} icon="material-symbols:dataset-linked-outline-rounded" />
-                            </a>
-                            :
-                            <></>
-                    }
-                </td>
-                <td>
-                    {moneyFormatter.format(score.score)}
-                </td>
-                <td>
-                    {score.accuracy}%
-                </td>
-                <td>
-                    {score.points}
-                </td>
-            </tr>);
-            i++;
-        }
-
-        return (
-            <table>
-                <tbody>
-                    <tr>
-                        <td> Song </td>
-                        <td> Score </td>
-                        <td> Accuracy </td>
-                        <td> FP </td>
-                    </tr>
-                    {children}
-                </tbody>
-            </table>
-        );
-    }
-
-    async function removeScore(scoreId) {
-        if (!window.confirm('Are you sure?'))
-            return;
-
-        try {
-            const response = await axios.get(getHost() + "/api/admin/score/delete?id=" + scoreId, {
-                headers: {
-                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
-                }
-            });
-            if (response.status !== 200) {
-                throw new Error('Failed.');
-            }
-        } catch (error) { }
-
-        fetchData();
-    }
-
-    return (<>
-        {data.length > 0 ? (
-            <>
-                <h2> Best Performances </h2>
-                {renderScores(data, props.adminMode)}
-                <br></br>
-                {(page > 0) ?
-                    <button className='SvgButton' style={{ float: 'left' }} onClick={() => {
-                        setPage(page - 1);
-                    }}> <Icon width={20} icon="mdi:arrow-left" /> </button>
-                    : <></>}
-
-                {(data.length === 15) ?
-                    <button className='SvgButton' style={{ float: 'right' }} onClick={() => {
-                        setPage(page + 1);
-                    }}> <Icon width={20} icon="mdi:arrow-right" /> </button>
-                    : <></>}
-            </>
-        ) :
-            (page > 0) ? fetchData(0) : <></>
-        }
-    </>);
 }
 
 const AvatarUpload = () => {

@@ -82,7 +82,7 @@ function renderFriends(players) {
         render.push(
             <div className="Coolbox" style={{ backgroundColor: miniProfileColor(player.hue ?? 0)}}>
                 <a href={"/user/" + encodeURIComponent(player.name)}>
-                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(player.name)}></AvatarImg>
+                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(player.name)}></AvatarImg>
                     <br></br><span>{player.name}</span>
                     <br></br><span style={{color: (player.status === 'ONLINE' ? 'lime' : 'gray')}}>{player.status}</span>
                 </a>
@@ -100,7 +100,7 @@ function renderPlayers(players) {
         render.push(
             <div className="Coolbox">
                 <a href={"/user/" + encodeURIComponent(player)}>
-                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(player)}></AvatarImg>
+                    <AvatarImg className='NetworkAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(player)}></AvatarImg>
                     <br></br><span>{player}</span>
                 </a>
             </div>

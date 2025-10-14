@@ -138,7 +138,7 @@ function Club() {
             daPlayers.push(
                 <div className="FlexBox">
                     <a href={"/user/" + encodeURIComponent(player.player)} className='TopContainer' style={{ background: headProfileColor(player.profileHue, player.profileHue2) }}>
-                        <AvatarImg className='TopAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(player.player)}></AvatarImg>
+                        <AvatarImg className='TopAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(player.player)}></AvatarImg>
                         <div className="FlexBox">
                             {/* <span style={{fontSize: '20px', color: (
                             daRank === 1 ? 'orange' :
@@ -240,7 +240,7 @@ function Club() {
             daPlayers.push(
                 <div className="FlexBox">
                     <a href={"/user/" + encodeURIComponent(player)} className='TopContainer' style={{}}>
-                        <AvatarImg className='TopAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(player)}></AvatarImg>
+                        <AvatarImg className='TopAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(player)}></AvatarImg>
                         <div className="FlexBox">
                             {/* <span style={{fontSize: '20px', color: (
                             daRank === 1 ? 'orange' :
@@ -316,7 +316,7 @@ function Club() {
                             <b>Rank: </b> &nbsp; {ordinalNum(data.rank)} <br />
                         </div>
                         <div className="CenterFlex">
-                            <b>Points: </b> &nbsp; {data.points}FP <br />
+                            <b>Points: </b> &nbsp; {moneyFormatter.format(data.points)}FP <br />
                         </div>
                         <div className="CenterFlex">
                             <b>Created: </b> &nbsp; {returnDate(Date.parse(data.created))} <br />

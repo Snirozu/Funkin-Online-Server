@@ -3,13 +3,15 @@ import Cookies from 'js-cookie';
 import { useEffect, useState } from 'react';
 import AvatarImg from './AvatarImg';
 import { getHost, hasAccess, headProfileColor, tabButtonColor } from './Util';
+import { Icon } from '@iconify/react/dist/iconify.js';
 
 function HeadBar() {
     const [data, setData] = useState({
         name: '',
         points: 0,
         profileHue: 250,
-        profileHue2: undefined
+        profileHue2: undefined,
+        notifs: 0
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -85,14 +87,18 @@ function HeadBar() {
                     </>
                 ) : (
                     <>
-                        <a className='TabButton' id='BarProfile' href={"/user/" + encodeURIComponent(data.name)}>
-                            <AvatarImg className='SmallerAvatar' src={getHost() + "/api/avatar/" + encodeURIComponent(data.name)}/>
-                            <div className='BarProfileText'>
-                                <b>Welcome, {data.name}! </b> <br></br>
-                                Points: {data.points}
-                            </div>
-                        </a>
-
+                        <div className='FlexRight'>
+                            {window.location.pathname !== '/notifications' && data.notifs > 0 ? <>
+                                <a id="NotificationsIcon" className='TabButton' href="/notifications"><Icon icon="ic:baseline-notifications-active" width="32" height="32" /></a>
+                            </> : <></>}
+                            <a className='TabButton' id='BarProfile' href={"/user/" + encodeURIComponent(data.name)}>
+                                <AvatarImg className='SmallerAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(data.name)}/>
+                                <div className='BarProfileText'>
+                                    <b>Welcome, {data.name}! </b> <br></br>
+                                    Points: {data.points}
+                                </div>
+                            </a>
+                        </div>
                     </>
                 )}
             </div>

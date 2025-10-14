@@ -2,7 +2,6 @@ import { Routes, Route } from 'react-router-dom';
 import './App.css';
 import Home from './routes/Home';
 import User from './routes/User';
-import { useEffect } from 'react';
 import HeadBar from './HeadBar';
 import Song from './routes/Song';
 import Network from './routes/Network';
@@ -15,6 +14,7 @@ import Club from './routes/Club';
 import ClubHome from './routes/ClubHome';
 import TopPlayers from './routes/TopPlayers';
 import TopClubs from './routes/TopClubs';
+import Notifications from './routes/Notifications';
 
 const App = () => {
   return (
@@ -34,6 +34,7 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/club" element={<ClubHome />} />
         <Route path="/club/:tag" element={<Club />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </div>

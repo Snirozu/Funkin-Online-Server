@@ -4,3 +4,4 @@ node_modules/
 database/
 TODO
 build/
+chat_filter.json

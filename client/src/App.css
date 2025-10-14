@@ -176,7 +176,6 @@ a:hover {
 }
 
 .Bar #BarProfile {
-  margin-left: auto;
   margin-right: 20px;
   max-height: 40px;
   display: flex;
@@ -195,6 +194,33 @@ a:hover {
 
 .BarProfileText * {
   min-width: 100%;
+}
+
+.FlexRight {
+  margin-left: auto;
+  padding-left: 20px;
+  display: flex;
+  align-items: center;
+}
+
+#NotificationsIcon {
+  padding-right: 20px;
+  background: none;
+  animation: blinkAnim infinite 1s;
+}
+
+@keyframes blinkAnim {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 .Avatar {
@@ -448,10 +474,15 @@ a:hover {
   text-align: center;
   overflow-wrap: break-word;
   align-items: center;
-  justify-content: space-around;
+  justify-content: center;
   flex-wrap: wrap;
   padding-top: 3px;
   padding-bottom: 3px;
+}
+
+.NameContainer * {
+  padding-left: 3px;
+  padding-right: 3px;
 }
 
 .AvatarCaption {

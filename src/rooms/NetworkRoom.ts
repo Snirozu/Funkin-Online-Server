@@ -1,11 +1,12 @@
 import { Room, Client } from "@colyseus/core";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
-import { Data } from "../Data";
-import { authPlayer, getPlayerByID, getPlayerByName, getPlayerClubTag, getPlayerIDByName, hasAccess } from "../network";
+import { authPlayer, getPlayerByID, getPlayerByName, getPlayerClubTag, getPlayerIDByName, hasAccess } from "../network/database";
 import { NetworkSchema } from "./schema/NetworkSchema";
 import { formatLog, isUserIDInRoom } from "../util";
 import { DiscordBot } from "../discord";
+import { Data } from "../data";
+import { ServerInstance } from "../server";
 
 export let networkRoom: NetworkRoom; 
 
@@ -17,33 +18,39 @@ export function notifyPlayer(toId:string, content:string) {
     
     networkRoom.IDtoClient.get(toId).send('notification', content);
   }
-  catch (exc) {}
+  catch (exc) {
+    console.error(exc);
+  }
 }
 
-export function logToAll(content: string, notDiscord?:boolean) {
+export async function logToAll(content: string, notDiscord?:boolean) {
   try {
     if (!networkRoom) {
       return;
     }
 
-    Data.PUBLIC.LOGGED_MESSAGES.push([content, Date.now()]);
-    if (Data.PUBLIC.LOGGED_MESSAGES.length > 100) {
-      Data.PUBLIC.LOGGED_MESSAGES.shift();
+    Data.PERSIST.props.LOGGED_MESSAGES.push([content, Date.now()]);
+    if (Data.PERSIST.props.LOGGED_MESSAGES.length > 100) {
+      Data.PERSIST.props.LOGGED_MESSAGES.shift();
     }
+    Data.PERSIST.save();
+
     networkRoom.broadcast('log', content);
     if (!notDiscord)
-      DiscordBot.networkChannel.send(JSON.parse(content).content);
+      await DiscordBot.networkChannel.send(JSON.parse(content).content);
   }
-  catch (exc) { }
+  catch (exc) {
+    console.error(exc);
+  }
 }
 
 export async function discordChatMessage(user: string, content: string) {
   const webhook = await DiscordBot.getWebhook();
   const tag = await getPlayerClubTag(await getPlayerIDByName(user))
-  webhook.send({
+  await webhook.send({
     content: content,
     username: user + (tag ? ' [' + tag + ']' : ''),
-    avatarURL: "https://funkin.sniro.boo/api/avatar/" + user // maybe make a .env value for domain? because i hate this with a burning passion
+    avatarURL: "https://funkin.sniro.boo/api/user/avatar/" + user // maybe make a .env value for domain? because i hate this with a burning passion
 });
 }
 
@@ -55,7 +62,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
   nameToClient: Map<string, Client> = new Map<string, Client>();
   nameToHue: Map<string, number> = new Map<string, number>();
 
-  async onCreate (options: any) {
+  async onCreate () {
     if (networkRoom) {
       throw new ServerError(418);
     }
@@ -85,7 +92,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
       const sender = this.IDToName.get(this.SSIDtoID.get(client.sessionId));
 
       if (message.startsWith('>')) {
-        let msgSplit = message.split(' ');
+        const msgSplit = message.split(' ');
         const player = msgSplit[0].substring(1);
         msgSplit.shift();
         const msg = msgSplit.join(' ');
@@ -104,8 +111,8 @@ export class NetworkRoom extends Room<NetworkSchema> {
       }
       else if (message.startsWith('/')) {
         if (message.startsWith('/list')) {
-          let onlines: String[] = [];
-          this.IDToName.forEach((v, k) => {
+          const onlines: string[] = [];
+          this.IDToName.forEach(v => {
             onlines.push(v);
           });
           client.send("log", formatLog('Online: ' + onlines.join(', ')));
@@ -128,8 +135,8 @@ export class NetworkRoom extends Room<NetworkSchema> {
         return;
       }
 
-      logToAll(formatLog(sender + ": " + message, this.nameToHue.get(sender.toLowerCase())), true);
-      discordChatMessage(sender, message);
+      await logToAll(formatLog(sender + ": " + message, this.nameToHue.get(sender.toLowerCase())), true);
+      await discordChatMessage(sender, message);
     });
 
     this.onMessage("inviteplayertoroom", async (client, message: string) => {
@@ -158,7 +165,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
 
       this.nameToClient.get(message.toLowerCase()).send('roominvite', JSON.stringify({
         name: senderName,
-        roomid: Data.MAP_USERNAME_PLAYINGROOM.get(senderName).roomId
+        roomid: Data.INFO.MAP_USERNAME_PLAYINGROOM.get(senderName).roomId
       }));
       client.send("notification", 'Invite sent!');
     });
@@ -167,9 +174,9 @@ export class NetworkRoom extends Room<NetworkSchema> {
       if (!message)
         message = 0;
 
-      let loggedAfter = [];
-      for (const log of Data.PUBLIC.LOGGED_MESSAGES) {
-        if (log[1] > message) {
+      const loggedAfter = [];
+      for (const log of Data.PERSIST.props.LOGGED_MESSAGES) {
+        if (Number(log[1]) > message) {
           loggedAfter.push(log[0]);
         }
       }
@@ -177,8 +184,8 @@ export class NetworkRoom extends Room<NetworkSchema> {
     });
   }
   
-  async onAuth(client: Client, options: any, request: IncomingMessage) {
-    const latestVersion = Data.NETWORK_PROTOCOL_VERSION;
+  async onAuth(client: Client, options: any, _request: IncomingMessage) {
+    const latestVersion = ServerInstance.NETWORK_PROTOCOL_VERSION;
     if (latestVersion != options.protocol) {
       throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
     }
@@ -206,6 +213,8 @@ export class NetworkRoom extends Room<NetworkSchema> {
       await this.allowReconnection(client, !consented ? 10 : 0);
     }
     catch (err) {
+      if (process.env.DEBUG == "true")
+        console.error(err);
       this.removePlayer(client);
     }
   }
@@ -219,7 +228,9 @@ export class NetworkRoom extends Room<NetworkSchema> {
       this.IDToName.delete(clID);
       this.SSIDtoID.delete(client.sessionId);
     }
-    catch (exc) {}
+    catch (exc) {
+      console.error(exc);
+    }
     
     client.leave();
   }

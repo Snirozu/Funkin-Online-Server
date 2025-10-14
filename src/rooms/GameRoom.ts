@@ -3,11 +3,11 @@ import { RoomState } from "./schema/RoomState";
 import { Person, Player } from "./schema/Player";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
-import { MapSchema } from "@colyseus/schema";
-import { getPlayerByID, hasAccess } from "../network";
+import { getPlayerByID, hasAccess } from "../network/database";
 import jwt from "jsonwebtoken";
-import { filterUsername, formatLog } from "../util";
-import { Data } from "../Data";
+import { filterChatMessage, filterUsername, formatLog } from "../util";
+import { Data } from "../data";
+import { ServerInstance } from "../server";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -74,16 +74,17 @@ export class GameRoom extends Room<RoomState> {
 
     dummies:Player[] = [];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async onCreate(options: any) {
         this.roomId = await this.generateRoomId();
-        this.setPrivate();
+        await this.setPrivate();
         this.setState(new RoomState());
         this.autoDispose = true;
 
         if (process.env.DEBUG == "true")
             console.log("new room created: " + this.roomId);
 
-        var daGameplaySettings = options.gameplaySettings;
+        const daGameplaySettings = options.gameplaySettings;
         if (daGameplaySettings) {
             for (const key in daGameplaySettings) {
                 const value = daGameplaySettings[key].toString();
@@ -96,21 +97,21 @@ export class GameRoom extends Room<RoomState> {
 
         this.networkOnly = options.networkOnly;
 
-        this.setMetadata({ name: options.name, networkOnly: this.networkOnly });
+        await this.setMetadata({ name: options.name, networkOnly: this.networkOnly });
 
-        this.onMessage("togglePrivate", (client, message) => {
+        this.onMessage("togglePrivate", async (client) => {
             this.keepAliveClient(client);
 
             if (this.hasPerms(client)) {
                 this.state.isPrivate = !this.state.isPrivate;
-                this.setPrivate(this.state.isPrivate);
+                await this.setPrivate(this.state.isPrivate);
             }
             else {
                 client.send('alert', 'You don\'t have a permission to do that.')
             }
         });
 
-        this.onMessage("startGame", (client, message) => {
+        this.onMessage("startGame", async (client) => {
             this.keepAliveClient(client);
 
             const requester = this.getStatePlayer(client);
@@ -151,7 +152,7 @@ export class GameRoom extends Room<RoomState> {
                 player.isReady = false;
             }
 
-            this.lock();
+            await this.lock();
             this.state.isStarted = true;
             this.state.health = 1;
             this.broadcast("gameStarted", "", { afterNextPatch: true });
@@ -171,7 +172,7 @@ export class GameRoom extends Room<RoomState> {
             }
         });
 
-        this.onMessage("addMiss", (client, message) => {
+        this.onMessage("addMiss", (client, _message) => {
             this.keepAliveClient(client);
 
             const requester = this.getStatePlayer(client);
@@ -301,7 +302,7 @@ export class GameRoom extends Room<RoomState> {
             this.broadcast("charPlay", [client.sessionId, message], { except: client });
         });
 
-        this.onMessage("playerReady", (client, message) => {
+        this.onMessage("playerReady", (client, _message) => {
             this.keepAliveClient(client);
 
             const requester = this.getStatePlayer(client);
@@ -326,7 +327,7 @@ export class GameRoom extends Room<RoomState> {
             this.broadcast("startSong", "", { afterNextPatch: true });
         });
 
-        this.onMessage("playerEnded", (client, message) => {
+        this.onMessage("playerEnded", async (client, _message) => {
             this.keepAliveClient(client);
 
             const requester = this.getStatePlayer(client);
@@ -344,7 +345,7 @@ export class GameRoom extends Room<RoomState> {
                     return;
             }
 
-            this.endSong();
+            await this.endSong();
         });
 
         this.onMessage("noteHit", (client, message) => {
@@ -434,11 +435,13 @@ export class GameRoom extends Room<RoomState> {
 
             if (this.checkInvalid(message, VerifyTypes.STRING)) return; // Fix crash issue from a null value.
 
+            message = filterChatMessage(message);
+
             if (message.length >= 300) {
                 client.send("log", formatLog("The message is too long!"));
                 return;
             }
-            if ((message as String).trim() == "") {
+            if ((message as string).trim() == "") {
                 return;
             }
             const requester = this.getStatePerson(client);
@@ -463,7 +466,7 @@ export class GameRoom extends Room<RoomState> {
             this.broadcast("log", formatLog(requester.name + " has finished installing: " + message));
         });
 
-        this.onMessage("swapSides", (client, message) => {
+        this.onMessage("swapSides", (client, _message) => {
             this.keepAliveClient(client);
 
             const requester = this.getStatePlayer(client);
@@ -474,7 +477,7 @@ export class GameRoom extends Room<RoomState> {
             this.setPlayerSide(requester, !requester.bfSide);
         });
 
-        this.onMessage("anarchyMode", (client, message) => {
+        this.onMessage("anarchyMode", (client, _message) => {
             this.keepAliveClient(client);
 
             if (this.hasPerms(client)) {
@@ -485,7 +488,7 @@ export class GameRoom extends Room<RoomState> {
             }
         });
 
-        this.onMessage("teamMode", (client, message) => {
+        this.onMessage("teamMode", (client, _message) => {
             this.keepAliveClient(client);
 
             if (this.hasPerms(client)) {
@@ -496,7 +499,7 @@ export class GameRoom extends Room<RoomState> {
             }
         });
 
-        this.onMessage("toggleGF", (client, message) => {
+        this.onMessage("toggleGF", (client, _message) => {
             this.keepAliveClient(client);
 
             if (this.hasPerms(client)) {
@@ -507,7 +510,7 @@ export class GameRoom extends Room<RoomState> {
             }
         });
 
-        this.onMessage("toggleSkins", (client, message) => {
+        this.onMessage("toggleSkins", (client, _message) => {
             this.keepAliveClient(client);
 
             if (this.hasPerms(client)) {
@@ -529,7 +532,7 @@ export class GameRoom extends Room<RoomState> {
             }
         });
 
-        this.onMessage("nextWinCondition", (client, message) => {
+        this.onMessage("nextWinCondition", (client, _message) => {
             this.keepAliveClient(client);
 
             if (this.hasPerms(client)) {
@@ -549,7 +552,7 @@ export class GameRoom extends Room<RoomState> {
             }
         });
 
-        this.onMessage("pong", (client, message: number) => {
+        this.onMessage("pong", (client, _message) => {
             const daPing = Date.now() - this.lastPingTime;
 
             const requester = this.getStatePerson(client);
@@ -564,14 +567,14 @@ export class GameRoom extends Room<RoomState> {
             this.clientsInfo.get(client.sessionId).lastPing = Date.now();
         });
 
-        this.onMessage("requestEndSong", (client, message) => {
+        this.onMessage("requestEndSong", async (client, _message) => {
             this.keepAliveClient(client);
 
             if (!this.getStatePlayer(client))
                 return;
 
             //if (this.hasPerms(client)) {
-            this.endSong();
+            await this.endSong();
             // }
             // else {
             //   this.broadcast("log", this.getStatePlayer(client).name + " wants to end the song! (ESC)");
@@ -690,7 +693,7 @@ export class GameRoom extends Room<RoomState> {
             requester.noteSkinURL = message[2];
         });
 
-        this.onMessage("command", (client, message) => {
+        this.onMessage("command", async (client, message) => {
             this.keepAliveClient(client);
 
             if (this.checkInvalid(message, VerifyTypes.ARRAY, 0)) return;
@@ -716,7 +719,7 @@ export class GameRoom extends Room<RoomState> {
                             continue;
                         
                         if (!this.isOwner(cl) && (message[1] ? clPerson.name == message[1] : true)) {
-                            this.removePlayer(cl);
+                            await this.removePlayer(cl);
                             kickCount++;
                         }
                     }
@@ -764,9 +767,9 @@ export class GameRoom extends Room<RoomState> {
             this.broadcast("ping");
         }, 1000 * 3); //every 3 seconds
 
-        this.clock.setInterval(() => {
+        this.clock.setInterval(async () => {
             if (this.clients.length < 1 || !this.metadata.ping) {
-                this.destroy();
+                await this.destroy();
             }
 
             for (const [clientSusID, info] of this.clientsInfo) {
@@ -776,7 +779,7 @@ export class GameRoom extends Room<RoomState> {
 
                     const kiclient = this.clients.getById(clientSusID);
                     if (kiclient)
-                        this.removePlayer(kiclient);
+                        await this.removePlayer(kiclient);
                 }
 
                 if (Date.now() - info.aliveTime > 1000 * 60 * 20) { // if the player wasnt active for 20 minutes
@@ -785,19 +788,19 @@ export class GameRoom extends Room<RoomState> {
 
                     const kiclient = this.clients.getById(clientSusID);
                     if (kiclient)
-                        this.removePlayer(kiclient);
+                        await this.removePlayer(kiclient);
                 }
             }
         }, 1000 * 60); //every minute
     }
 
-    endSong() {
+    async endSong() {
         for (const [_, player] of this.state.players) {
             player.isReady = false;
             player.botplay = false;
         }
 
-        this.unlock();
+        await this.unlock();
         this.state.isStarted = false;
 
         this.broadcast("endSong", "", { afterNextPatch: true });
@@ -805,7 +808,7 @@ export class GameRoom extends Room<RoomState> {
 
     //why does this function exist
     async onAuth(client: Client, options: any, request: IncomingMessage) {
-        const latestVersion = Data.PROTOCOL_VERSION;
+        const latestVersion = ServerInstance.PROTOCOL_VERSION;
         if (options == null || options.name == null || (options.name + "").trim().length < 3) {
             throw new ServerError(5000, "Too short name!"); // too short name error
         }
@@ -819,19 +822,19 @@ export class GameRoom extends Room<RoomState> {
             throw new ServerError(5001, "Too long name!");
         }
 
-        if (!await this.isClientAllowed(client, request)) {
+        if (!await this.isClientAllowed(request)) {
             throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
         }
 
         const playerIp = this.getRequestIP(request);
         try {
             const ipInfo = await (await fetch("http://ip-api.com/json/" + encodeURIComponent(playerIp))).json();
-            if (process.env["STATS_ENABLED"] == "true" && ipInfo.country) {
-                if (!Data.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
-                    Data.COUNTRY_PLAYERS[ipInfo.country] = [];
+            if (process.env["NETWORK_ENABLED"] == "true" && ipInfo.country) {
+                if (!Data.INFO.COUNTRY_PLAYERS.hasOwnProperty(ipInfo.country))
+                    Data.INFO.COUNTRY_PLAYERS[ipInfo.country] = [];
 
-                if (!Data.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
-                    Data.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
+                if (!Data.INFO.COUNTRY_PLAYERS[ipInfo.country].includes(playerIp))
+                    Data.INFO.COUNTRY_PLAYERS[ipInfo.country].push(playerIp);
             }
         }
         catch (exc) {
@@ -862,21 +865,22 @@ export class GameRoom extends Room<RoomState> {
         if (options.networkId && options.networkToken && player) {
             if (!hasAccess(player, 'room.auth')) {
                 client.error(418, "get fucked lmao");
-                this.removePlayer(client);
+                await this.removePlayer(client);
                 return;
             }
 
-            jwt.verify(options.networkToken, player.secret as string, (err: any, user: any) => {
+            // await does work here, for some reason typescript counts it as "no effect"?
+            await jwt.verify(options.networkToken, player.secret as string, async (err: any, _user: any) => {
                 if (err) {
                     client.error(401, "Couldn't authorize to the network!");
-                    this.removePlayer(client);
+                    await this.removePlayer(client);
                     return;
                 }
 
                 isVerified = true;
                 this.clientsInfo.get(client.sessionId).networkId = options.networkId;
                 this.clientsInfo.get(client.sessionId).hue = player.profileHue ?? 250;
-                Data.MAP_USERNAME_PLAYINGROOM.set(player.name, this);
+                Data.INFO.MAP_USERNAME_PLAYINGROOM.set(player.name, this);
                 playerName = player.name;
                 playerPoints = player.points;
             })
@@ -884,7 +888,7 @@ export class GameRoom extends Room<RoomState> {
 
         if (!isVerified && this.networkOnly) {
             client.error(400, "Only Registered Network players can join!");
-            this.removePlayer(client);
+            await this.removePlayer(client);
             return;
         }
 
@@ -982,17 +986,19 @@ export class GameRoom extends Room<RoomState> {
                 console.log(client.sessionId + " has reconnected on " + this.roomId);
         }
         catch (err) {
-            if (process.env.DEBUG == "true")
+            if (process.env.DEBUG == "true") {
                 console.log(client.sessionId + " has failed to reconnect on " + this.roomId);
+                console.error(err);
+            }
 
-            this.removePlayer(client);
+            await this.removePlayer(client);
             delete this.clientsRemoved[this.clientsRemoved.indexOf(client.sessionId)];
         }
     }
 
     async removePlayer(client: Client) {
         if (this.state.isStarted) {
-            this.endSong();
+            await this.endSong();
         }
         else {
             for (const [_, player] of this.state.players) {
@@ -1002,7 +1008,7 @@ export class GameRoom extends Room<RoomState> {
 
         this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has left the room!"));
 
-        Data.MAP_USERNAME_PLAYINGROOM.delete(this.getStatePlayer(client).name);
+        Data.INFO.MAP_USERNAME_PLAYINGROOM.delete(this.getStatePlayer(client).name);
         this.presence.hset(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip)) - 1) + ""));
         this.clientsInfo.delete(client.sessionId);
         this.clientsRemoved.push(client.sessionId);
@@ -1012,7 +1018,7 @@ export class GameRoom extends Room<RoomState> {
         client.leave();
 
         if (this.clients.length < 1)
-            this.destroy();
+            await this.destroy();
         else if (this.isOwner(client))
             for (const [sid, _] of this.state.players) {
                 this.state.host = sid;
@@ -1028,21 +1034,21 @@ export class GameRoom extends Room<RoomState> {
         if (process.env.DEBUG == "true")
             console.log("room has been disposed: " + this.roomId);
 
-        for (const [username, room] of Data.MAP_USERNAME_PLAYINGROOM) {
+        for (const [username, room] of Data.INFO.MAP_USERNAME_PLAYINGROOM) {
             if (room == this) {
-                Data.MAP_USERNAME_PLAYINGROOM.delete(username);
+                Data.INFO.MAP_USERNAME_PLAYINGROOM.delete(username);
             }
         }
-        this.destroy(true);
+        await this.destroy(true);
         this.presence.srem(this.LOBBY_CHANNEL, this.roomId);
     }
 
-    destroy(ing?: boolean) {
+    async destroy(ing?: boolean) {
         for (const client of this.clients) {
-            this.removePlayer(client);
+            await this.removePlayer(client);
         }
         if (!ing) {
-            this.disconnect();
+            await this.disconnect();
         }
     }
 
@@ -1102,7 +1108,7 @@ export class GameRoom extends Room<RoomState> {
     // Generate a single 4 capital letter room ID.
     generateRoomIdSingle(): string {
         let result = '';
-        for (var i = 0; i < 4; i++) {
+        for (let i = 0; i < 4; i++) {
             result += LETTERS.charAt(Math.floor(Math.random() * LETTERS.length));
         }
         return result;
@@ -1127,15 +1133,15 @@ export class GameRoom extends Room<RoomState> {
         return id;
     }
 
-    async isClientAllowed(client: Client, request: IncomingMessage): Promise<Boolean> {
+    async isClientAllowed(request: IncomingMessage): Promise<boolean> {
         if (process.env.DISABLE_IP_LOCK == "true") {
             return true;
         }
 
-        var requesterIP = this.getRequestIP(request);
+        const requesterIP = this.getRequestIP(request);
 
         const currentIps = await this.presence.hget(this.IPS_CHANNEL, requesterIP);
-        var ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);
+        const ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);
         if (ipOccurs < 4) {
             await this.presence.hset(this.IPS_CHANNEL, requesterIP, (ipOccurs + 1) + "");
             return true;
@@ -1145,7 +1151,7 @@ export class GameRoom extends Room<RoomState> {
 
     getRequestIP(req: IncomingMessage) {
         if (req.headers['x-forwarded-for']) {
-            return (req.headers['x-forwarded-for'] as String).split(",")[0].trim();
+            return (req.headers['x-forwarded-for'] as string).split(",")[0].trim();
         }
         else {
             return req.socket.remoteAddress;

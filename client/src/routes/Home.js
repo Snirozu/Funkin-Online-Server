@@ -35,6 +35,8 @@ function Home() {
                 <br></br> */}
                 <h3> Also check out the GameBanana page!</h3>
                 <a href="https://gamebanana.com/mods/479714"><img className="CumBigImage" alt='' src="https://gamebanana.com/mods/embeddables/479714?type=sd_image" /></a>
+                <br></br>
+                <h5> Psych Online is a fan project not affiliated with the Psych Engine Team or Funkin' Crew  </h5>
             </div>
         </div>
     );
