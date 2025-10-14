@@ -309,7 +309,7 @@ async function updatePlayerStats(id: string) {
             points: newPoints,
             pointsWeekly: newWeeklyPoints,
             avgAccSumAmount: accAgg._count.accuracy,
-            avgAccSum: accAgg._avg.accuracy / 100
+            avgAccSum: accAgg._avg.accuracy
         },
         select: {
             points: true,
