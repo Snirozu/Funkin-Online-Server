@@ -15,7 +15,7 @@ module.exports = {
             watch_delay: 1000,
             instances: 1,
             exec_mode: 'fork',
-            log_file: 'funkin-online.log'
+            log_file: '/root/.pm2/logs/funkin-online.log'
         }
     ]
 }
