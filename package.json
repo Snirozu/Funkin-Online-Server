@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "nodemon src/index.ts",
-    "start": "npm run build && pm2 start ecosystem.config.js -l --log \"funkin-online.log\"",
+    "start": "npm run build && pm2 start ecosystem.config.js",
     "restart": "npm run build && pm2 restart funkin-online",
     "build": "npm run clean && tsc",
     "clean": "rimraf build",
