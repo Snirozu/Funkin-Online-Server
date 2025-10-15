@@ -18,7 +18,7 @@ export class AccountRoute {
                     joined: user.joined,
                     lastActive: user.lastActive,
                     points: user.points,
-                    avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
+                    avgAccuracy: user.avgAcc,
                     club: await getPlayerClubTag(id),
                 });
             }
@@ -46,7 +46,7 @@ export class AccountRoute {
                 res.send({
                     name: player.name,
                     points: player.points,
-                    avgAccuracy: player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0,
+                    avgAccuracy: player.avgAcc,
                     role: player.role,
                     profileHue: player.profileHue ?? 250,
                     profileHue2: player.profileHue2,

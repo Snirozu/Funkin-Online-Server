@@ -29,8 +29,7 @@ model User {
   bio String?
   profileHue Int?
   profileHue2 Int?
-  avgAccSum Float?
-  avgAccSumAmount Int?
+  avgAcc Float?
   country String?
 
   scores  Score[]

@@ -2,7 +2,7 @@ import { matchMaker } from 'colyseus';
 import { Express } from 'express';
 import { Data } from '../../data';
 import { networkRoom } from '../../rooms/NetworkRoom';
-import { checkAccess, authPlayer, removeReport, removeScore, viewReports, getPlayerByID, getScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName } from '../database';
+import { checkAccess, authPlayer, removeReport, removeScore, viewReports, getPlayerByID, getScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer } from '../database';
 
 export class AdminRoute {
     static init(app: Express) {
@@ -234,6 +234,17 @@ export class AdminRoute {
         app.get("/api/admin/user/notify", checkAccess, async (req, res) => {
             try {
                 await sendNotification(await getPlayerIDByName(req.query.user as string), req.query as any);
+                res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/user/rename", checkAccess, async (req, res) => {
+            try {
+                await renamePlayer(await getPlayerIDByName(req.query.user as string), req.query.new as string);
                 res.sendStatus(200);
             }
             catch (exc) {

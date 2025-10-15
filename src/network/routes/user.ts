@@ -80,7 +80,7 @@ export class UserRoute {
                     points: user.points,
                     profileHue: user.profileHue ?? 250,
                     profileHue2: user.profileHue2,
-                    avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
+                    avgAccuracy: user.avgAcc,
                     rank: await getPlayerRank(user.name),
                     country: user.country,
                     club: await getPlayerClubTag(user.id)
@@ -117,7 +117,7 @@ export class UserRoute {
                     canFriend: !pingasFriends.includes(user?.id),
                     profileHue: user.profileHue ?? 250,
                     profileHue2: user.profileHue2,
-                    avgAccuracy: user.avgAccSumAmount > 0 ? user.avgAccSum / user.avgAccSumAmount : 0,
+                    avgAccuracy: user.avgAcc,
                     rank: await getPlayerRank(user.name),
                     country: user.country,
                     club: await getPlayerClubTag(user.id)

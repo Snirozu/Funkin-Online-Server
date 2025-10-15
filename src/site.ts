@@ -188,7 +188,7 @@ async function showIndex(req: Request, res: Response) {
                 if (!player)
                     break;
                 title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '') + '· Profile';
-                description = (player.role ?? Data.CONFIG.DEFAULT_ROLE) + " | " + moneyFormatter.format(player.points) + " FP" + "\nAvg. Accuracy: " + ((player.avgAccSumAmount > 0 ? player.avgAccSum / player.avgAccSumAmount : 0) * 100).toFixed(2) + '%';
+                description = (player.role ?? Data.CONFIG.DEFAULT_ROLE) + " | " + moneyFormatter.format(player.points) + " FP" + "\nAvg. Accuracy: " + (player.avgAcc * 100).toFixed(2) + '%';
                 if (await hasAvatar(player.id))
                     image = "https://" + req.hostname + "/api/user/avatar/" + encodeURIComponent(player.name);
                 else

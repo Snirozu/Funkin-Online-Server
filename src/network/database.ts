@@ -296,7 +296,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     }
 }
 
-async function updatePlayerStats(id: string) {
+export async function updatePlayerStats(id: string) {
     const newPoints = await countPlayerFP(id) ?? 0;
     const newWeeklyPoints = await countPlayerFP(id, 'week') ?? 0;
     const accAgg = await aggregatePlayerAccuracy(id);
@@ -308,12 +308,12 @@ async function updatePlayerStats(id: string) {
         data: {
             points: newPoints,
             pointsWeekly: newWeeklyPoints,
-            avgAccSumAmount: accAgg._count.accuracy,
-            avgAccSum: accAgg._avg.accuracy
+            avgAcc: accAgg._avg.accuracy / 100
         },
         select: {
             points: true,
-            pointsWeekly: true
+            pointsWeekly: true,
+            avgAcc: true
         }
     })
 
@@ -958,9 +958,6 @@ export async function aggregatePlayerAccuracy(id: string) {
         },
         _avg: {
             accuracy: true
-        },
-        _count: {
-            accuracy: true
         }
     })
 }
@@ -1168,7 +1165,7 @@ export async function getPlayerByName(name: string) {
         return null;
 
     try {
-        return await prisma.user.findFirstOrThrow({
+        const user = await prisma.user.findFirstOrThrow({
             where: {
                 name: {
                     equals: name,
@@ -1176,6 +1173,12 @@ export async function getPlayerByName(name: string) {
                 }
             }
         });
+        //lazy migration
+        if (!user.avgAcc) {
+            const updated = await updatePlayerStats(user.id);
+            user.avgAcc = updated.avgAcc;
+        }
+        return user;
     }
     catch (_exc) {
         // not found
@@ -1340,8 +1343,7 @@ export async function pingPlayer(id: string) {
                 lastActive: true,
                 profileHue: true,
                 profileHue2: true,
-                avgAccSum: true,
-                avgAccSumAmount: true,
+                avgAcc: true,
                 country: true
             }
         }));
@@ -2230,8 +2232,7 @@ export async function perishScores() {
     await prisma.user.updateMany({
         data: {
             points: 0,
-            avgAccSum: 0,
-            avgAccSumAmount: 0
+            avgAcc: 0
         }
     })
     console.log("deleted ranking shit");
@@ -2402,19 +2403,15 @@ export async function initDatabaseCache() {
             profileHue: true,
             profileHue2: true
         },
-        // orderBy: {
-        //     joined: 'asc'
-        // }
+        orderBy: {
+            joined: 'desc'
+        }
     })) {
         cachePlayerUniques(user.id, user.name);
         cachedProfileNameHue.set(user.name, [user.profileHue ?? 250, user.profileHue2]);
 
-        // if (
-        //     await playerNameCount(user.name) > 1
-        // ) {
-        //     console.log(user.name);
-        //     await renamePlayer(user.id, user.name + '___');
-        // }
+        // console.log(user.name);
+        // await updatePlayerStats(user.id);
     }
 
     for (const club of await prisma.club.findMany({
