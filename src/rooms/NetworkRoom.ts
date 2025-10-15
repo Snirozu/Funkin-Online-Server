@@ -222,11 +222,11 @@ export class NetworkRoom extends Room<NetworkSchema> {
   removePlayer(client: Client) {
     try {
       const clID = this.SSIDtoID.get(client.sessionId);
+      this.SSIDtoID.delete(client.sessionId);
       this.IDtoClient.delete(clID);
       this.nameToClient.delete(this.IDToName.get(clID).toLowerCase());
       this.nameToHue.delete(this.IDToName.get(clID).toLowerCase());
       this.IDToName.delete(clID);
-      this.SSIDtoID.delete(client.sessionId);
     }
     catch (exc) {
       console.error(exc);

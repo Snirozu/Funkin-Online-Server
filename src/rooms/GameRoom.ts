@@ -1053,6 +1053,8 @@ export class GameRoom extends Room<RoomState> {
     }
 
     keepAliveClient(client: Client) {
+        if (!this.clientsInfo.has(client.sessionId))
+            return;
         this.clientsInfo.get(client.sessionId).aliveTime = Date.now();
     }
 

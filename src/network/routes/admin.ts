@@ -3,6 +3,7 @@ import { Express } from 'express';
 import { Data } from '../../data';
 import { networkRoom } from '../../rooms/NetworkRoom';
 import { checkAccess, authPlayer, removeReport, removeScore, viewReports, getPlayerByID, getScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer } from '../database';
+import dotenv from 'dotenv';
 
 export class AdminRoute {
     static init(app: Express) {
@@ -202,7 +203,11 @@ export class AdminRoute {
                 if (!reqPlayer)
                     return res.sendStatus(403);
 
+                dotenv.config();
+                Data.PERSIST.load();
+                Data.INFO.load();
                 await Data.CONFIG.load();
+
                 res.sendStatus(200);
             }
             catch (exc) {
