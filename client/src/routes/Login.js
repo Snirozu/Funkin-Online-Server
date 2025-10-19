@@ -22,7 +22,9 @@ function Login() {
             const response = await axios.post(getHost() + '/api/auth/login', {
                 email: email.trim()
             }, {
-                responseType: 'json', transformResponse: (body) => JSON.parse(body), validateStatus: () => true,
+                responseType: 'json', transformResponse: (body) => {
+                    try { return JSON.parse(body) } catch (exc) { return null; }
+                }, validateStatus: () => true,
             });
 
             if (response.status === 200) {
@@ -47,7 +49,9 @@ function Login() {
                 email: email.trim(),
                 code: code.trim()
             }, {
-                responseType: 'json', transformResponse: (body) => JSON.parse(body), validateStatus: () => true,
+                responseType: 'json', transformResponse: (body) => {
+                    try { return JSON.parse(body) } catch (exc) { return null; }
+                }, validateStatus: () => true,
             });
 
             const data = response.data;
