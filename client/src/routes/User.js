@@ -184,7 +184,8 @@ function User() {
                 submitted: 0,
                 id: '',
                 modURL: '',
-                misses: 0
+                misses: 0,
+                pointsWeekly: 0,
             }
         ]);
         const [loading, setLoading] = useState(true);
@@ -384,7 +385,7 @@ function User() {
                             ) : <></>}
                         </>}
                         <b>Rank: </b> {ordinalNum(data.rank)} <br />
-                        <b>Points: </b> {moneyFormatter.format(data.points)} <br />
+                        <b>Points: </b> {moneyFormatter.format(topCategory === 'week' ? data.pointsWeekly : data.points)} <br />
                         <b>Accuracy: </b> {(data.avgAccuracy * 100).toFixed(2)}% <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
                         <b>Joined: </b> {returnDate(Date.parse(data.joined))} <br />
