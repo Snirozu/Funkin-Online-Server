@@ -16,6 +16,9 @@ function secondsDateNow() {
 }
 
 export function cooldownTo(uniqueId: string, timeSeconds: CooldownTime | number) {
+    if (process.env["COOLDOWNS_ENABLED"] != "true")
+        return;
+
     const curTime = secondsDateNow();
 
     if ((cooldownMap.get(uniqueId) ?? 0) >= curTime)
