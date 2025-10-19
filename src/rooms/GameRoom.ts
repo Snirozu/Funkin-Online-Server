@@ -1031,10 +1031,10 @@ export class GameRoom extends Room<RoomState> {
     }
 
     async removePlayer(client: Client) {
-        if (this.state.isStarted) {
-            await this.endSong();
-        }
-        else {
+        // if (this.state.isStarted) {
+        //     await this.endSong();
+        // }
+        if (!this.state.isStarted) {
             for (const [_, player] of this.state.players) {
                 player.isReady = false;
             }
