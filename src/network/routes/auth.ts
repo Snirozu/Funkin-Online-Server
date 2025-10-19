@@ -1,12 +1,14 @@
 import { Express } from 'express';
 import { validateEmail, getPlayerByEmail, createUser, genAccessToken, getPlayerNameByID } from '../database';
 import { emailCodes, generateCode, sendCodeMail, tempSetCode } from '../email';
+import { cooldownReq, CooldownTime, setCooldown } from '../../cooldown';
 
 export class AuthRoute {
     static init(app: Express) {
         // registers the user to the database
         // requires 'username' json body field
         // todo to add user deletion from the database
+        setCooldown("create-account", CooldownTime.DAY);
         app.all("/api/auth/register", async (req, res) => {
             try {
                 if (!req.body.email || !(req.body.email as string).includes('@'))
@@ -25,6 +27,11 @@ export class AuthRoute {
                     }
 
                     emailCodes.delete(req.body.email);
+
+                    if (!cooldownReq(req, 'create-account')) {
+                        return res.sendStatus(429);
+                    }
+
                     const user = await createUser(req.body.username, req.body.email);
                     res.json({
                         id: user.id,
@@ -73,9 +80,7 @@ export class AuthRoute {
                     });
                 }
                 else {
-                    res.json({
-                        test: true
-                    });
+                    res.sendStatus(200);
                     // res.sendStatus(200);
                     if (!player) {
                         // to avoid users abusing the email system

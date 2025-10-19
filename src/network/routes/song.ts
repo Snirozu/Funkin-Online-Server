@@ -1,5 +1,6 @@
 import { Express } from 'express';
 import { getSongComments, getPlayerNameByID, checkAccess, getIDToken, submitSongComment } from '../database';
+import { setCooldown } from '../../cooldown';
 
 // forward deprecated urls to new ones
 
@@ -30,6 +31,7 @@ export class SongRoute {
             }
         });
 
+        setCooldown("/api/song/comment", 20);
         app.post("/api/song/comment", checkAccess, async (req, res) => {
             try {
                 const [id, _] = getIDToken(req);
@@ -37,7 +39,7 @@ export class SongRoute {
                 res.json(await submitSongComment(id, req.body));
             }
             catch (exc: any) {
-                console.log(exc);
+                console.error(exc);
                 res.status(400).json({
                     error: exc.error_message ?? "Couldn't submit..."
                 });

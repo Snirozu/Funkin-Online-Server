@@ -1,6 +1,7 @@
 import { Express } from 'express';
 import { UploadedFile } from 'express-fileupload';
 import { getClub, getPlayerByID, getPlayerNameByID, getClubRank, getClubBanner, checkAccess, getIDToken, getPlayerClub, createClub, requestJoinClub, acceptJoinClub, getPlayerIDByName, removePlayerFromClub, promoteClubMember, demoteClubMember, uploadClubBanner, postClubEdit } from '../database';
+import { setCooldown } from '../../cooldown';
 
 export class ClubRoute {
     static init(app: Express) {
@@ -222,6 +223,7 @@ export class ClubRoute {
             }
         });
 
+        setCooldown("/api/club/banner", 10);
         app.post("/api/club/banner", checkAccess, async (req, res) => {
             try {
                 const [id, _] = getIDToken(req);
@@ -260,13 +262,14 @@ export class ClubRoute {
                 img.src = "data:" + file.mimetype + ";base64," + file.data.toString("base64");
             }
             catch (exc: any) {
-                console.log(exc);
+                console.error(exc);
                 res.status(400).json({
                     error: exc.error_message ?? "Couldn't upload..."
                 });
             }
         });
 
+        setCooldown("/api/club/edit", 3);
         app.post("/api/club/edit", checkAccess, async (req, res) => {
             try {
                 const [id, _] = getIDToken(req);

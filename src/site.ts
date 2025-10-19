@@ -22,6 +22,7 @@ import { StatsRoute } from './network/routes/stats';
 import { Data } from './data';
 import sanitizeHtml from 'sanitize-html';
 import { AuthRoute } from './network/routes/auth';
+import { cooldownRequest } from './cooldown';
 
 export async function initExpress(app: Express) {
     app.get("/api/front", async (_req, res) => {
@@ -62,6 +63,7 @@ export async function initExpress(app: Express) {
         }));
         app.use(fileUpload({}));
         app.use(cookieParser());
+        app.use(cooldownRequest);
 
         RedirectRoutes.init(app);
         RootRoute.init(app);
@@ -191,8 +193,8 @@ async function showIndex(req: Request, res: Response) {
         }
         let response = fs.readFileSync(indexPath, { encoding: 'utf8', flag: 'r' }).toString();
         let title = "Psych Online";
-        let description = "The FNF Multiplayer mod based on Psych Engine!";
-        let image = "https://" + req.hostname + "/fingerthumb.png";
+        let description = "A FNF Multiplayer mod based on Psych Engine!";
+        let image = "https://" + req.hostname + "/images/transwag.png";
         const params = req.path.substring(1).split('/');
         switch (params[0]) {
             case "user": {
@@ -222,7 +224,7 @@ async function showIndex(req: Request, res: Response) {
                 if (!club)
                     break;
                 title = club.name + ' [' + club.tag + '] · Club';
-                description = club.points + 'FP';
+                description = moneyFormatter.format(club.points) + 'FP\n' + club.members.length + " Member(s)";
                 image = "https://" + req.hostname + "/api/club/banner/" + encodeURIComponent(club.tag);
                 break;
             }

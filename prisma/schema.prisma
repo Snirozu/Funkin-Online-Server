@@ -33,7 +33,6 @@ model User {
   country String?
 
   scores  Score[]
-  reports Report[]
   songComments SongComment[]
   avatar FileAvatar?
   background FileBackground?
@@ -84,8 +83,7 @@ model Report {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
   content   String
   submitted DateTime @default(now())
-  userRe    User     @relation(fields: [by], references: [id])
-  by        String   @db.ObjectId
+  by        String
 }
 
 model SongComment {

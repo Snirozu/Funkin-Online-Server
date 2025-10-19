@@ -1,5 +1,6 @@
 import { Express } from 'express';
-import { getScore, getReplayFile, checkAccess, getIDToken, submitReport, submitScore } from '../database';
+import { getScore, getReplayFile, checkAccess, getIDToken, submitReport, submitScore, getPlayerNameByID } from '../database';
+import { setCooldown } from '../../cooldown';
 
 export class ScoreRoute {
     static init(app: Express) {
@@ -18,7 +19,10 @@ export class ScoreRoute {
                 if (!file)
                     return res.sendStatus(404);
 
-                res.send(file.data);
+                const replay = JSON.parse(file.data.toString());
+                replay.player = await getPlayerNameByID(score.player);
+                replay.songId = score.songId;
+                res.send(replay);
             }
             catch (exc) {
                 console.error(exc);
@@ -26,12 +30,12 @@ export class ScoreRoute {
             }
         });
 
-        // requires `content` json body field
+        setCooldown("/api/score/report", 20);
         app.post("/api/score/report", checkAccess, async (req, res) => {
             try {
                 const [id, _] = getIDToken(req);
 
-                res.json(await submitReport(id, req.body));
+                res.json(await submitReport(id, req.body.content));
             }
             catch (exc: any) {
                 res.status(400).json({
@@ -42,6 +46,7 @@ export class ScoreRoute {
 
         // submits user replay to the leaderboard system
         // requires replay data json data
+        setCooldown("/api/score/submit", 30);
         app.post("/api/score/submit", checkAccess, async (req, res) => {
             try {
                 const [id, _] = getIDToken(req);
@@ -49,7 +54,7 @@ export class ScoreRoute {
                 res.json(await submitScore(id, req.body));
             }
             catch (exc: any) {
-                console.log(exc);
+                console.error(exc);
                 res.status(400).json({
                     error: exc.error_message ?? "Couldn't submit..."
                 });

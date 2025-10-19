@@ -5,6 +5,7 @@ import { filterSongName, filterUsername, formatLog, hasOnlyLettersAndNumbers, or
 import { logToAll, networkRoom, notifyPlayer } from "../rooms/NetworkRoom";
 import sanitizeHtml from 'sanitize-html';
 import { Data } from "../data";
+import { cooldown } from "../cooldown";
 
 // this class is a mess
 
@@ -46,6 +47,10 @@ export async function checkAccess(req: any, res: any, next: any) {
 
     if (!hasAccess(player, req.path)) {
         return res.sendStatus(401)
+    }
+    
+    if (!cooldown(req.path, id)) {
+        return res.sendStatus(429)
     }
 
     await jwt.verify(token, player.secret as string, async (err: any, _user: any) => {
@@ -371,23 +376,19 @@ async function updateSongMaxPoints(songId:string) {
     });
 }
 
-export async function submitReport(id: string, reqJson: any) {
+export async function submitReport(id: string, content: any) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
 
-    const submitter = await getPlayerByID(id);
-    if (!submitter)
-        throw { error_message: "Not registered!" }
+    // const submitter = await getPlayerByID(id);
+    // if (!submitter)
+    //     throw { error_message: "Not registered!" }
 
     return (await prisma.report.create({
         data: {
-            userRe: {
-                connect: {
-                    id: id
-                }
-            },
-            content: reqJson.content
+            by: id,
+            content: content
         },
     }));
 }
@@ -868,12 +869,24 @@ export async function submitSongComment(userId: string, reqJson: any) {
     });
 }
 
-export async function viewReports() {
+export async function listReports() {
     if (!process.env["DATABASE_URL"]) {
         return null;
     }
 
     return (await prisma.report.findMany());
+}
+
+export async function getReport(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        return null;
+    }
+
+    return (await prisma.report.findUnique({
+        where: {
+            id: id
+        }
+    }));
 }
 
 export async function removeReport(id:string) {
@@ -2030,8 +2043,7 @@ export async function getAvatar(userId: string) {
             }
         });
     }
-    catch (exc) {
-        console.error(exc);
+    catch (_) {
         return null;
     }
 }

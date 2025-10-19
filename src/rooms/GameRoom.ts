@@ -1,13 +1,14 @@
 import { Room, Client } from "@colyseus/core";
 import { RoomState } from "./schema/RoomState";
 import { Person, Player } from "./schema/Player";
-import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
-import { getPlayerByID, hasAccess } from "../network/database";
+import { getPlayerByID, hasAccess, submitReport } from "../network/database";
 import jwt from "jsonwebtoken";
-import { filterChatMessage, filterUsername, formatLog } from "../util";
+import { filterChatMessage, filterUsername, formatLog, getRequestIP } from "../util";
 import { Data } from "../data";
 import { ServerInstance } from "../server";
+import { IncomingMessage } from "http";
+import { cooldown, cooldownRemaining } from "../cooldown";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -73,6 +74,11 @@ export class GameRoom extends Room<RoomState> {
     networkOnly: boolean = false;
 
     dummies:Player[] = [];
+
+    /**
+     * used only for chat reporting
+     */
+    loggedMessages: ChatMessageDetails[] = [];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async onCreate(options: any) {
@@ -447,7 +453,13 @@ export class GameRoom extends Room<RoomState> {
             const requester = this.getStatePerson(client);
             if (!requester)
                 return;
-            this.broadcast("log", formatLog(requester.name + ": " + message, this.clientsInfo.get(client.sessionId).hue));
+
+            const detals = new ChatMessageDetails();
+            detals.content = requester.name + ": " + message;
+            detals.client_info = this.clientsInfo.get(client.sessionId);
+            this.loggedMessages.push(detals);
+
+            this.broadcast("log", formatLog(detals.content, detals.client_info.hue));
         });
 
         this.onMessage("notifyInstall", (client, message) => {
@@ -725,8 +737,30 @@ export class GameRoom extends Room<RoomState> {
                     }
                     client.send("log", formatLog("> Kicked " + kickCount + " people"));
                     break;
+                case "report":
+                    switch (message[1]) {
+                        case 'chat': {
+                            const clientInfo = this.clientsInfo.get(client.sessionId);
+                            if (!cooldown('command.report', clientInfo.ip)) {
+                                client.send("log", formatLog("> Try again in " + cooldownRemaining(['command.report', clientInfo.ip]) + "s!"));
+                                return;
+                            }
+
+                            await submitReport(clientInfo.networkId ?? clientInfo.ip, JSON.stringify({
+                                roomId: this.roomId,
+                                messages: this.loggedMessages
+                            }));
+                            this.loggedMessages = [];
+                            client.send("log", formatLog("> Report Submitted!"));
+                            break;
+                        }
+                        default: {
+                            client.send("log", formatLog("> Reports X to the moderation team.\nUse '/report chat' to report all messages from this room."));
+                        }
+                    }
+                    break;
                 case "help":
-                    client.send("log", formatLog("> Global Commands: /roll, /kick <name>"));
+                    client.send("log", formatLog("> Global Commands: /roll, /kick <name>, /report"));
                     break;
                 default:
                     client.send("log", formatLog("> Unknown command; try /help to see the command list!"));
@@ -826,7 +860,7 @@ export class GameRoom extends Room<RoomState> {
             throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
         }
 
-        const playerIp = this.getRequestIP(request);
+        const playerIp = getRequestIP(request);
         try {
             const ipInfo = await (await fetch("http://ip-api.com/json/" + encodeURIComponent(playerIp))).json();
             if (process.env["NETWORK_ENABLED"] == "true" && ipInfo.country) {
@@ -1140,7 +1174,7 @@ export class GameRoom extends Room<RoomState> {
             return true;
         }
 
-        const requesterIP = this.getRequestIP(request);
+        const requesterIP = getRequestIP(request);
 
         const currentIps = await this.presence.hget(this.IPS_CHANNEL, requesterIP);
         const ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);
@@ -1150,15 +1184,6 @@ export class GameRoom extends Room<RoomState> {
         }
         return false;
     }
-
-    getRequestIP(req: IncomingMessage) {
-        if (req.headers['x-forwarded-for']) {
-            return (req.headers['x-forwarded-for'] as string).split(",")[0].trim();
-        }
-        else {
-            return req.socket.remoteAddress;
-        }
-    }
 }
 
 enum VerifyTypes {
@@ -1166,4 +1191,9 @@ enum VerifyTypes {
     STRING,
     ARRAY,
     BOOL,
+}
+
+class ChatMessageDetails {
+    public content: string = undefined;
+    public client_info: ClientInfo = undefined;
 }

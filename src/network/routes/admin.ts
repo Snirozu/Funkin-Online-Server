@@ -2,82 +2,11 @@ import { matchMaker } from 'colyseus';
 import { Express } from 'express';
 import { Data } from '../../data';
 import { networkRoom } from '../../rooms/NetworkRoom';
-import { checkAccess, authPlayer, removeReport, removeScore, viewReports, getPlayerByID, getScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer } from '../database';
+import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID } from '../database';
 import dotenv from 'dotenv';
 
 export class AdminRoute {
     static init(app: Express) {
-        app.get("/admin*", checkAccess, async (req, res) => {
-            try {
-                const reqPlayer = await authPlayer(req);
-                if (!reqPlayer)
-                    return res.sendStatus(403);
-
-                const params = (req.params as Array<string>)[0].split("/");
-                switch (params[1]) {
-                    case "remove": {
-                        const removed = [];
-                        if (req.query.report) {
-                            await removeReport(req.query.report as string);
-                            removed.push("report");
-                        }
-                        if (req.query.score) {
-                            await removeScore(req.query.score as string);
-                            removed.push("score");
-                        }
-
-                        if (removed.length == 0) {
-                            res.send('none removed! <br><a href="javascript:history.back()"> go bakc </a>');
-                            return;
-                        }
-
-                        res.send('removed ' + removed.join(',') + '! <br><a href="javascript:history.back()"> go bakc </a>');
-                        break;
-                    }
-                    default: {
-                        let response = '';
-
-                        response += '<h1>logged as ' + reqPlayer.name + "</h1>";
-
-                        response += '<h2> Reports: </h2><hr>';
-                        const reports = await viewReports();
-                        for (const report of reports) {
-                            const submitter = await getPlayerByID(report.by);
-                            response += "By: <a href='/user/" + submitter.name + "'>" + submitter.name + "</a>";
-                            const contentLines = report.content.split('\n');
-                            const scoreLine = contentLines.shift();
-                            if (scoreLine.startsWith("Score #")) {
-                                const score = await getScore(scoreLine.split("Score #")[1]);
-                                if (!score) {
-                                    await removeReport(report.id);
-                                    response += "<br>REMOVED<hr>";
-                                    continue;
-                                }
-                                const scorePlayer = await getPlayerByID(score.player);
-                                response += "<br> " + "<a href='/user/" + scorePlayer.name + "'>" + scorePlayer.name + "'s</a> <a href='/api/score/replay?id=" + score.id + "'>Score"
-                                    + "</a> on <a href='/song/" + score.songId + "?strum=" + score.strum + "'>" + score.songId + "</a>"
-                                    + (contentLines.length > 0 ? "<br>" + contentLines.join('<br>') : '')
-                                    + "<br><br><a href='/admin/remove?report=" + report.id + "&score=" + score.id + "'>(REMOVE SCORE)</a>&nbsp;&nbsp;&nbsp;";
-                            }
-                            else {
-                                response += "<br>" + report.content + "<br><br>";
-                            }
-                            response += "<a href='/admin/remove?report=" + report.id + "'>(REMOVE REPORT)</a>"
-                            response += "<hr>";
-                        }
-                        response += '<style> html { padding: 30px; color: white; background-color: rgb(50, 50, 50); font-family: Verdana, sans-serif; } a { color: #428ee6; } </style>';
-
-                        res.send(response);
-                        break;
-                    }
-                }
-            }
-            catch (exc) {
-                console.error(exc);
-                res.status(400).send(exc?.error_message ?? "Unknown error...");
-            }
-        });
-
         app.get("/api/admin/user/data", checkAccess, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
@@ -250,6 +179,51 @@ export class AdminRoute {
         app.get("/api/admin/user/rename", checkAccess, async (req, res) => {
             try {
                 await renamePlayer(await getPlayerIDByName(req.query.user as string), req.query.new as string);
+                res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/report/list", checkAccess, async (_, res) => {
+            try {
+                const reports = await listReports();
+                const data = [];
+                for (const report of reports) {
+                    data.push({
+                        id: report.id,
+                        by: await getPlayerNameByID(report.by) ?? report.by,
+                        content: report.content,
+                        date: report.submitted
+                    })
+                }
+                res.send(data);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/report/content", checkAccess, async (req, res) => {
+            try {
+                const report = await getReport(req.query.id as string);
+                if (report.content.startsWith('{')) {
+                    return res.json(JSON.parse(report.content));
+                }
+                res.set('Content-Type', 'text/plain').send(report.content);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/report/delete", checkAccess, async (req, res) => {
+            try {
+                await removeReport(req.query.id as string);
                 res.sendStatus(200);
             }
             catch (exc) {

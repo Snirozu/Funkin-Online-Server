@@ -6,9 +6,12 @@ import { GameRoom } from "./rooms/GameRoom";
 import { matchMaker } from "colyseus";
 import { NetworkRoom } from "./rooms/NetworkRoom";
 import { initExpress } from "./site";
+import { setCooldown } from "./cooldown";
 
 export default config({
     initializeGameServer: async (gameServer) => {
+        setCooldown('command.report', 30);
+
         gameServer.define('room', GameRoom);
     
         if (process.env["NETWORK_ENABLED"] == "true") {

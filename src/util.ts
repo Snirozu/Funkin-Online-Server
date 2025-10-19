@@ -1,6 +1,7 @@
 import { Data } from "./data";
 import { getPlayerIDByName, getPlayerNameByID } from "./network/database";
 import { GameRoom } from "./rooms/GameRoom";
+import { IncomingMessage } from "http";
 
 const songNameRegex = /[A-Z]|[a-z]|[0-9]/g;
 const userNameRegex = /[^<>\r\n\t]+/g;
@@ -11,6 +12,15 @@ export function filterSongName(str:string) {
 
 export function filterUsername(str:string) {
     return (str.match(userNameRegex) || []).join('').trim();
+}
+
+export function getRequestIP(req: IncomingMessage) {
+    if (req.headers['x-forwarded-for']) {
+        return (req.headers['x-forwarded-for'] as string).split(",")[0].trim();
+    }
+    else {
+        return req.socket.remoteAddress;
+    }
 }
 
 export function formatLog(content:string, hue:number = null, isPM:boolean = false):string {

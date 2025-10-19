@@ -33,7 +33,7 @@ name = "Helper"
 priority = 1
 access = [
     '/api/admin/score/delete',
-    '/admin*',
+    '/api/admin/report/*',
 ]
 extends = 'Member'
 

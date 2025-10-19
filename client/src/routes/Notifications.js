@@ -53,7 +53,7 @@ function Notifications() {
                 continue;
             notifsBody.push(
                 <div className="Comment">
-                    <img style={{maxWidth: '60px'}} src={notif.image} alt=''></img>
+                    <img style={{ maxWidth: '60px', maxHeight: '60px' }} src={notif.image} alt=''></img>
                     <div>
                         <a href={notif.href}>{notif.title} <br></br>
                         <span style={{color: 'white'}}>{notif.content}</span>

@@ -15,6 +15,7 @@ import ClubHome from './routes/ClubHome';
 import TopPlayers from './routes/TopPlayers';
 import TopClubs from './routes/TopClubs';
 import Notifications from './routes/Notifications';
+import Admin from './routes/Admin';
 
 const App = () => {
   return (
@@ -35,6 +36,7 @@ const App = () => {
         <Route path="/club" element={<ClubHome />} />
         <Route path="/club/:tag" element={<Club />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path='*' element={<NotFound />} />
       </Routes>
     </div>

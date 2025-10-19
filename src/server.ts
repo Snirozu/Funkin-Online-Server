@@ -5,6 +5,7 @@ import { initDatabaseCache } from "./network/database";
 import { DiscordBot } from "./discord";
 import { Data } from "./data";
 import ip from 'ip';
+import { saveAndCleanCooldownData } from "./cooldown";
 
 export class ServerInstance {
     public static PROTOCOL_VERSION = 9;
@@ -16,6 +17,16 @@ export class ServerInstance {
         dotenv.config();
 
         await Data.init();
+
+        process.on('exit', function () {
+            void saveAndCleanCooldownData();
+            console.log('Saved cooldown data!');
+        });
+
+        // every 30s save cooldowns
+        setInterval(async () => {
+            await saveAndCleanCooldownData();
+        }, 1000 * 30);
 
         try {
             if (process.env["DISCORD_TOKEN"]) {

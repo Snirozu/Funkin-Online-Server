@@ -2,6 +2,7 @@ import fs from 'fs';
 import { GameRoom } from "./rooms/GameRoom";
 import { ConfigData } from "./data.config";
 import { PersistentData } from "./data.persistent";
+import { loadCooldownData } from './cooldown';
 
 export class Data {
     public static PERSIST: PersistentData;
@@ -20,6 +21,8 @@ export class Data {
 
         Data.CONFIG = new ConfigData();
         await Data.CONFIG.load();
+
+        await loadCooldownData();
     }
 }
 

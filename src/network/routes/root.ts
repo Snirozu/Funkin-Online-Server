@@ -4,6 +4,7 @@ import { matchMaker } from 'colyseus';
 import { networkRoom } from "../../rooms/NetworkRoom";
 import { Data } from '../../data';
 import { countPlayers } from '../../site';
+import { CooldownTime, setCooldown } from '../../cooldown';
 
 export class RootRoute {
     static init(app: Express) {
@@ -52,10 +53,15 @@ export class RootRoute {
             }
         });
 
+        setCooldown("/api/sez", CooldownTime.DAY);
         app.post("/api/sez", checkAccess, async (req, res) => {
             try {
-                if (req.body.message && req.body.message.length < 80 && !(req.body.message as string).includes("\n")) {
+                if (req.body.message && req.body.message.length < 100 && !(req.body.message as string).includes("\n")) {
                     const [id, _] = getIDToken(req);
+
+                    if (Data.PERSIST.props.FRONT_MESSAGES.length > 0 && Data.PERSIST.props.FRONT_MESSAGES[0].player == id) {
+                        return res.sendStatus(418);
+                    }
 
                     Data.PERSIST.props.FRONT_MESSAGES.unshift({
                         player: id,

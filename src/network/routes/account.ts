@@ -4,9 +4,10 @@ import { isUserIDInRoom, findPlayerSIDByNID } from "../../util";
 import { checkAccess, getIDToken, pingPlayer, getPlayerClubTag, getPlayerByID, getUserFriends, searchFriendRequests, getPlayerProfileHue, getPlayerNameByID, uploadAvatar, uploadBackground, removeImages, setPlayerBio, renamePlayer, deleteUser, getPlayerByEmail, setEmail, validateEmail, getNotifications, deleteNotification, getNotificationsCount } from "../database";
 import { Express } from 'express';
 import { emailCodes, generateCode, tempSetCode, sendCodeMail } from "../email";
+import { setCooldown } from "../../cooldown";
 
 export class AccountRoute {
-    static init(app: Express) {
+    static init(app: Express) {        
         app.get("/api/account/info", checkAccess, async (req, res) => {
             try {
                 const [id] = getIDToken(req);
@@ -110,6 +111,7 @@ export class AccountRoute {
             }
         });
 
+        setCooldown("/api/account/avatar", 10);
         app.post("/api/account/avatar", checkAccess, async (req, res) => {
             try {
                 const [id] = getIDToken(req);
@@ -127,13 +129,14 @@ export class AccountRoute {
                 res.sendStatus(200);
             }
             catch (exc) {
-                console.log(exc);
+                console.error(exc);
                 res.status(400).json({
                     error: exc.error_message ?? "Couldn't upload..."
                 });
             }
         });
 
+        setCooldown("/api/account/background", 10);
         app.post("/api/account/background", checkAccess, async (req, res) => {
             try {
                 const [id] = getIDToken(req);
@@ -172,7 +175,7 @@ export class AccountRoute {
             catch (exc) {
                 console.error(exc);
                 res.status(400).json({
-                    error: exc.error_message ?? "Couldn't upload..."
+                    error: exc.error_message ?? "Couldn't remove..."
                 });
             }
         });
@@ -194,6 +197,7 @@ export class AccountRoute {
             }
         });
 
+        setCooldown("/api/account/profile/set", 3);
         app.post("/api/account/profile/set", checkAccess, async (req, res) => {
             try {
                 const [id] = getIDToken(req);
@@ -208,6 +212,7 @@ export class AccountRoute {
             }
         });
 
+        setCooldown("/api/account/rename", 60);
         app.post("/api/account/rename", checkAccess, async (req, res) => {
             try {
                 const [id] = getIDToken(req);
