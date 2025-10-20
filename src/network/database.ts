@@ -901,67 +901,156 @@ export async function removeReport(id:string) {
     }));
 }
 
+export async function removeBloatReplays() {
+    debugPrint('fetching');
+    const scores = await prisma.score.findMany({
+        select: {
+            replayFileId: true,
+            player: true
+        }
+    })
+
+    const scoreReplays = [];
+    for (const score of scores) {
+        scoreReplays.push(score.replayFileId);
+    }
+
+    debugPrint(scoreReplays.length);
+
+    const pickReplays = [];
+
+    for (const replay of (await prisma.fileReplay.findMany({select: { id: true }}))) {
+        if (!scoreReplays.includes(replay.id)) {
+            pickReplays.push(replay.id);
+        }
+    }
+
+    debugPrint(pickReplays.length);
+
+    let deleted = 0;
+
+    for (const replay of pickReplays) {
+        await prisma.fileReplay.delete({
+            where: {
+                id: replay
+            }
+        })
+        deleted++;
+        debugPrint(pickReplays.length - deleted);
+    }
+
+
+    // const replays = await prisma.fileReplay.deleteMany({
+    //     where: {
+    //         id: {
+    //             notIn: pickReplays
+    //         }
+    //     }
+    // })
+
+    // debugPrint(replays.count);
+
+} 
+
 export async function removeScore(scores: string | string[], checkPlayer?: string) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
 
-    let ids = [];
+    debugPrint('removing scores');
+
+    let scoreIds = [];
     if (typeof scores === "string")
-        ids.push(scores);
+        scoreIds.push(scores);
     if (Array.isArray(scores))
-        ids = scores;
+        scoreIds = scores;
 
     const players = [];
     const songs = [];
+    const replays = [];
 
-    for (const id of ids) {
-        if (checkPlayer) {
-            if (!id || (await prisma.score.findFirstOrThrow({
-                where: {
-                    id: id
-                },
-                select: {
-                    player: true
-                }
-            })).player != checkPlayer)
-                throw { error_message: "Unauthorized!" }
+    debugPrint('fetching scores');
+
+    const fetchedScores = await prisma.score.findMany({
+        where: {
+            id: {
+                in: scoreIds
+            }
+        },
+        select: {
+            songId: true,
+            player: true,
+            replayFileId: true
         }
+    })
 
-        const score = (await prisma.score.delete({
-            where: {
-                id: id
-            },
-            select: {
-                songId: true,
-                player: true,
-                replayFileId: true
-            }
-        }));
-
-        await prisma.fileReplay.delete({
-            where: {
-                id: score.replayFileId
-            },
-            select: {
-                id: true
-            }
-        });
-
+    for (const score of fetchedScores) {
         if (!players.includes(score.player))
             players.push(score.player);
 
         if (!songs.includes(score.songId))
             songs.push(score.songId);
+
+        if (!replays.includes(score.replayFileId))
+            replays.push(score.replayFileId);
+
+        if (checkPlayer && score.player != checkPlayer)
+            throw { error_message: "Unauthorized!" }
     }
+
+    debugPrint('deleting scores');
+
+    await prisma.score.deleteMany({
+        where: {
+            id: {
+                in: scoreIds
+            }
+        },
+    })
+    
+    debugPrint('updating player stats');
 
     for (const player of players) {
         await updatePlayerStats(player);
     }
 
+    debugPrint('updating songs');
+
     for (const song of songs) {
         await updateSongMaxPoints(song);
     }
+
+    debugPrint('deleting replays');
+
+    try {
+        await prisma.fileReplay.deleteMany({
+            where: {
+                id: {
+                    in: replays
+                }
+            }
+        });
+    }
+    catch (exc) {
+        console.error(exc);
+        for (const replay of replays) {
+            await prisma.fileReplay.delete({
+                where: {
+                    id: replay
+                }
+            })
+        }
+    }
+
+    debugPrint('finished removing scores!');
+}
+
+export function debugPrint(content: unknown) {
+    if (process.env["DEBUG_ENABLED"] != "true") {
+        return;
+    }
+
+    console.log(content);
 }
 
 export async function aggregatePlayerAccuracy(id: string) {
