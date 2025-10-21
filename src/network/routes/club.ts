@@ -2,6 +2,7 @@ import { Express } from 'express';
 import { UploadedFile } from 'express-fileupload';
 import { getClub, getPlayerByID, getPlayerNameByID, getClubRank, getClubBanner, checkAccess, getIDToken, getPlayerClub, createClub, requestJoinClub, acceptJoinClub, getPlayerIDByName, removePlayerFromClub, promoteClubMember, demoteClubMember, uploadClubBanner, postClubEdit } from '../database';
 import { setCooldown } from '../../cooldown';
+import { Image } from 'canvas';
 
 export class ClubRoute {
     static init(app: Express) {

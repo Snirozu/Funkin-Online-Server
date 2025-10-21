@@ -16,9 +16,6 @@ function secondsDateNow() {
 }
 
 export function cooldownTo(uniqueId: string, timeSeconds: CooldownTime | number) {
-    if (process.env["COOLDOWNS_ENABLED"] != "true")
-        return true;
-
     const curTime = secondsDateNow();
 
     if ((cooldownMap.get(uniqueId) ?? 0) >= curTime)
@@ -40,12 +37,21 @@ export function cooldown(cooldownId: string, uniqueId: string) {
 }
 
 export function cooldownReq(req: any, cooldownId?:string) {
+    if (process.env["HTTP_COOLDOWNS_ENABLED"] != "true") {
+        return true;
+    }
+
     const [id, token] = getIDToken(req);
 
     return cooldown(cooldownId ?? req.path, getRequestIP(req)) && ((id && token) ? cooldown(cooldownId ?? req.path, id + '::' + token) : true);
 }
 
 export function cooldownRequest(req: any, res: any, next: any) {
+    if (process.env["HTTP_COOLDOWNS_ENABLED"] != "true") {
+        next();
+        return;
+    }
+    
     if (cooldownReq(req)) {
         next();
         return;
