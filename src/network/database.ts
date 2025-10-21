@@ -336,7 +336,10 @@ async function countPlayerFP(id: string, category?: string) {
         return (await prisma.score.aggregate({
             where: {
                 player: id,
-                category: category
+                category: {
+                    isSet: category ? true : false,
+                    equals: category
+                }
             },
             _sum: {
                 points: true
