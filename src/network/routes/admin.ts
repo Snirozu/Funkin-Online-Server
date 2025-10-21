@@ -233,7 +233,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/logs", checkAccess, logActionOnRequest, async (_, res) => {
+        app.get("/api/admin/logs", checkAccess, async (_, res) => {
             try {
                 res.send(Data.PERSIST.props.LOGGED_MOD_ACTIONS);
             }
