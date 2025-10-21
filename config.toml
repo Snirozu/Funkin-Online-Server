@@ -22,6 +22,7 @@ access = [
     '/api/admin/user/ban',
     '/api/admin/players',
     '/api/admin/club/delete',
+    '/api/admin/logs',
     'command.announce'
 ]
 extends = 'Helper'

@@ -24,6 +24,7 @@ class PersistentDataProps {
     public FRONT_MESSAGES: SezData[] = [];
     public LOGGED_MESSAGES: Array<Array<any>> = []; // array<any> is [content, unix_timestamp]
     public NEXT_WEEKLY_DATE: number;
+    public LOGGED_MOD_ACTIONS: string[] = [];
 }
 
 class SezData {

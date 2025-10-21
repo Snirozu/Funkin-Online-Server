@@ -4,10 +4,11 @@ import { Data } from '../../data';
 import { networkRoom } from '../../rooms/NetworkRoom';
 import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID } from '../database';
 import dotenv from 'dotenv';
+import { logActionOnRequest } from '../mods';
 
 export class AdminRoute {
     static init(app: Express) {
-        app.get("/api/admin/user/data", checkAccess, async (req, res) => {
+        app.get("/api/admin/user/data", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
                 if (!reqPlayer)
@@ -20,7 +21,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/user/set/email", checkAccess, async (req, res) => {
+        app.get("/api/admin/user/set/email", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
                 if (!reqPlayer)
@@ -33,7 +34,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/user/delete", checkAccess, async (req, res) => {
+        app.get("/api/admin/user/delete", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
                 const target = await getPlayerByName(req.query.username as string);
@@ -48,7 +49,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/club/delete", checkAccess, async (req, res) => {
+        app.get("/api/admin/club/delete", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 await deleteClub(req.query.tag as string);
                 return res.sendStatus(200);
@@ -59,7 +60,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/club/updatefp", checkAccess, async (req, res) => {
+        app.get("/api/admin/club/updatefp", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 await updateClubPoints(req.query.tag as string);
                 return res.sendStatus(200);
@@ -70,7 +71,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/user/ban", checkAccess, async (req, res) => {
+        app.get("/api/admin/user/ban", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
                 const target = await getPlayerByName(req.query.username as string);
@@ -85,7 +86,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/score/delete", checkAccess, async (req, res) => {
+        app.get("/api/admin/score/delete", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
                 if (!reqPlayer)
@@ -99,7 +100,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/players", checkAccess, async (req, res) => {
+        app.get("/api/admin/players", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
                 if (!reqPlayer)
@@ -126,7 +127,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/reloadconfig", checkAccess, async (req, res) => {
+        app.get("/api/admin/reloadconfig", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
                 if (!reqPlayer)
@@ -145,7 +146,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/user/grant", checkAccess, async (req, res) => {
+        app.get("/api/admin/user/grant", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
                 const target = await getPlayerByName(req.query.username as string);
@@ -165,7 +166,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/user/notify", checkAccess, async (req, res) => {
+        app.get("/api/admin/user/notify", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 await sendNotification(await getPlayerIDByName(req.query.user as string), req.query as any);
                 res.sendStatus(200);
@@ -176,7 +177,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/user/rename", checkAccess, async (req, res) => {
+        app.get("/api/admin/user/rename", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 await renamePlayer(await getPlayerIDByName(req.query.user as string), req.query.new as string);
                 res.sendStatus(200);
@@ -187,7 +188,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/report/list", checkAccess, async (_, res) => {
+        app.get("/api/admin/report/list", checkAccess, logActionOnRequest, async (_, res) => {
             try {
                 const reports = await listReports();
                 const data = [];
@@ -207,7 +208,7 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/report/content", checkAccess, async (req, res) => {
+        app.get("/api/admin/report/content", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const report = await getReport(req.query.id as string);
                 if (report.content.startsWith('{')) {
@@ -221,10 +222,20 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/report/delete", checkAccess, async (req, res) => {
+        app.get("/api/admin/report/delete", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 await removeReport(req.query.id as string);
                 res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/logs", checkAccess, logActionOnRequest, async (_, res) => {
+            try {
+                res.send(Data.PERSIST.props.LOGGED_MOD_ACTIONS);
             }
             catch (exc) {
                 console.error(exc);
