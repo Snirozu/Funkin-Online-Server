@@ -91,7 +91,7 @@ export class AdminRoute {
                 const reqPlayer = await authPlayer(req);
                 if (!reqPlayer)
                     return res.sendStatus(403);
-                await removeScore(req.query.id as string)
+                await removeScore(req.query.id as string, true)
                 return res.sendStatus(200);
             }
             catch (exc) {

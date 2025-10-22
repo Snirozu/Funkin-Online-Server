@@ -17,6 +17,6 @@ export async function logAction(uid: string, content: string) {
         Data.PERSIST.props.LOGGED_MOD_ACTIONS.pop();
     }
 
-    Data.PERSIST.props.LOGGED_MOD_ACTIONS.unshift(`[${date}]: ${await getPlayerNameByID(uid)}: ${content}`);
+    Data.PERSIST.props.LOGGED_MOD_ACTIONS.unshift(`[${date}]: ${uid ? await getPlayerNameByID(uid) : 'SERVER'}: ${content}`);
     Data.PERSIST.save();
 }

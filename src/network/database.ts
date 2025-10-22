@@ -6,6 +6,7 @@ import { logToAll, networkRoom, notifyPlayer } from "../rooms/NetworkRoom";
 import sanitizeHtml from 'sanitize-html';
 import { Data } from "../data";
 import { cooldown } from "../cooldown";
+import { logAction } from "./mods";
 
 // this class is a mess
 
@@ -955,7 +956,7 @@ export async function removeBloatReplays() {
 
 } 
 
-export async function removeScore(scores: string | string[], checkPlayer?: string) {
+export async function removeScore(scores: string | string[], logInfo: boolean = false) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
@@ -983,7 +984,8 @@ export async function removeScore(scores: string | string[], checkPlayer?: strin
         select: {
             songId: true,
             player: true,
-            replayFileId: true
+            replayFileId: true,
+            points: true
         }
     })
 
@@ -997,8 +999,12 @@ export async function removeScore(scores: string | string[], checkPlayer?: strin
         if (!replays.includes(score.replayFileId))
             replays.push(score.replayFileId);
 
-        if (checkPlayer && score.player != checkPlayer)
-            throw { error_message: "Unauthorized!" }
+        if (logInfo) {
+            logAction(null, 'Deleted score on ' + score.songId + ' by ' + await getPlayerNameByID(score.player) + ' with FP: ' + score.points);
+        }
+
+        // if (checkPlayer && score.player != checkPlayer)
+        //     throw { error_message: "Unauthorized!" }
     }
 
     debugPrint('deleting scores');
