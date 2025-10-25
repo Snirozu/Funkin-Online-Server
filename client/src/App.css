@@ -664,3 +664,7 @@ select {
 .TopClubBanner {
   height: 90px;
 }
+
+li, dt, dd {
+  text-align: left;
+}

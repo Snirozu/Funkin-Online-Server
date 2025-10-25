@@ -21,6 +21,8 @@ function Home() {
                     </a>
                 </div>
                 <br></br>
+                <a style={{color: 'yellow'}} href='/rules'> Read the rules before you play! </a>
+                <br></br>
                 {/* <span className="BigText" >Unofficial Ports</span> <br />
                 <div className="Downloads">
                     <a href=''>
