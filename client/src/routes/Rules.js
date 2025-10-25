@@ -7,13 +7,18 @@ function Rules() {
                     <h3> Scores </h3>
                     <b style={{float: 'left'}}> Prohibited: </b> <br></br>
                     <ul>
-                        <li> Duped/Copied Scores, Charts, Replays. </li>
-                        <dd> ex. slightly modified or straight up copied data </dd>
+                        <li> Duplicated Scores/Replays/Charts. </li>
+                        <dd> ex. slightly modified or straight up just copied data so you can submit your score multiple times </dd>
                         <li> Scores that abuse the FP algorithm. </li>
-                        <dd> ex. via chart manipulation </dd>
+                        <dd> ex. via chart data abuse for example: copying dozens of notes to be at the same time  </dd>
                         <li> Using Botplay or any form of cheating to fake the replays. </li>
-                        <li> PRIVATE Mods and Charts that give a lot of FP. </li>
+                        <li> *PRIVATE* Mods and Charts meant purely for farming FP. </li>
                         <dd> (this applies to osu! maps that are private) </dd>
+                    </ul>
+                    <b style={{ float: 'left' }}> Allowed: </b> <br></br>
+                    <ul>
+                        <li> Duplicated charts from a public mod. </li>
+                        <dd> ex. a remix mod </dd>
                     </ul>
 
                     <h3> Social </h3>
@@ -52,7 +57,7 @@ function Rules() {
 
                     <hr></hr>
 
-                    <h5> Updated: 25/10/2025 18:48 CET/CEST </h5> 
+                    <h5> Updated: 25/10/2025 20:06 CET/CEST </h5> 
                 </div>
             </div>
         </>
