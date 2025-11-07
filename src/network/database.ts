@@ -1000,7 +1000,7 @@ export async function removeScore(scores: string | string[], logInfo: boolean = 
             replays.push(score.replayFileId);
 
         if (logInfo) {
-            logAction(null, 'Deleted score on ' + score.songId + ' by ' + await getPlayerNameByID(score.player) + ' with FP: ' + score.points);
+            await logAction(null, 'Deleted score on ' + score.songId + ' by ' + await getPlayerNameByID(score.player) + ' with FP: ' + score.points);
         }
 
         // if (checkPlayer && score.player != checkPlayer)

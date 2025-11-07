@@ -5,6 +5,7 @@ import { networkRoom } from '../../rooms/NetworkRoom';
 import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID } from '../database';
 import dotenv from 'dotenv';
 import { logActionOnRequest } from '../mods';
+import fs from 'fs';
 
 export class AdminRoute {
     static init(app: Express) {
@@ -236,6 +237,16 @@ export class AdminRoute {
         app.get("/api/admin/logs", checkAccess, async (_, res) => {
             try {
                 res.send(Data.PERSIST.props.LOGGED_MOD_ACTIONS);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/logs/process", checkAccess, async (_, res) => {
+            try {
+                res.send(fs.readFileSync("/root/.pm2/logs/funkin-online-0.log", 'utf8'));
             }
             catch (exc) {
                 console.error(exc);
