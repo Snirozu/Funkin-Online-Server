@@ -142,10 +142,12 @@ export async function initExpress(app: Express) {
                     }
 
                     const _top = await topPlayers(0, undefined, "week");
-                    let leadersMessage = '- Weekly Leaderboard Finals! -';
+                    let leadersMessage = '• Weekly Leaderboard Finals! •';
                     leadersMessage = leadersMessage + '\n1st. ' + await getPlaceMessage(_top[0]);
                     leadersMessage = leadersMessage + '\n2nd. ' + await getPlaceMessage(_top[1]);
                     leadersMessage = leadersMessage + '\n3rd. ' + await getPlaceMessage(_top[2]);
+                    leadersMessage = leadersMessage + '\n4th. ' + await getPlaceMessage(_top[3]);
+                    leadersMessage = leadersMessage + '\n5th. ' + await getPlaceMessage(_top[4]);
                     await logToAll(formatLog(leadersMessage))
 
                     await endWeekly();
