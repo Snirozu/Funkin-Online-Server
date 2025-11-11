@@ -108,7 +108,7 @@ export function getPriority(user: any):number {
     if (!user.role)
         role = Data.CONFIG.DEFAULT_ROLE;
 
-    return Data.CONFIG.ROLES.get(role).priority;
+    return Data.CONFIG.ROLES.get(role)?.priority ?? 0;
 }
 
 function matchWildcard(match:string, to:string) {

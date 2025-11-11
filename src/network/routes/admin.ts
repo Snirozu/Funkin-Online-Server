@@ -153,7 +153,7 @@ export class AdminRoute {
                 const target = await getPlayerByName(req.query.username as string);
                 if (!reqPlayer
                     || getPriority(target) >= getPriority(reqPlayer)
-                    || Data.CONFIG.ROLES.get(req.query.role as string).priority >= getPriority(reqPlayer))
+                    || getPriority(req.query.role) >= getPriority(reqPlayer))
                     return res.sendStatus(403);
 
                 if (grantPlayerRole(req.query.username as string, req.query.role as string))
