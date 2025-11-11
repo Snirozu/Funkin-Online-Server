@@ -4,7 +4,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { allCountries, contentProfileColor, getHost, hasAccess, headProfileColor, moneyFormatter, ordinalNum, returnDate, tabButtonColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
+import { allCountries, contentProfileColor, getHost, hasAccess, headProfileColor, miniProfileColor, moneyFormatter, ordinalNum, profileBackgroundColor, returnDate, tabButtonColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
 import { Icon } from '@iconify/react';
 import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
@@ -25,7 +25,7 @@ function User() {
         bio: '',
         friends: [],
         canFriend: false,
-        profileHue: -1,
+        profileHue: undefined,
         profileHue2: undefined,
         avgAccuracy: 0,
         rank: -1,
@@ -138,6 +138,9 @@ function User() {
         const color = document?.getElementById('ProfileColorSlider')?.value ?? data.profileHue;
         const color2 = document?.getElementById('ProfileColorSlider2')?.value ?? data.profileHue2;
 
+        if (data.profileHue === undefined)
+            return;
+
         document.documentElement.style.setProperty('--content-profile-color', contentProfileColor(color, color2));
         document.documentElement.style.setProperty('--text-profile-color', textProfileColor(color));
         document.documentElement.style.setProperty('--row-profile-color', textProfileRow(color));
@@ -146,6 +149,7 @@ function User() {
             document.documentElement.style.setProperty('--head-profile-color', headProfileColor(color));
             document.documentElement.style.setProperty('--tab-button-color', tabButtonColor(color));
         }
+        document.documentElement.style.setProperty('--background-color', profileBackgroundColor(color));
     }
 
     useEffect(() => {

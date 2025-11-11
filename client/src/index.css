@@ -1,5 +1,6 @@
 :root {
   --background-image: url('bg.png');
+  --background-color: #161516;
 }
 
 body {
@@ -17,7 +18,7 @@ code {
 }
 
 html {
-  background-color: #161516;
+  background-color: var(--background-color) !important;
   background-image: var(--background-image);
   background-repeat: no-repeat;
   /* background-size: 2145px 1035px; */

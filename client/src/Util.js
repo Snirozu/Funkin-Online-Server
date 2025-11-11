@@ -48,6 +48,12 @@ export function miniProfileColor(hue) {
 	return "hsl(" + hue + ",25%,10%)";
 }
 
+export function profileBackgroundColor(hue) {
+	if (hue === undefined || hue === null)
+		hue = 250;
+	return "hsl(" + hue + ",45%,6%)";
+}
+
 export function clubProfileColor(hue) {
 	if (hue === undefined || hue === null)
 		hue = 250;
