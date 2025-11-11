@@ -43,7 +43,8 @@ export function cooldownReq(req: any, cooldownId?:string) {
 
     const [id, token] = getIDToken(req);
 
-    return cooldown(cooldownId ?? req.path, getRequestIP(req)) && ((id && token) ? cooldown(cooldownId ?? req.path, id + '::' + token) : true);
+    //return cooldown(cooldownId ?? req.path, getRequestIP(req)) && ((id && token) ? cooldown(cooldownId ?? req.path, id + '::' + token) : true);
+    return ((id && token) ? cooldown(cooldownId ?? req.path, id + '::' + token) : true);
 }
 
 export function cooldownRequest(req: any, res: any, next: any) {
