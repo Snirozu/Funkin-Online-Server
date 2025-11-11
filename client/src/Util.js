@@ -21,7 +21,7 @@ export function ordinalNum(num) {
 }
 
 export function getHost() {
-    // return "https://funkin.sniro.boo";
+    return "https://funkin.sniro.boo";
     if (window.location.hostname === "localhost") {
         return "http://localhost:2567";
     }
@@ -69,6 +69,14 @@ export function contentProfileColor(hue, hue2) {
 	if (hue2 || hue2 === 0)
 		return 'linear-gradient(hsl(' + hue + ',35%,20%), hsl(' + hue2 + ',40%,15%))';
 	return "hsl(" + hue + ",35%,20%)"
+}
+
+export function borderColor(hue, hue2) {
+	if (hue === undefined || hue === null)
+		hue = 250;
+	return "hsl(" + hue + ",20%,30%)";
+	// return 'linear-gradient(hsl(' + hue + ',20%,30%), hsl(' + hue2 + ',25%,25%))';
+
 }
 
 export function textProfileColor(hue) {

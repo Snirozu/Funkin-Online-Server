@@ -4,7 +4,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { allCountries, contentProfileColor, getHost, hasAccess, headProfileColor, miniProfileColor, moneyFormatter, ordinalNum, profileBackgroundColor, returnDate, tabButtonColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
+import { allCountries, borderColor, contentProfileColor, getHost, hasAccess, headProfileColor, miniProfileColor, moneyFormatter, ordinalNum, profileBackgroundColor, returnDate, tabButtonColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
 import { Icon } from '@iconify/react';
 import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
@@ -149,6 +149,8 @@ function User() {
             document.documentElement.style.setProperty('--head-profile-color', headProfileColor(color));
             document.documentElement.style.setProperty('--tab-button-color', tabButtonColor(color));
         }
+        if (color2 !== undefined && color2 != null)
+            document.documentElement.style.setProperty('--border-color', borderColor(color, color2));
         document.documentElement.style.setProperty('--background-color', profileBackgroundColor(color));
     }
 
@@ -399,7 +401,7 @@ function User() {
                                     <br></br>
                                     <center> <b>Friends</b> </center>
                                     <div className='FrenBox'>
-                                        {renderFriends(data.friends)}
+                                        <Friends data={data.friends}></Friends>
                                     </div>
                                 </>
                             : <></>
@@ -672,13 +674,43 @@ function uploadAvatarFile(file) {
     });
 }
 
-function renderFriends(friends) {
-    let children = [];
+const Friends = (props) => {
+    const [more, setMore] = useState(false);
 
-    for (const friend of friends) {
-        children.push(
+    let children = [];
+    let other = [];
+
+    let pick = children;
+
+    let i = 0;
+    for (const friend of props.data) {
+        if (!more && i > 34) {
+            pick = other;
+        }
+        pick.push(
             <a key={friend} href={"/user/" + encodeURIComponent(friend)}>
                 <AvatarImg className='FrenAvatar' title={friend} src={getHost() + "/api/user/avatar/" + encodeURIComponent(friend)}></AvatarImg>
+            </a>
+        );
+        i++;
+    }
+
+    if (other.length === 1) {
+        children.push(other.shift());
+    }
+
+    if (other.length > 1) {
+        children.push(
+            <a title="More" href={"#"} onClick={() => {
+                setMore(true);
+            }}>
+                <div className='FrenAvatar' style={{
+                    background: '#0000004d',
+                    display: 'inline-block',
+                    borderRadius: '30px',
+                    alignContent: 'center',
+                    overflow: 'hidden',
+                }}>+</div>
             </a>
         );
     }

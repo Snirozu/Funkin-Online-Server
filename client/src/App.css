@@ -10,6 +10,7 @@
   --text-profile-color: #ff7d7d;
   --row-profile-color: #362d3b;
   --row-profile-color-two: rgb(46, 40, 51);
+  --border-color: transparent;
 
   --profile-sidebar-width: 150px;
   --content-width: 800px;
@@ -385,8 +386,12 @@ a:hover {
   display: flex;
   color: white;
   padding: 20px;
-  margin: 80px;
-  border-radius: 25px;
+  margin: 90px;
+  /* padding-left: 15px; */
+  border-radius: 30px;
+  border-style: solid;
+  border-color: var(--border-color);
+  border-width: 3px;
   overflow: auto;
 
   margin-left: auto;
