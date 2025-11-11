@@ -398,6 +398,19 @@ a:hover {
   margin-right: auto;
 }
 
+td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+td > * {
+  max-width: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: wrap;
+}
+
 .Comments {
   padding-top: 15px;
   text-align: left;
