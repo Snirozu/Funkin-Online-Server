@@ -128,7 +128,7 @@ export async function initExpress(app: Express) {
         const WEEK_TIME_MS = 604800000;
 
         // every second
-        // if (process.env["DEV_MODE"] != "true")
+        if (process.env["PRODUCTION_MODE"] == "true") {
             setInterval(async function () {
                 if (Date.now() >= Data.PERSIST.props.NEXT_WEEKLY_DATE) {
                     console.log('NEXT WEEK!');
@@ -155,6 +155,7 @@ export async function initExpress(app: Express) {
                     await logToAll(formatLog('[!] The weekly leaderboard has been reset!'))
                 }
             }, 1000);
+        }
     }
     else {
         app.all("/api*", async (_req, res) => {
