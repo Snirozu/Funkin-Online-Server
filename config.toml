@@ -20,9 +20,14 @@ priority = 2
 access = [
     '/api/admin/user/set/email',
     '/api/admin/user/ban',
+    '/api/admin/user/grant',
+    '/api/admin/user/rename',
+    '/api/admin/user/notify',
     '/api/admin/players',
     '/api/admin/club/delete',
     '/api/admin/logs',
+    '/api/admin/logs/process',
+    '/api/admin/user/delete',
     'command.announce'
 ]
 extends = 'Helper'
