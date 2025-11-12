@@ -1,6 +1,6 @@
 import { Room, Client } from "@colyseus/core";
 import { RoomState } from "./schema/RoomState";
-import { Person, Player } from "./schema/Player";
+import { ColorArray, Person, Player } from "./schema/Player";
 import { ServerError } from "colyseus";
 import { getPlayerByID, hasAccess, submitReport } from "../network/database";
 import jwt from "jsonwebtoken";
@@ -89,17 +89,6 @@ export class GameRoom extends Room<RoomState> {
 
         if (process.env.DEBUG == "true")
             console.log("new room created: " + this.roomId);
-
-        const daGameplaySettings = options.gameplaySettings;
-        if (daGameplaySettings) {
-            for (const key in daGameplaySettings) {
-                const value = daGameplaySettings[key].toString();
-                if (key == "instakill" || key == "practice" || key == "opponentplay") {
-                    continue;
-                }
-                this.state.gameplaySettings.set(key, value);
-            }
-        }
 
         this.networkOnly = options.networkOnly;
 
@@ -598,14 +587,7 @@ export class GameRoom extends Room<RoomState> {
 
             if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) return;
 
-            if (message[0] == "instakill" || message[0] == "practice" || message[0] == "opponentplay") {
-                return;
-            }
-
-            if (this.hasPerms(client)) {
-                this.state.gameplaySettings.set(message[0], message[1].toString());
-            }
-            else {
+            if (!this.updateGameplaySetting(client, message[0], message[1])) {
                 client.send('alert', 'You don\'t have a permission to do that.')
             }
         });
@@ -680,15 +662,7 @@ export class GameRoom extends Room<RoomState> {
             if (!requester)
                 return;
 
-            requester.arrowColor0 = message[0][0];
-            requester.arrowColor1 = message[0][1];
-            requester.arrowColor2 = message[0][2];
-            requester.arrowColor3 = message[0][3];
-
-            requester.arrowColorP0 = message[1][0];
-            requester.arrowColorP1 = message[1][1];
-            requester.arrowColorP2 = message[1][2];
-            requester.arrowColorP3 = message[1][3];
+            this.updateArrowColors(requester, message);
         });
 
         this.onMessage("updateNoteSkinData", (client, message) => {
@@ -976,16 +950,7 @@ export class GameRoom extends Room<RoomState> {
         this.setPlayerPoints(requester, playerPoints);
         requester.verified = isVerified;
 
-        requester.arrowColor0 = options.arrowRGBT[0];
-        requester.arrowColor1 = options.arrowRGBT[1];
-        requester.arrowColor2 = options.arrowRGBT[2];
-        requester.arrowColor3 = options.arrowRGBT[3];
-
-        requester.arrowColorP0 = options.arrowRGBP[0];
-        requester.arrowColorP1 = options.arrowRGBP[1];
-        requester.arrowColorP2 = options.arrowRGBP[2];
-        requester.arrowColorP3 = options.arrowRGBP[3];
-
+        this.updateArrowColors(requester, options.arrowRGB);
         requester.noteSkin = options.noteSkin;
         requester.noteSkinMod = options.noteSkinMod;
         requester.noteSkinURL = options.noteSkinURL;
@@ -995,6 +960,14 @@ export class GameRoom extends Room<RoomState> {
             sideCount[player.bfSide ? 1 : 0]++;
         }
         this.state.players.set(client.sessionId, requester);
+
+        if (options.gameplaySettings) {
+            for (const key in options.gameplaySettings) {
+                const value = options.gameplaySettings[key];
+                this.updateGameplaySetting(client, key, value);
+            }
+        }
+
         this.setPlayerSide(requester, sideCount[0] > sideCount[1]);
 
         this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has joined the room!"), { afterNextPatch: true });
@@ -1153,6 +1126,37 @@ export class GameRoom extends Room<RoomState> {
     setPlayerPoints(player: any, v: number): void {
         if (this.checkInvalid(v, VerifyTypes.NUMBER)) return;
         player.points = v;
+    }
+    
+    updateArrowColors(player: Player, message: Array<Map<string, Array<Array<number>>>>) {
+        for (const [i, maniaColors] of message.entries()) {
+            for (const [mania, colors2D] of maniaColors) {
+                const colors1D = new ColorArray();
+                for (const colors of colors2D) {
+                    colors1D.value.push(...colors);
+                }
+                (i == 0 ? player.arrowColors : player.arrowColorsPixel)
+                    .set(mania, colors1D);
+            }
+        }
+    }
+
+    updateGameplaySetting(client: Client, key: string, value: any) {
+        const requester = this.getStatePlayer(client);
+        if (!requester)
+            return false;
+
+        requester.gameplaySettings.set(key, value.toString());
+
+        if (key == "instakill" || key == "practice" || key == "opponentplay") {
+            return false;
+        }
+
+        if (this.hasPerms(client)) {
+            this.state.gameplaySettings.set(key, value.toString());
+            return true;
+        }
+        return false;
     }
 
     // 1. Get room IDs already registered with the Presence API.

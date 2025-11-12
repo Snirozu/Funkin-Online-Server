@@ -1,4 +1,4 @@
-import { Schema, type } from "@colyseus/schema";
+import { MapSchema, Schema, type } from "@colyseus/schema";
 
 export class Person extends Schema {
     @type("string") name: string = "";
@@ -7,6 +7,11 @@ export class Person extends Schema {
     @type("boolean") hasLoaded: boolean = false;
     @type("boolean") verified: boolean = false;
     @type("string") status: string = "";
+}
+
+export class ColorArray extends Schema {
+    // since colyseus doesn't support 2D arrays we have to use 1D array
+    @type({ array: "number" }) value: number[] = [];
 }
 
 export class Player extends Person {
@@ -33,13 +38,10 @@ export class Player extends Person {
     @type("string") noteSkinMod: string = null;
 	@type("string") noteSkinURL: string = null;
 
-    @type({ array: "number" }) arrowColor0: number[] = [];
-    @type({ array: "number" }) arrowColor1: number[] = [];
-    @type({ array: "number" }) arrowColor2: number[] = [];
-    @type({ array: "number" }) arrowColor3: number[] = [];
+    @type({ map: "string" }) gameplaySettings = new MapSchema<string>();
 
-    @type({ array: "number" }) arrowColorP0: number[] = [];
-    @type({ array: "number" }) arrowColorP1: number[] = [];
-    @type({ array: "number" }) arrowColorP2: number[] = [];
-    @type({ array: "number" }) arrowColorP3: number[] = [];
+    // maniaK => colors
+    @type({ map: ColorArray }) arrowColors = new MapSchema<ColorArray>();
+    // maniaK => colorsPixel
+    @type({ map: ColorArray }) arrowColorsPixel = new MapSchema<ColorArray>();
 }

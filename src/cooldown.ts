@@ -1,5 +1,5 @@
 import { getIDToken } from "./network/database";
-import { getRequestIP } from "./util";
+// import { getRequestIP } from "./util";
 import fs from 'fs';
 
 export enum CooldownTime {
