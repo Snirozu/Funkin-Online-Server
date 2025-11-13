@@ -8,7 +8,7 @@ import ip from 'ip';
 import { saveAndCleanCooldownData } from "./cooldown";
 
 export class ServerInstance {
-    public static PROTOCOL_VERSION = 9;
+    public static PROTOCOL_VERSION = 10;
     public static NETWORK_PROTOCOL_VERSION = 8;
 
     static async init() {
