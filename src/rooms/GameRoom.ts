@@ -1128,8 +1128,10 @@ export class GameRoom extends Room<RoomState> {
         player.points = v;
     }
     
-    updateArrowColors(player: Player, message: Array<Map<string, Array<Array<number>>>>) {
-        for (const [i, maniaColors] of message.entries()) {
+    updateArrowColors(player: Player, message: Array<any>) {
+        for (const [i, _maniaColors] of message.entries()) {
+            const maniaColors: Map<string, Array<Array<number>>> = new Map(Object.entries(_maniaColors));
+
             for (const [mania, colors2D] of maniaColors) {
                 const colors1D = new ColorArray();
                 for (const colors of colors2D) {
