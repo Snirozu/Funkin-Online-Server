@@ -868,8 +868,10 @@ export class GameRoom extends Room<RoomState> {
         let playerPoints = options.points;
         let isVerified = false;
         let player = null;
+        let playerStats = null;
         if (process.env["DATABASE_URL"]) {
             player = await getPlayerByID(options.networkId);
+            playerStats = await getUserStats(options.networkId);
         }
         if (options.networkId && options.networkToken && player) {
             if (!hasAccess(player, 'room.auth')) {
@@ -891,7 +893,7 @@ export class GameRoom extends Room<RoomState> {
                 this.clientsInfo.get(client.sessionId).hue = player.profileHue ?? 250;
                 Data.INFO.MAP_USERNAME_PLAYINGROOM.set(player.name, this);
                 playerName = player.name;
-                playerPoints = player.points;
+                playerPoints = playerStats.points4k;
             })
         }
 
