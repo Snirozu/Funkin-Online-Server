@@ -199,6 +199,9 @@ async function showIndex(req: Request, res: Response) {
         let description = "A FNF Multiplayer mod based on Psych Engine!";
         let image = "https://" + req.hostname + "/images/transwag.png";
         const params = req.path.substring(1).split('/');
+        for (const [i, param] of params.entries()) {
+            params[i] = decodeURIComponent(param);
+        }
         switch (params[0]) {
             case "user": {
                 const player = await getPlayerByName(params[1]);
