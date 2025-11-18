@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { endWeekly, getClub, getPlayerByName, getPlayerClubTag, getPlayerNameByID, getSong, hasAvatar, topPlayers } from "./network/database";
+import { endWeekly, getClub, getPlayerByName, getPlayerClubTag, getPlayerNameByID, getUserStats, getSong, hasAvatar, topPlayers } from "./network/database";
 import cookieParser from "cookie-parser";
 import express, { Request, Response, Express } from 'express';
 import fileUpload from "express-fileupload";
@@ -202,10 +202,11 @@ async function showIndex(req: Request, res: Response) {
         switch (params[0]) {
             case "user": {
                 const player = await getPlayerByName(params[1]);
+                const stats = await getUserStats(player.id);
                 if (!player)
                     break;
                 title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '') + '· Profile';
-                description = (player.role ?? Data.CONFIG.DEFAULT_ROLE) + " | " + moneyFormatter.format(player.points) + " FP" + "\nAvg. Accuracy: " + (player.avgAcc * 100).toFixed(2) + '%';
+                description = (player.role ?? Data.CONFIG.DEFAULT_ROLE) + " | " + moneyFormatter.format(stats.points4k) + " FP" + "\nAvg. Accuracy: " + (stats.avgAcc4k * 100).toFixed(2) + '%';
                 if (await hasAvatar(player.id))
                     image = "https://" + req.hostname + "/api/user/avatar/" + encodeURIComponent(player.name);
                 else

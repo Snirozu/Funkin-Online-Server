@@ -6,6 +6,7 @@ import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, se
 import dotenv from 'dotenv';
 import { logActionOnRequest } from '../mods';
 import fs from 'fs';
+import { clearCooldowns } from '../../cooldown';
 
 export class AdminRoute {
     static init(app: Express) {
@@ -247,6 +248,17 @@ export class AdminRoute {
         app.get("/api/admin/logs/process", checkAccess, async (_, res) => {
             try {
                 res.send(fs.readFileSync("/root/.pm2/logs/funkin-online-0.log", 'utf8'));
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/cooldown/clear", checkAccess, async (_, res) => {
+            try {
+                await clearCooldowns();
+                res.sendStatus(200);
             }
             catch (exc) {
                 console.error(exc);

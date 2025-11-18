@@ -15,36 +15,36 @@ function secondsDateNow() {
     return Date.now() / 1000;
 }
 
-export function cooldownTo(uniqueId: string, timeSeconds: CooldownTime | number) {
+export function cooldownToTime(entityId: string, timeSeconds: CooldownTime | number) {
     const curTime = secondsDateNow();
 
-    if ((cooldownMap.get(uniqueId) ?? 0) >= curTime)
+    if ((cooldownMap.get(entityId) ?? 0) >= curTime)
         return false;
 
-    cooldownMap.set(uniqueId, curTime + timeSeconds);
+    cooldownMap.set(entityId, curTime + timeSeconds);
     return true;
 }
 
-export function setCooldown(cooldownId: string, timeSeconds: CooldownTime | number) {
-    cooldownTimes.set(cooldownId, timeSeconds);
+export function setCooldown(timerId: string, timeSeconds: CooldownTime | number) {
+    cooldownTimes.set(timerId, timeSeconds);
 }
 
-export function cooldown(cooldownId: string, uniqueId: string) {
-    if (!cooldownTimes.has(cooldownId))
+export function cooldown(entityId: string, timerId: string) {
+    if (!cooldownTimes.has(timerId))
         return true;
 
-    return cooldownTo(cooldownId + '.' + uniqueId, cooldownTimes.get(cooldownId));
+    return cooldownToTime(entityId + '.' + timerId, cooldownTimes.get(timerId));
 }
 
-export function cooldownReq(req: any, cooldownId?:string) {
+export function cooldownReq(req: any, timerId?:string) {
     if (process.env["HTTP_COOLDOWNS_ENABLED"] != "true") {
         return true;
     }
 
     const [id, token] = getIDToken(req);
 
-    //return cooldown(cooldownId ?? req.path, getRequestIP(req)) && ((id && token) ? cooldown(cooldownId ?? req.path, id + '::' + token) : true);
-    return ((id && token) ? cooldown(cooldownId ?? req.path, id + '::' + token) : true);
+    //return cooldown(timerId ?? req.path, getRequestIP(req)) && ((id && token) ? cooldown(timerId ?? req.path, id + '::' + token) : true);
+    return ((id && token) ? cooldown(id + '::' + token, timerId ?? req.path) : true);
 }
 
 export function cooldownRequest(req: any, res: any, next: any) {
@@ -61,8 +61,13 @@ export function cooldownRequest(req: any, res: any, next: any) {
     return res.sendStatus(429);
 }
 
-export function cooldownRemaining(ids: string[]) {
-    return Math.ceil((cooldownMap.get(ids.join('.')) ?? 0) - secondsDateNow());
+export function cooldownLeft(ids: string[]) {
+    return Math.ceil((cooldownMap.get(ids.join('.')) ?? secondsDateNow()) - secondsDateNow());
+}
+
+export async function clearCooldowns() {
+    cooldownMap.clear();
+    await saveAndCleanCooldownData();
 }
 
 export async function loadCooldownData() {
@@ -72,8 +77,8 @@ export async function loadCooldownData() {
 }
 
 export async function saveAndCleanCooldownData() {
-    fs.writeFileSync("database/cooldowns.json", JSON.stringify(Object.fromEntries(cooldownMap)));
     await clearUp();
+    fs.writeFileSync("database/cooldowns.json", JSON.stringify(Object.fromEntries(cooldownMap)));
 }
 
 export async function clearUp() {

@@ -1,7 +1,7 @@
 import { UploadedFile } from "express-fileupload";
 import { Data } from "../../data";
 import { isUserIDInRoom, findPlayerSIDByNID } from "../../util";
-import { checkAccess, getIDToken, pingPlayer, getPlayerClubTag, getPlayerByID, getUserFriends, searchFriendRequests, getPlayerProfileHue, getPlayerNameByID, uploadAvatar, uploadBackground, removeImages, setPlayerBio, renamePlayer, deleteUser, getPlayerByEmail, setEmail, validateEmail, getNotifications, deleteNotification, getNotificationsCount } from "../database";
+import { checkAccess, getIDToken, pingPlayer, getPlayerClubTag, getPlayerByID, getUserFriends, searchFriendRequests, getPlayerProfileHue, getPlayerNameByID, uploadAvatar, uploadBackground, removeImages, setPlayerBio, renamePlayer, deleteUser, getPlayerByEmail, setEmail, validateEmail, getNotifications, deleteNotification, getNotificationsCount, getUserStats } from "../database";
 import { Express } from 'express';
 import { emailCodes, generateCode, tempSetCode, sendCodeMail } from "../email";
 import { setCooldown } from "../../cooldown";
@@ -12,14 +12,15 @@ export class AccountRoute {
             try {
                 const [id] = getIDToken(req);
                 const user = await pingPlayer(id);
+                const stats = await getUserStats(id, req.query.category as string);
 
                 res.send({
                     name: user.name,
                     role: user.role,
                     joined: user.joined,
                     lastActive: user.lastActive,
-                    points: user.points,
-                    avgAccuracy: user.avgAcc,
+                    points: stats["points" + (req.query.keys ?? 4) + "k"],
+                    avgAccuracy: stats["avgAcc" + (req.query.keys ?? 4) + "k"],
                     club: await getPlayerClubTag(id),
                 });
             }
@@ -34,6 +35,7 @@ export class AccountRoute {
             try {
                 const [id] = getIDToken(req);
                 const player = await pingPlayer(id);
+                const stats = await getUserStats(id, req.query.category as string);
 
                 if (!player) {
                     res.sendStatus(403);
@@ -46,8 +48,8 @@ export class AccountRoute {
 
                 res.send({
                     name: player.name,
-                    points: player.points,
-                    avgAccuracy: player.avgAcc,
+                    points: stats["points" + (req.query.keys ?? 4) + "k"],
+                    avgAccuracy: stats["avgAcc" + (req.query.keys ?? 4) + "k"],
                     role: player.role,
                     profileHue: player.profileHue ?? 250,
                     profileHue2: player.profileHue2,
@@ -94,23 +96,6 @@ export class AccountRoute {
             }
         });
 
-        app.get("/api/account/ping", checkAccess, async (req, res) => {
-            try {
-                const [id] = getIDToken(req);
-                const player = await pingPlayer(id);
-
-                if (!Data.INFO.ONLINE_PLAYERS.includes(player.name)) {
-                    Data.INFO.ONLINE_PLAYERS.push(player.name);
-                }
-
-                res.send(player.name);
-            }
-            catch (exc) {
-                console.error(exc);
-                res.sendStatus(500);
-            }
-        });
-
         setCooldown("/api/account/avatar", 10);
         app.post("/api/account/avatar", checkAccess, async (req, res) => {
             try {
@@ -140,7 +125,7 @@ export class AccountRoute {
         app.post("/api/account/background", checkAccess, async (req, res) => {
             try {
                 const [id] = getIDToken(req);
-                if ((await getPlayerByID(id)).points < 1000) {
+                if ((await getUserStats(id)).points4k < 1000) {
                     return res.sendStatus(418);
                 }
 
@@ -164,7 +149,7 @@ export class AccountRoute {
             }
         });
 
-        app.post("/api/account/removeimages", checkAccess, async (req, res) => {
+        app.get("/api/account/removeimages", checkAccess, async (req, res) => {
             try {
                 const [id] = getIDToken(req);
                 if (!await removeImages(id)) {

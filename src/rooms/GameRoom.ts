@@ -2,13 +2,13 @@ import { Room, Client } from "@colyseus/core";
 import { RoomState } from "./schema/RoomState";
 import { ColorArray, Person, Player } from "./schema/Player";
 import { ServerError } from "colyseus";
-import { getPlayerByID, hasAccess, submitReport } from "../network/database";
+import { getPlayerByID, getUserStats, hasAccess, submitReport } from "../network/database";
 import jwt from "jsonwebtoken";
 import { filterChatMessage, filterUsername, formatLog, getRequestIP } from "../util";
 import { Data } from "../data";
 import { ServerInstance } from "../server";
 import { IncomingMessage } from "http";
-import { cooldown, cooldownRemaining } from "../cooldown";
+import { cooldown, cooldownLeft } from "../cooldown";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -622,7 +622,8 @@ export class GameRoom extends Room<RoomState> {
             
             const user = requester.verified && process.env["DATABASE_URL"] ? await getPlayerByID(this.clientsInfo.get(client.sessionId).networkId) : null;
             if (user) {
-                this.setPlayerPoints(requester, user.points);
+                const stats = await getUserStats(this.clientsInfo.get(client.sessionId).networkId);
+                this.setPlayerPoints(requester, stats.points4k);
                 requester.name = user.name;
             }
             else {
@@ -715,8 +716,8 @@ export class GameRoom extends Room<RoomState> {
                     switch (message[1]) {
                         case 'chat': {
                             const clientInfo = this.clientsInfo.get(client.sessionId);
-                            if (!cooldown('command.report', clientInfo.ip)) {
-                                client.send("log", formatLog("> Try again in " + cooldownRemaining(['command.report', clientInfo.ip]) + "s!"));
+                            if (!cooldown(clientInfo.ip, 'command.report')) {
+                                client.send("log", formatLog("> Try again in " + cooldownLeft(['command.report', clientInfo.ip]) + "s!"));
                                 return;
                             }
 

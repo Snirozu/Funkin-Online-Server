@@ -5,8 +5,8 @@ import { filterSongName, filterUsername, formatLog, hasOnlyLettersAndNumbers, or
 import { logToAll, networkRoom, notifyPlayer } from "../rooms/NetworkRoom";
 import sanitizeHtml from 'sanitize-html';
 import { Data } from "../data";
-import { cooldown } from "../cooldown";
 import { logAction } from "./mods";
+import { cooldown, cooldownLeft } from "../cooldown";
 
 // this class is a mess
 
@@ -21,9 +21,12 @@ export function getIDToken(req:any):Array<string> {
         return [req.networkId, req.networkToken];
     }
 
-    if (req.cookies.authid && req.cookies.authtoken) {
+    if (req.cookies && req.cookies.authid && req.cookies.authtoken) {
         return [req.cookies.authid, req.cookies.authtoken];
     }
+
+    if (!req.headers?.authorization)
+        return [null, null];
 
     const b64auth = (req.headers.authorization || '').split(' ')[1] || ''
     let [id, secret] = Buffer.from(b64auth, 'base64').toString().split(':')
@@ -50,7 +53,7 @@ export async function checkAccess(req: any, res: any, next: any) {
         return res.sendStatus(401)
     }
     
-    if (!cooldown(req.path, id)) {
+    if (!cooldown(id, req.path)) {
         return res.sendStatus(429)
     }
 
@@ -124,6 +127,8 @@ function matchWildcard(match:string, to:string) {
 
 //DATABASE STUFF
 
+export const KEYS_LIST:Array<number> = [4, 5, 6, 7, 8, 9];
+
 export async function submitScore(submitterID: string, replay: ReplayData) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
@@ -131,7 +136,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
 
     // validate the replay file
 
-    if (replay.version != 3) {
+    if (replay.version != 4) {
         throw { error_message: "Replay version mismatch error, can't submit!\nPlease update!" }
     }
 
@@ -177,6 +182,11 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
         });
     }
 
+    const daKeyValue = replay.keys ?? 4;
+    if (!KEYS_LIST.includes(daKeyValue)) {
+        throw { error_message: "Invalid Keys!" }
+    }
+
     const daStrum = replay.opponent_mode ? 1 : 2;
 
     // remove bad scores
@@ -190,6 +200,11 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
                     isSet: false
                 } : {
                     equals: category
+                },
+                keys: daKeyValue == 4 ? {
+                    isSet: false
+                } : {
+                    equals: daKeyValue
                 }
             },
             select: {
@@ -242,7 +257,8 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
                 strum: daStrum,
                 modURL: replay.mod_url,
                 playbackRate: playbackRate,
-                category: category
+                category: category,
+                keys: daKeyValue == 4 ? undefined : daKeyValue
             },
             select: {
                 id: true
@@ -285,7 +301,10 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
         }
     })
 
-    const newPlayer = await updatePlayerStats(submitter.id);
+    const prevStats = await getUserStats(submitter.id);
+    const prevStatsWeek = await getUserStats(submitter.id, 'week');
+
+    await updatePlayerStats(submitter.id, daKeyValue);
     await updateSongMaxPoints(song.id);
 
     const newRank = await getPlayerRank(submitter.name);
@@ -294,41 +313,58 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
         await logToAll(formatLog(submitter.name + ' climbed to ' + ordinalNum(newRank) + ' place on the global leaderboard!'))
     }
 
+    const newStats = await getUserStats(submitter.id);
+    const newStatsWeek = await getUserStats(submitter.id, 'week');
+
     return {
         song: song.id,
         message: "Submitted!",
-        gained_points: newPlayer.points - submitter.points,
+        gained_points: newStats["points" + daKeyValue + "k"] - prevStats["points" + daKeyValue + "k"],
+        gained_points_week: newStatsWeek["points" + daKeyValue + "k"] - prevStatsWeek["points" + daKeyValue + "k"],
         climbed_ranks: prevRank - newRank
     }
 }
 
-export async function updatePlayerStats(id: string) {
-    const newPoints = await countPlayerFP(id) ?? 0;
-    const newWeeklyPoints = await countPlayerFP(id, 'week') ?? 0;
-    const accAgg = await aggregatePlayerAccuracy(id);
+export async function updatePlayerStats(id: string, keys?: Array<number> | number) {
+    if (!keys) {
+        keys = KEYS_LIST;
+    }
 
-    const updated = await prisma.user.update({
-        where: {
-            id: id,
-        },
-        data: {
-            points: newPoints,
-            pointsWeekly: newWeeklyPoints,
-            avgAcc: accAgg._avg.accuracy / 100
-        },
-        select: {
-            points: true,
-            pointsWeekly: true,
-            avgAcc: true
+    let keysList = [];
+    if (typeof keys === "number")
+        keysList.push(keys);
+    if (Array.isArray(keys))
+        keysList = keys;
+
+    for (const category of [undefined, 'week']) {
+        const statsData = {};
+
+        for (const kys of keysList) {
+            if (!KEYS_LIST.includes(kys)) {
+                throw { error_message: "Invalid Keys!" }
+            }
+
+            statsData["points" + kys + "k"] = await countPlayerFP(id, category, kys);
+            statsData["avgAcc" + kys + "k"] = (await aggregatePlayerAccuracy(id, category, kys))._avg.accuracy / 100;
         }
-    })
+
+        await prisma.userStats.updateMany({
+            where: {
+                user: id,
+                type: category == undefined ? {
+                    isSet: false
+                } : {
+                    equals: category
+                }
+            },
+            data: statsData
+        })
+    }
 
     await updateClubPoints(await getPlayerClubTag(id));
-
-    return updated;
 }
 
-async function countPlayerFP(id: string, category?: string) {
+async function countPlayerFP(id: string, category?: string, keys?: number) {
     if (!process.env["DATABASE_URL"]) {
         return null;
     }
@@ -340,16 +376,21 @@ async function countPlayerFP(id: string, category?: string) {
                 category: {
                     isSet: category ? true : false,
                     equals: category
+                },
+                keys: !keys || keys == 4 ? {
+                    isSet: false
+                } : {
+                    equals: keys
                 }
             },
             _sum: {
                 points: true
             }
-        }))._sum.points;
+        }))._sum.points ?? 0;
     }
     catch (exc) {
         console.error(exc);
-        return null;
+        return 0;
     }
 }
 
@@ -529,20 +570,40 @@ export async function requestJoinClub(clubTag: string, userID: string) {
     }));
 }
 
+async function formatNewClubTag(tag: string, ignoreTag?: string) {
+    tag = tag.trim();
+
+    if (tag.length < 2 || tag.length > 5) {
+        throw { error_message: "Too short/long tag!" }
+    }
+
+    if (!hasOnlyLettersAndNumbers(tag)) {
+        throw { error_message: "Tag can't contain non latin letters!" }
+    }
+
+    tag = tag.toUpperCase();
+
+    if (tag != ignoreTag && await getClub(tag))
+        throw { error_message: "Tag taken!" }
+
+    return tag;
+}
+
 export async function createClub(ownerID: string, reqBody: any) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
 
     const submitter = await getPlayerByID(ownerID);
+    const submitterStats = await getUserStats(ownerID);
     if (!submitter)
         throw { error_message: "Not registered!" }
 
     if (await getPlayerClub(ownerID))
         throw { error_message: "You're already in a club!" }
 
-    if (submitter.points < 250)
-        throw { error_message: 'You need at least 250FP!' }
+    if (submitterStats["points4k"] < 250)
+        throw { error_message: 'You need at least 4k 250FP!' }
 
     if (!reqBody.name || !reqBody.tag) {
         throw { error_message: "Missing fields!" }
@@ -554,18 +615,7 @@ export async function createClub(ownerID: string, reqBody: any) {
         throw { error_message: "Name too long!" }
     }
 
-    if (reqBody.tag.length < 2 || reqBody.tag.length > 5) {
-        throw { error_message: "Too short/long tag!" }
-    }
-
-    if (!hasOnlyLettersAndNumbers(reqBody.tag)) {
-        throw { error_message: "Tag can't contain non latin letters!" }
-    }
-
-    reqBody.tag = (reqBody.tag as string).toUpperCase();
-
-    if (await getClub(reqBody.tag))
-        throw { error_message: "Tag taken!" }
+    reqBody.tag = await formatNewClubTag(reqBody.tag);
 
     return (await prisma.club.create({
         data: {
@@ -573,7 +623,7 @@ export async function createClub(ownerID: string, reqBody: any) {
             tag: reqBody.tag,
             leaders: [ownerID],
             members: [ownerID],
-            points: submitter.points
+            points: submitterStats["points4k"]
         },
     }));
 }
@@ -682,6 +732,11 @@ export async function postClubEdit(tag: string, body: any) {
         throw { error_message: "No database set on the server!" }
     }
 
+    const club = await getClub(tag);
+    if (!club) {
+        throw { error_message: "No club!" }
+    }
+
     body.name = body.name.trim();
     if (body.name.length > 20) {
         throw { error_message: "Name too long!" }
@@ -692,6 +747,13 @@ export async function postClubEdit(tag: string, body: any) {
     if (body.hue < 0)
         body.hue = 0;
 
+    body.tag = await formatNewClubTag(body.tag, tag);
+
+    if (body.tag != tag) {
+        if (!cooldown('club.'+club.id, 'club.edit.tag'))
+            throw { error_message: "You can change the tag in " + cooldownLeft(['club.'+club.id, 'club.edit.tag']) + "s" }
+    }
+
     try {
         const club = await prisma.club.update({
             where: {
@@ -700,9 +762,16 @@ export async function postClubEdit(tag: string, body: any) {
             data: {
                 content: sanitizeHtml(body.content),
                 name: body.name,
-                hue: body.hue
+                hue: body.hue,
+                tag: body.tag
             }
         });
+
+        if (body.tag != tag) {
+            for (const playerID of club.members) {
+                cachedUserIDClubTag.set(playerID, body.tag);
+            }
+        }
         return club;
     }
     catch (exc) {
@@ -749,8 +818,8 @@ export async function updateClubPoints(tag: string) {
     let points = 0;
 
     for (const pid of club.members) {
-        const player = await getPlayerByID(pid);
-        points += player.points;
+        const player = await getUserStats(pid);
+        points += player["points4k"];
     }
 
     await prisma.club.update({
@@ -956,7 +1025,7 @@ export async function removeBloatReplays() {
 
 } 
 
-export async function removeScore(scores: string | string[], logInfo: boolean = false) {
+export async function removeScore(scores: string | string[], logInfo: boolean = false, checkPlayerID?: string) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
@@ -972,6 +1041,7 @@ export async function removeScore(scores: string | string[], logInfo: boolean = 
     const players = [];
     const songs = [];
     const replays = [];
+    const keys = [];
 
     debugPrint('fetching scores');
 
@@ -985,7 +1055,8 @@ export async function removeScore(scores: string | string[], logInfo: boolean = 
             songId: true,
             player: true,
             replayFileId: true,
-            points: true
+            points: true,
+            keys: true
         }
     })
 
@@ -999,12 +1070,15 @@ export async function removeScore(scores: string | string[], logInfo: boolean = 
         if (!replays.includes(score.replayFileId))
             replays.push(score.replayFileId);
 
+        if (!keys.includes(score.keys))
+            keys.push(score.keys);
+
         if (logInfo) {
-            await logAction(null, 'Deleted score on ' + score.songId + ' by ' + await getPlayerNameByID(score.player) + ' with FP: ' + score.points);
+            await logAction(null, 'Deleting score on ' + score.songId + ' by ' + await getPlayerNameByID(score.player) + ' with FP: ' + score.points);
         }
 
-        // if (checkPlayer && score.player != checkPlayer)
-        //     throw { error_message: "Unauthorized!" }
+        if (checkPlayerID && score.player != checkPlayerID)
+            throw { error_message: "Unauthorized!" }
     }
 
     debugPrint('deleting scores');
@@ -1020,7 +1094,7 @@ export async function removeScore(scores: string | string[], logInfo: boolean = 
     debugPrint('updating player stats');
 
     for (const player of players) {
-        await updatePlayerStats(player);
+        await updatePlayerStats(player, keys);
     }
 
     debugPrint('updating songs');
@@ -1054,6 +1128,17 @@ export async function removeScore(scores: string | string[], logInfo: boolean = 
     debugPrint('finished removing scores!');
 }
 
+export async function setScoreModURL(scoreID: string, newModURL: string) {
+    await prisma.score.update({
+        where: {
+            id: scoreID
+        },
+        data: {
+            modURL: newModURL
+        }
+    })
+}
+
 export function debugPrint(content: unknown) {
     if (process.env["DEBUG_ENABLED"] != "true") {
         return;
@@ -1062,10 +1147,19 @@ export function debugPrint(content: unknown) {
     console.log(content);
 }
 
-export async function aggregatePlayerAccuracy(id: string) {
+export async function aggregatePlayerAccuracy(id: string, category?: string, keys?: number) {
     return await prisma.score.aggregate({
         where: {
-            player: id
+            player: id,
+            category: {
+                isSet: category ? true : false,
+                equals: category
+            },
+            keys: !keys || keys == 4 ? {
+                isSet: false
+            } : {
+                equals: keys
+            }
         },
         _avg: {
             accuracy: true
@@ -1102,14 +1196,66 @@ export async function createUser(name: string, email: string) {
     if (await getPlayerByEmail(email))
         throw { error_message: "Can't set the same email for two accounts!" }
 
-    return (await prisma.user.create({
+    const user = (await prisma.user.create({
         data: {
             name: name,
             email: email,
             secret: crypto.randomBytes(64).toString('hex'),
-            points: 0
         },
     }));
+
+    await createUserStats(user.id);
+
+    return user;
+}
+
+export async function getUserStats(id: string, type?: string) {
+    const userStats = await _getUserStats(id, type);
+    if (!userStats)
+        return await createUserStats(id, type);
+    return userStats;
+}
+
+async function _getUserStats(id: string, type?: string) {
+    try {
+        return (await prisma.userStats.findFirstOrThrow({
+            where: {
+                user: id,
+                type: type == undefined ? {
+                    isSet: false
+                } : {
+                    equals: type
+                }
+            },
+        }));
+    }
+    catch (_exc) {
+        console.log(_exc);
+        // not found
+        return null;
+    }
+}
+
+export async function createUserStats(id: string, type?: string) {
+    if ((await prisma.userStats.count({
+        where: {
+            user: id,
+            type: type == undefined ? {
+                isSet: false
+            } : {
+                equals: type
+            }
+        }
+    })) == 0) {
+        (await prisma.userStats.create({
+            data: {
+                user: id,
+                type: type
+            },
+        }));
+        await updatePlayerStats(id);
+    }
+    return await _getUserStats(id);
 }
 
 export function validateEmail(email:string) {
@@ -1253,8 +1399,8 @@ export async function setPlayerBio(id: string, bio: string, hue: number, country
         country = null;
     }
 
-    const user = await getPlayerByID(id);
-    if (user.points < 500)
+    const userStats = await getUserStats(id);
+    if (userStats["points4k"] < 500)
         hue2 = undefined;
 
     return (await prisma.user.update({
@@ -1284,11 +1430,19 @@ export async function getPlayerByName(name: string) {
                 }
             }
         });
+        //TODO
+        // console.log(await prisma.user.findMany({
+        //     where: {
+        //         avgAcc: {
+        //             isSet: false
+        //         }
+        //     }
+        // }));
         //lazy migration
-        if (!user.avgAcc) {
-            const updated = await updatePlayerStats(user.id);
-            user.avgAcc = updated.avgAcc;
-        }
+        // if (!user.avgAcc) {
+        //     const updated = await updatePlayerStats(user.id);
+        //     user.avgAcc = updated.avgAcc;
+        // }
         return user;
     }
     catch (_exc) {
@@ -1433,10 +1587,14 @@ export async function getPlayerIDByName(name: string) {
     }
 }
 
-export async function pingPlayer(id: string) {
+export async function pingPlayer(id: string, keys?:number) {
     if (!process.env["DATABASE_URL"]) {
         return null;
     }
+
+    if (Number.isNaN(keys))
+        keys = undefined;
+    keys ??= 4;
 
     try {
         return (await prisma.user.update({
@@ -1448,14 +1606,18 @@ export async function pingPlayer(id: string) {
             },
             select: {
                 name: true,
-                points: true,
                 role: true,
                 joined: true,
                 lastActive: true,
                 profileHue: true,
                 profileHue2: true,
-                avgAcc: true,
-                country: true
+                country: true,
+                stats: {
+                    select: {
+                        ['avgAcc' + keys + 'k']: true,
+                        ['points' + keys + 'k']: true,
+                    }
+                }
             }
         }));
     }
@@ -1465,7 +1627,7 @@ export async function pingPlayer(id: string) {
     }
 }
 
-export async function topScores(id: string, strum:number, page: number, category: string = undefined, sort?: string): Promise<Array<ScoreData>> {
+export async function topScores(id: string, strum:number, page: number, keys?: number, category: string = undefined, sort?: string): Promise<Array<ScoreData>> {
     if (!process.env["DATABASE_URL"]) {
         return null;
     }
@@ -1502,6 +1664,11 @@ export async function topScores(id: string, strum:number, page: number, category
                     isSet: false
                 } : {
                     equals: category
+                }, 
+                keys: !keys || keys == 4 ? {
+                    isSet: false
+                } : {
+                    equals: keys
                 }
             },
             orderBy: orderBy,
@@ -1530,14 +1697,9 @@ export async function topScores(id: string, strum:number, page: number, category
     }
 }
 
-export async function topPlayers(page:number, country?:string, category?:string): Promise<Array<any>> {
+export async function topPlayers(page: number, country?: string, category?: string, sortProp?:string):Promise<any> {
     if (!process.env["DATABASE_URL"]) {
         return null;
-    }
-
-    let sortProp = 'points';
-    if (category == 'week') {
-        sortProp = 'pointsWeekly';
     }
 
     try {
@@ -1545,25 +1707,44 @@ export async function topPlayers(page:number, country?:string, category?:string)
             country = undefined;
         }
 
-        return (await prisma.user.findMany({
+        sortProp ??= 'points4k';
+
+        if (!sortProp.startsWith('points') && !sortProp.startsWith('avgAcc')) {
+            return null;
+        }
+
+        return (await prisma.userStats.findMany({
             orderBy: [
                 {
                     [sortProp]: 'desc'
                 },
-                {
-                    joined: 'desc'
-                }
+                // {
+                //     userRe: {
+                //         joined: 'desc'
+                //     },
+                // }
             ],
             where: {
-                country: country,
+                userRe: {
+                    country: country
+                },
+                type: category == undefined ? {
+                    isSet: false
+                } : {
+                    equals: category
+                }
             },
             select: {
-                id: true,
-                name: true,
+                userRe: {
+                    select: {
+                        id: true,
+                        name: true,
+                        profileHue: true,
+                        profileHue2: true,
+                        country: true
+                    },
+                },
                 [sortProp]: true,
-                profileHue: true,
-                profileHue2: true,
-                country: true
             },
             take: 15,
             skip: 15 * page
@@ -1611,7 +1792,7 @@ export async function getReplayFile(id: string) {
     }
 }
 
-export async function getScoresPlayer(id: string, page:number, category: string = undefined, sort?: string) {
+export async function getScoresPlayer(id: string, page:number, keys?: number, category: string = undefined, sort?: string) {
     if (!process.env["DATABASE_URL"]) {
         return null;
     }
@@ -1635,6 +1816,11 @@ export async function getScoresPlayer(id: string, page:number, category: string 
                     isSet: false
                 } : {
                     equals: category
+                },
+                keys: !keys || keys == 4 ? {
+                    isSet: false
+                } : {
+                    equals: keys
                 }
             },
             select: {
@@ -1772,7 +1958,6 @@ export async function searchUsers(query: string) {
             select: {
                 name: true,
                 role: true,
-                points: true,
             },
             take: 50
         }))
@@ -1945,12 +2130,18 @@ export async function searchFriendRequests(id:string) {
     return value;
 }
 
-export async function deleteUser(id:string):Promise<any> {
+export async function deleteUser(id:string) {
     if (!id || !process.env["DATABASE_URL"]) {
         return null;
     }
 
     await setUserBanStatus(id, true);
+
+    await prisma.userStats.deleteMany({
+        where: {
+            user: id
+        }
+    })
     
     const user = await prisma.user.delete({
         where: {
@@ -1972,7 +2163,7 @@ export async function deleteUser(id:string):Promise<any> {
     console.log("Deleted user: " + user.name);
 }
 
-export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
+export async function setUserBanStatus(id: string, to: boolean) {
     if (!id || !process.env["DATABASE_URL"]) {
         return null;
     }
@@ -1982,7 +2173,6 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
             id: id
         },
         data: {
-            points: 0,
             role: to ? 'Banned' : Data.CONFIG.DEFAULT_ROLE,
             bio: {
                 unset: true
@@ -1991,6 +2181,21 @@ export async function setUserBanStatus(id: string, to: boolean): Promise<any> {
     })
 
     if (to) {
+        const statsData = {};
+        for (const key of KEYS_LIST) {
+            statsData["points" + key + "k"] = 0;
+            statsData["avgAcc" + key + "k"] = 0;
+        }
+
+        await prisma.userStats.updateMany({
+            where: {
+                user: id
+            },
+            data: {
+                ...statsData
+            }
+        });
+
         const scores = await prisma.score.findMany({
             where: {
                 player: id
@@ -2339,12 +2544,17 @@ export async function perishScores() {
     await prisma.report.deleteMany();
     
     console.log("zeroing players");
-    await prisma.user.updateMany({
+    const statsData = {};
+    for (const key of KEYS_LIST) {
+        statsData["points" + key + "k"] = 0;
+        statsData["avgAcc" + key + "k"] = 0;
+    }
+
+    await prisma.userStats.updateMany({
         data: {
-            points: 0,
-            avgAcc: 0
+            ...statsData
         }
-    })
+    });
     console.log("deleted ranking shit");
 
     await prisma.club.updateMany({
@@ -2392,53 +2602,67 @@ export async function perishScores() {
 // }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function recountPlayersFP() {
+// async function recountPlayersFP() {
+//     if (!process.env["DATABASE_URL"]) {
+//         return null;
+//     }
+
+//     try {
+//         for (const user of await prisma.user.findMany({
+//             select: {
+//                 id: true,
+//             }
+//         })) {
+//             await prisma.user.update({
+//                 where: {
+//                     id: user.id,
+//                 },
+//                 data: {
+//                     points: await countPlayerFP(user.id) ?? 0,
+//                 },
+//             })
+//         }
+//         return true;
+//     }
+//     catch (exc) {
+//         console.error(exc);
+//         return null;
+//     }
+// }
+
+export async function getPlayerRank(name: string, category?: string, keys?:number): Promise<number> {
     if (!process.env["DATABASE_URL"]) {
         return null;
     }
 
-    try {
-        for (const user of await prisma.user.findMany({
-            select: {
-                id: true,
-            }
-        })) {
-            await prisma.user.update({
-                where: {
-                    id: user.id,
-                },
-                data: {
-                    points: await countPlayerFP(user.id) ?? 0,
-                },
-            })
-        }
-        return true;
-    }
-    catch (exc) {
-        console.error(exc);
-        return null;
-    }
-}
+    if (Number.isNaN(keys))
+        keys = undefined;
+    keys ??= 4;
 
-export async function getPlayerRank(name: string): Promise<number> {
-    if (!process.env["DATABASE_URL"]) {
-        return null;
-    }
+    const userId = await getPlayerIDByName(name);
 
     try {
-        const everyone = await prisma.user.findMany({
+        const everyone = await prisma.userStats.findMany({
+            where: {
+                type: category == undefined ? {
+                    isSet: false
+                } : {
+                    equals: category
+                },
+            },
             orderBy: [
                 {
-                    points: 'desc'
+                    ["points" + keys + "k"]: 'desc'
                 }
             ],
             select: {
-                name: true,
+                user: true,
             }
         });
-        return everyone.findIndex(user => user.name == name) + 1;
+        return everyone.findIndex(user => user.user == userId) + 1;
     }
     catch (_exc) {
+        console.error(_exc);
         return null;
     }
 }
@@ -2616,7 +2840,7 @@ export async function sendNotification(toID: string, content: NotificationConten
         }
     });
 
-    notifyPlayer(toID, content?.content ?? content.title);
+    notifyPlayer(toID, '[NOTIFICATION] ' + (content?.content ?? content.title));
 }
 
 class NotificationContent {
@@ -2645,6 +2869,7 @@ class ReplayData {
 	opponent_mode: boolean;
     beat_time: number;
     chart_hash: string;
+    keys: number;
 
     note_offset: number;
 	gameplay_modifiers: any;

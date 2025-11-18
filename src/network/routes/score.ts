@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import { getScore, getReplayFile, checkAccess, getIDToken, submitReport, submitScore, getPlayerNameByID } from '../database';
+import { getScore, getReplayFile, checkAccess, getIDToken, submitReport, submitScore, getPlayerNameByID, removeScore, authPlayer, setScoreModURL } from '../database';
 import { setCooldown } from '../../cooldown';
 
 export class ScoreRoute {
@@ -58,6 +58,39 @@ export class ScoreRoute {
                 res.status(400).json({
                     error: exc.error_message ?? "Couldn't submit..."
                 });
+            }
+        });
+
+        app.get("/api/score/delete", checkAccess, async (req, res) => {
+            try {
+                const reqPlayer = await authPlayer(req);
+                if (!reqPlayer)
+                    return res.sendStatus(403);
+                await removeScore(req.query.id as string, false, reqPlayer.id);
+                return res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/score/set/modurl", checkAccess, async (req, res) => {
+            try {
+                const reqPlayer = await authPlayer(req);
+                if (!reqPlayer)
+                    return res.sendStatus(403);
+
+                const score = await getScore(req.query.id as string);
+                if (score.player != reqPlayer.id)
+                    return res.sendStatus(403);
+
+                await setScoreModURL(req.query.id as string, req.query.url as string);
+                return res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
             }
         });
     }

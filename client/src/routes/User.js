@@ -129,7 +129,9 @@ function User() {
                 alert(response.data);
                 throw new Error('Failed.');
             }
-        } catch (error) { }
+        } catch (error) {
+            console.error(error);
+        }
 
         fetchData();
     }
@@ -231,13 +233,25 @@ function User() {
                     <td>
                         <a href={songURL}> {score.name} <img alt={score.strum !== 2 ? ' (op)' : ' (bf)'} src={'/images/' + (score.strum !== 2 ? 'op' : 'bf') + '_icon.png'} style={{ maxHeight: '20px' }}></img> </a>
                         {
-                            isAdmin && hasAccess('/api/admin/score/delete') ?
+                            (!editBioMode && isAdmin) && hasAccess('/api/admin/score/delete') ?
                                 <>
                                     <button title='Remove Score' className='SvgNoButton' style={{ float: 'right', color: 'var(--text-profile-color)' }} onClick={() => removeScore(score.id)}>
                                         <Icon width={20} icon="mdi:trash-outline" />
                                     </button>
                                 </>
                                 : <></>
+                        }
+                        {
+                            (editBioMode) ?
+                            <>
+                                <button title='Remove Score' className='SvgNoButton' style={{ float: 'right', color: 'var(--text-profile-color)' }} onClick={() => removeScore(score.id)}>
+                                    <Icon width={20} icon="mdi:trash-outline" />
+                                </button>
+                                <button title='Set Mod URL' className='SvgNoButton' style={{ float: 'right', color: 'var(--text-profile-color)' }} onClick={() => editScoreModURL(score.id)}>
+                                    <Icon width={20} icon="mdi:link-edit" />
+                                </button>
+                            </>
+                            : <></>
                         }
                         <a title='View Replay' target="_blank" rel='noreferrer' style={{ float: 'right', color: 'var(--text-profile-color)' }} href={"/api/score/replay?id=" + score.id}>
                             <Icon width={20} icon="mdi:eye" />
@@ -294,7 +308,7 @@ function User() {
                 return;
 
             try {
-                const response = await axios.get(getHost() + "/api/admin/score/delete?id=" + scoreId, {
+                const response = await axios.get(getHost() + (editBioMode ? "/api/score/delete?id=" : "/api/admin/score/delete?id=") + scoreId, {
                     headers: {
                         'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
                     }
@@ -303,6 +317,27 @@ function User() {
                     throw new Error('Failed.');
                 }
             } catch (error) { }
+
+            fetchData();
+        }
+
+        async function editScoreModURL(scoreId) {
+            const newURL = window.prompt('Enter the new Mod URL of this score.');
+            if (!newURL || newURL.trim().length <= 0)
+                return;
+
+            try {
+                const response = await axios.get(getHost() + "/api/score/set/modurl?id=" + scoreId + '&url=' + encodeURIComponent(newURL), {
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                    }
+                });
+                if (response.status !== 200) {
+                    throw new Error('Failed.');
+                }
+            } catch (error) {
+                console.error(error);
+            }
 
             fetchData();
         }

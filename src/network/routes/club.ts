@@ -1,7 +1,7 @@
 import { Express } from 'express';
 import { UploadedFile } from 'express-fileupload';
-import { getClub, getPlayerByID, getPlayerNameByID, getClubRank, getClubBanner, checkAccess, getIDToken, getPlayerClub, createClub, requestJoinClub, acceptJoinClub, getPlayerIDByName, removePlayerFromClub, promoteClubMember, demoteClubMember, uploadClubBanner, postClubEdit } from '../database';
-import { setCooldown } from '../../cooldown';
+import { getClub, getPlayerByID, getPlayerNameByID, getClubRank, getClubBanner, checkAccess, getIDToken, getPlayerClub, createClub, requestJoinClub, acceptJoinClub, getPlayerIDByName, removePlayerFromClub, promoteClubMember, demoteClubMember, uploadClubBanner, postClubEdit, getUserStats } from '../database';
+import { CooldownTime, setCooldown } from '../../cooldown';
 import { Image } from 'canvas';
 
 export class ClubRoute {
@@ -16,9 +16,10 @@ export class ClubRoute {
                 const members = [];
                 for (const member of club.members) {
                     const user = await getPlayerByID(member);
+                    const stats = await getUserStats(user.id);
                     members.push({
                         player: user.name,
-                        points: user.points,
+                        points: stats.points4k,
                         profileHue: user.profileHue ?? 250,
                         profileHue2: user.profileHue2,
                         country: user.country
@@ -270,7 +271,8 @@ export class ClubRoute {
             }
         });
 
-        setCooldown("/api/club/edit", 3);
+        setCooldown("/api/club/edit", 5);
+        setCooldown("club.edit.tag", CooldownTime.DAY * 7);
         app.post("/api/club/edit", checkAccess, async (req, res) => {
             try {
                 const [id, _] = getIDToken(req);

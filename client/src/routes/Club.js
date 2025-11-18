@@ -3,7 +3,7 @@ import AvatarImg from "../AvatarImg";
 import { clubProfileColor, contentProfileColor, getHost, hasAccess, headProfileColor, miniProfileColor, moneyFormatter, ordinalNum, returnDate } from "../Util";
 import axios from "axios";
 import Cookies from 'js-cookie';
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Flag } from "./User";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import Popup from "reactjs-popup";
@@ -15,6 +15,7 @@ let daUploadedBanner;
 function Club() {
     let { tag } = useParams();
     tag = decodeURIComponent(tag);
+    let navigate = useNavigate();
 
     const [data, setData] = useState({
         name: '',
@@ -40,6 +41,7 @@ function Club() {
 
     const [htmlContent, setHTMLContent] = useState(data.content);
     const [clubName, setClubName] = useState(data.name);
+    const [clubTag, setClubTag] = useState(data.tag);
     const [clubHue, setClubHue] = useState(data.hue);
 
     const [pending, setPending] = useState(null);
@@ -88,6 +90,7 @@ function Club() {
     useEffect(() => {
         setHTMLContent(data.content);
         setClubName(data.name);
+        setClubTag(data.tag);
         setClubHue(data.hue);
     }, [data])
 
@@ -102,16 +105,18 @@ function Club() {
                 const response = await axios.post(getHost() + '/api/club/edit', {
                     content: htmlContent,
                     name: clubName,
-                    hue: Number(clubHue)
+                    hue: Number(clubHue),
+                    tag: clubTag
                 }, {
                     headers: {
                         'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
-                    }
+                    },
+                    validateStatus: () => true
                 });
                 if (response.status !== 200) {
-                    throw new Error('Failed.');
+                    throw new Error(response.data);
                 }
-                // window.location.reload();
+                navigate('/club');
             } catch (error) {
                 console.error(error);
                 window.alert(error);
@@ -310,7 +315,15 @@ function Club() {
                             </> : <>
                                 {clubName} 
                             </>}
-                            &nbsp;[{data.tag}]</h1>
+                            &nbsp;
+                            {clanEditMode ? <>
+                                <input className="SeamlessInput" value={clubTag} onChange={e => {
+                                    setClubTag(e.target.value);
+                                }}></input>
+                            </> : <>
+                                [{data.tag}]
+                            </>}
+                            </h1>
                         </div>
                         <div className="CenterFlex">
                             <b>Rank: </b> &nbsp; {ordinalNum(data.rank)} <br />

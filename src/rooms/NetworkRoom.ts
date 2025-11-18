@@ -1,12 +1,13 @@
 import { Room, Client } from "@colyseus/core";
 import { IncomingMessage } from "http";
 import { ServerError } from "colyseus";
-import { authPlayer, getPlayerByID, getPlayerByName, getPlayerClubTag, getPlayerIDByName, hasAccess } from "../network/database";
+import { authPlayer, getNotifications, getPlayerByID, getPlayerByName, getPlayerClubTag, getPlayerIDByName, hasAccess } from "../network/database";
 import { NetworkSchema } from "./schema/NetworkSchema";
 import { formatLog, isUserIDInRoom } from "../util";
 import { DiscordBot } from "../discord";
 import { Data } from "../data";
 import { ServerInstance } from "../server";
+import { cooldown, setCooldown } from "../cooldown";
 
 export let networkRoom: NetworkRoom; 
 
@@ -139,6 +140,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
       await discordChatMessage(sender, message);
     });
 
+    setCooldown('room.invite', 30);
     this.onMessage("inviteplayertoroom", async (client, message: string) => {
       if (!this.SSIDtoID.has(client.sessionId)) {
         client.send("notification", 'Authorization Error');
@@ -158,6 +160,11 @@ export class NetworkRoom extends Room<NetworkSchema> {
       
       if (!((await getPlayerByName(message)).friends.includes(this.SSIDtoID.get(client.sessionId)))) {
         client.send("notification", 'You\'re not friends with ' + message + '!');
+        return;
+      }
+
+      if (!cooldown(this.SSIDtoID.get(client.sessionId) + '.' + this.SSIDtoID.get(this.nameToClient.get(message.toLowerCase()).sessionId), 'room.invite')) {
+        client.send("notification", 'You\'re on cooldown ' + message + '!');
         return;
       }
 
@@ -208,6 +215,24 @@ export class NetworkRoom extends Room<NetworkSchema> {
     return true;
   }
 
+  async onJoin(client: Client, _: any) {
+    const player = await getPlayerByID(this.SSIDtoID.get(client.sessionId));
+    if (!player)
+      throw new ServerError(401, "Unauthorized to Network");
+
+    for (const friend of player.friends) {
+      if (!this.IDtoClient.has(friend))
+        continue;
+
+      this.IDtoClient.get(friend).send("friendOnlineNotif", player.name);
+    }
+
+    const notifs = await getNotifications(player.id);
+    if (notifs && notifs.length > 0) {
+      notifyPlayer(player.id, 'You have ' + notifs.length + ' new notifications!')
+    }
+  }
+
   async onLeave(client: Client, consented: boolean) {
     try {
       await this.allowReconnection(client, !consented ? 10 : 0);
@@ -224,9 +249,11 @@ export class NetworkRoom extends Room<NetworkSchema> {
       const clID = this.SSIDtoID.get(client.sessionId);
       this.SSIDtoID.delete(client.sessionId);
       this.IDtoClient.delete(clID);
-      this.nameToClient.delete(this.IDToName.get(clID).toLowerCase());
-      this.nameToHue.delete(this.IDToName.get(clID).toLowerCase());
-      this.IDToName.delete(clID);
+      if (this.IDToName.has(clID)) {
+        this.nameToClient.delete(this.IDToName.get(clID).toLowerCase());
+        this.nameToHue.delete(this.IDToName.get(clID).toLowerCase());
+        this.IDToName.delete(clID);
+      }
     }
     catch (exc) {
       console.error(exc);

@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import { authPlayer, checkAccess, getAvatar, getBackground, getPlayerByName, getPlayerClubTag, getPlayerIDByName, getPlayerRank, getScoresPlayer, getUserFriends, removeFriendFromUser, requestFriendRequest } from '../database';
+import { authPlayer, checkAccess, getAvatar, getBackground, getPlayerByName, getPlayerClubTag, getPlayerIDByName, getPlayerRank, getUserStats, getScoresPlayer, getUserFriends, removeFriendFromUser, requestFriendRequest } from '../database';
 
 export class UserRoute {
     static init(app: Express) {
@@ -69,6 +69,7 @@ export class UserRoute {
                     return res.sendStatus(400);
 
                 const user = await getPlayerByName(req.query.name as string);
+                const stats = await getUserStats(user.id, req.query.category as string);
 
                 if (!user)
                     return res.sendStatus(404);
@@ -77,11 +78,11 @@ export class UserRoute {
                     role: user.role,
                     joined: user.joined,
                     lastActive: user.lastActive,
-                    points: user.points,
                     profileHue: user.profileHue ?? 250,
                     profileHue2: user.profileHue2,
-                    avgAccuracy: user.avgAcc,
-                    rank: await getPlayerRank(user.name),
+                    points: stats["points" + (req.query.keys ?? 4) + "k"],
+                    avgAccuracy: stats["avgAcc" + (req.query.keys ?? 4) + "k"],
+                    rank: await getPlayerRank(user.name, req.query.category as string, Number.parseInt(req.query.keys as string)),
                     country: user.country,
                     club: await getPlayerClubTag(user.id)
                 });
@@ -99,6 +100,7 @@ export class UserRoute {
 
                 const auth = await authPlayer(req, false);
                 const user = await getPlayerByName(req.query.name as string);
+                const stats = await getUserStats(user.id, req.query.category as string);
 
                 if (!user)
                     return res.sendStatus(404);
@@ -109,16 +111,15 @@ export class UserRoute {
                     role: user.role,
                     joined: user.joined,
                     lastActive: user.lastActive,
-                    points: user.points,
-                    pointsWeekly: user.pointsWeekly,
                     isSelf: auth?.id == user.id,
                     bio: user.bio,
                     friends: await getUserFriends(user.friends),
                     canFriend: !pingasFriends.includes(user?.id),
                     profileHue: user.profileHue ?? 250,
                     profileHue2: user.profileHue2,
-                    avgAccuracy: user.avgAcc,
-                    rank: await getPlayerRank(user.name),
+                    points: stats["points" + (req.query.keys ?? 4) + "k"],
+                    avgAccuracy: stats["avgAcc" + (req.query.keys ?? 4) + "k"],
+                    rank: await getPlayerRank(user.name, req.query.category as string, Number.parseInt(req.query.keys as string)),
                     country: user.country,
                     club: await getPlayerClubTag(user.id)
                 });
@@ -141,7 +142,7 @@ export class UserRoute {
 
                 const coolScores: any[] = [];
 
-                const scores = await getScoresPlayer(userID, Number.parseInt(req.query.page as string ?? "0"), req.query.category as string, req.query.sort as string);
+                const scores = await getScoresPlayer(userID, Number.parseInt(req.query.page as string ?? "0"), Number.parseInt(req.query.keys as string), req.query.category as string, req.query.sort as string);
                 if (!scores)
                     return res.sendStatus(404);
                 scores.forEach(score => {

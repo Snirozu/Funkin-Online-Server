@@ -20,8 +20,7 @@ model User {
   secret  String // if changed then all sessions will be lost (TODO add reset secret)
   joined  DateTime @default(now())
   lastActive  DateTime @default(now())
-  points    Int
-  pointsWeekly    Int?
+
   role String?
   pendingFriends String[] //list of players to accept invites from
   friends String[] // friends ids
@@ -29,7 +28,6 @@ model User {
   bio String?
   profileHue Int?
   profileHue2 Int?
-  avgAcc Float?
   country String?
 
   scores  Score[]
@@ -37,6 +35,30 @@ model User {
   avatar FileAvatar?
   background FileBackground?
   notifications Notification[]
+  stats UserStats[]
+}
+
+model UserStats {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+
+  user   String @db.ObjectId // id of File that stores the replay contents
+  type   String?
+
+  points4k Int?
+  points5k Int?
+  points6k Int?
+  points7k Int?
+  points8k Int?
+  points9k Int?
+
+  avgAcc4k Float?
+  avgAcc5k Float?
+  avgAcc6k Float?
+  avgAcc7k Float?
+  avgAcc8k Float?
+  avgAcc9k Float?
+
+  userRe User? @relation(fields: [user], references: [id])
 }
 
 // recommended to have `maxPoints` descending index set
@@ -62,6 +84,7 @@ model Score {
 
   playbackRate Float
   strum    Int
+  keys    Int?
   category String?
 
   submitted DateTime @default(now())

@@ -35,7 +35,7 @@ export function TopSortSelect(props) {
     ]);
 
     categoryMap.forEach((v, k) => {
-        if (props.v ?? props.default === v)
+        if ((props.v ?? props.default) === v)
             options.push(<option v={v} selected>{k}</option>);
         else
             options.push(<option v={v}>{k}</option>);
