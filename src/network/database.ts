@@ -1210,6 +1210,10 @@ export async function createUser(name: string, email: string) {
 }
 
 export async function getUserStats(id: string, type?: string) {
+    if (![undefined, 'week'].includes(type)) {
+        return null;
+    }
+
     const userStats = await _getUserStats(id, type);
     if (!userStats)
         return await createUserStats(id, type);
