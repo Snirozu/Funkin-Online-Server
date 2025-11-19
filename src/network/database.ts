@@ -1361,7 +1361,12 @@ export async function grantPlayerRole(name: string, role: string) {
         return null;
     }
 
-    if ((await getPlayerByName(name)).role == role) {
+    var player = await getPlayerByName(name);
+    if (!player) {
+        //console.log('No player found by the name: ' + name);
+        return null;
+    }
+    if (player.role == role) {
         //console.log(name + ' is already already a: ' + role);
         return null;
     }

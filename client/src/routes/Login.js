@@ -106,7 +106,7 @@ function Login() {
                             </label>
                             <br></br>
                             <br></br>
-                            <button onClick={e => {
+                            <button className="FunkinButton" onClick={e => {
                                 submitEmail();
                             }}> Login with E-Mail </button>
                         </>
@@ -127,7 +127,7 @@ function Login() {
                             </label>
                             <br></br>
                             <br></br>
-                            <button onClick={e => {
+                            <button className="FunkinButton" onClick={e => {
                                 submitCode();
                             }}> Login </button>
                         </>
@@ -137,7 +137,7 @@ function Login() {
                     <p>
                         ...Or Logout from the Network
                     </p>
-                    <button onClick={e => {
+                    <button className="FunkinButton" onClick={e => {
                         Cookies.remove('authid');
                         Cookies.remove('authtoken');
                         window.location.reload();

@@ -5,6 +5,18 @@ import AvatarImg from './AvatarImg';
 import { getHost, hasAccess, headProfileColor, tabButtonColor } from './Util';
 import { Icon } from '@iconify/react/dist/iconify.js';
 
+function formatNumber(num) {
+  if (num >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+  } else if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+  } else {
+    return num.toString();
+  }
+}
+
 function HeadBar() {
     const [data, setData] = useState({
         name: '',
@@ -31,7 +43,7 @@ function HeadBar() {
             Cookies.set('username', data.name, { sameSite: 'strict' });
             Cookies.set('access_list', data.access.join(','), { sameSite: 'strict' });
 
-            document.documentElement.style.setProperty('--head-profile-color', headProfileColor(data.profileHue));
+            document.documentElement.style.setProperty('--head-profile-color', headProfileColor(data.profileHue, data.profileHue2));
             document.documentElement.style.setProperty('--tab-button-color', tabButtonColor(data.profileHue));
 
             setError(null);
@@ -95,7 +107,7 @@ function HeadBar() {
                                 <AvatarImg className='SmallerAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(data.name)}/>
                                 <div className='BarProfileText'>
                                     <b>Welcome, {data.name}! </b> <br></br>
-                                    Points: {data.points}
+                                    Points: {formatNumber(data.points)}
                                 </div>
                             </a>
                         </div>

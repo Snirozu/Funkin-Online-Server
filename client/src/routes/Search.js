@@ -26,8 +26,9 @@ function Search() {
             <div className="Content">
                 <div className="Main">
                     <label>
-                        Search for: <input onKeyUp={onKeyPressHandler} onChange={e => setInput(e.target.value)} value={input} name="myInput" />
-                        <button onClick={e => {
+                        Search for:
+                        <input type="text" onKeyUp={onKeyPressHandler} onChange={e => setInput(e.target.value)} value={input} name="myInput" />
+                        <button className="FunkinButton" onClick={e => {
                             redirectSearch();
                         }}> Search </button>
                         
