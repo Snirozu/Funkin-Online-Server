@@ -76,7 +76,7 @@ function Admin() {
                 spans.push(<>
                     <br></br>
                     <br></br>
-                    <button onClick={async () => {
+                    <button className="FunkinButton" onClick={async () => {
                         if (!window.confirm('Are you sure?'))
                             return;
 

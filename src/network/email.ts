@@ -22,7 +22,7 @@ export async function sendCodeMail(email: string, code: string) {
         await transMail.sendMail({
             from: 'Psych Online <' + process.env.SMTP_MAIL + '>',
             to: email,
-            subject: 'Psych Online Verification Code',
+            subject: code + ' is your Verification Code',
             html: '<h3>Your verification code is:<h3><h1>' + code + '</h1>',
         }
             // ,    (error, info) => {
