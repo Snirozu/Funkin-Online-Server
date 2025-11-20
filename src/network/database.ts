@@ -184,7 +184,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
 
     const daKeyValue = replay.keys ?? 4;
     if (!KEYS_LIST.includes(daKeyValue)) {
-        throw { error_message: "Invalid Keys!" }
+        throw { error_message: "Submit - Invalid Key: " + daKeyValue }
     }
 
     const daStrum = replay.opponent_mode ? 1 : 2;
@@ -340,8 +340,11 @@ export async function updatePlayerStats(id: string, keys?: Array<number> | numbe
         const statsData = {};
 
         for (const kys of keysList) {
+            if (!kys)
+                continue;
+
             if (!KEYS_LIST.includes(kys)) {
-                throw { error_message: "Invalid Keys!" }
+                throw { error_message: "Stats - Invalid Key: " + kys }
             }
 
             statsData["points" + kys + "k"] = await countPlayerFP(id, category, kys);
