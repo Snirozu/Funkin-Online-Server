@@ -113,8 +113,7 @@ function User() {
     }
 
     const removeImages = async () => {
-        // eslint-disable-next-line no-restricted-globals
-        if (!confirm('Are you sure?')) {
+        if (!window.confirm('Are you sure?')) {
             return;
         }
         //pretty sure
@@ -136,9 +135,13 @@ function User() {
         fetchData();
     }
 
-    function onColorChange(_) {
+    function onColorChange(e) {
         const color = document?.getElementById('ProfileColorSlider')?.value ?? data.profileHue;
         const color2 = document?.getElementById('ProfileColorSlider2')?.value ?? data.profileHue2;
+
+        if (e) {
+            e.target.style.setProperty("--thumb-color", `hsl(${e.target.value}, 100%, 50%)`);
+        }
 
         if (data.profileHue === undefined)
             return;
@@ -148,7 +151,7 @@ function User() {
         document.documentElement.style.setProperty('--row-profile-color', textProfileRow(color));
         document.documentElement.style.setProperty('--row-profile-color-two', textProfileRow(color, true));
         if (data.isSelf) {
-            document.documentElement.style.setProperty('--head-profile-color', headProfileColor(color));
+            document.documentElement.style.setProperty('--head-profile-color', headProfileColor(color, color2));
             document.documentElement.style.setProperty('--tab-button-color', tabButtonColor(color));
         }
         if (color2 !== undefined && color2 != null)
@@ -490,11 +493,11 @@ function User() {
                                     <br></br>
                                     <br></br>
                                     BG Color:
-                                    <input id='ProfileColorSlider' type="range" min="0" max="360" defaultValue={data.profileHue} onInput={onColorChange} />
+                                    <input class="HueSlider" id='ProfileColorSlider' type="range" min="0" max="360" defaultValue={data.profileHue} onInput={onColorChange} />
                                     { data.points >= 500 ? (
                                         <>
                                             BG Color 2:
-                                             <input id='ProfileColorSlider2' type="range" min="0" max="360" defaultValue={data.profileHue2} onInput={onColorChange} />
+                                             <input class="HueSlider" id='ProfileColorSlider2' type="range" min="0" max="360" defaultValue={data.profileHue2} onInput={onColorChange} />
                                         </>
                                     ) : <></>}
                                     <br></br>
@@ -673,8 +676,8 @@ function UserIconEditor() {
             <br/>
             <br/>
             <center>
-                <button onClick={onClickSave}> Save </button>
-                <button onClick={onClickPreview}> Preview </button>
+                <button className="FunkinButton" onClick={onClickSave}> Save </button>
+                <button className="FunkinButton" onClick={onClickPreview}> Preview </button>
             </center>
             {/* <br />
             <img id='avatarpreview' alt='Preview'></img>

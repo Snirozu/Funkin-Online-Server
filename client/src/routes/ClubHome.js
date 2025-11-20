@@ -106,19 +106,19 @@ function ClubHome() {
                         <br></br>
                         <br></br>
                         <label>
-                            Club Name: <input onChange={e => setClubName(e.target.value)} value={inputName} /> <br></br>
+                            Club Name: <input type="text" onChange={e => setClubName(e.target.value)} value={inputName} /> <br></br>
                             Must be 20 characters or less.
                         </label>
                         <br></br>
                         <br></br>
                         <label>
-                            Club Tag: <input onChange={e => setClubTag(e.target.value)} value={inputTag} /> <br></br>
+                            Club Tag: <input type="text" onChange={e => setClubTag(e.target.value)} value={inputTag} /> <br></br>
                             Must be between 2 to 5 characters. <br></br>
                             TAGS CANNOT BE CHANGED!
                         </label>
                         <br></br>
                         <br></br>
-                        <button onClick={e => {
+                        <button className="FunkinButton" onClick={e => {
                             submitData();
                         }}> Create </button>
                     </>

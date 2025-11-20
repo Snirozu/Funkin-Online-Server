@@ -168,7 +168,7 @@ function Club() {
                         clanEditMode ? <>
                             {
                                 isLeader ? 
-                                    <button onClick={async () => {
+                                    <button className="FunkinButton" onClick={async () => {
                                         if (!window.confirm('Are you sure?'))
                                             return;
 
@@ -186,7 +186,7 @@ function Club() {
                                         }
                                     }}> Demote {player.player} </button>
                                 : 
-                                    <button onClick={async () => {
+                                    <button className="FunkinButton" onClick={async () => {
                                         if (!window.confirm('Are you sure?'))
                                             return;
 
@@ -205,7 +205,7 @@ function Club() {
                                     }}> Promote {player.player} </button>
                             }
                             &nbsp;
-                            <button onClick={async () => {
+                            <button className="FunkinButton" onClick={async () => {
                                 if (!window.confirm('Are you sure?'))
                                     return;
 
@@ -256,7 +256,7 @@ function Club() {
                             <span style={{ fontSize: '35px' }}> {player} </span>
                         </div>
                     </a>
-                    <button onClick={async () => {
+                    <button className="FunkinButton" onClick={async () => {
                         if (!window.confirm('Are you sure?'))
                             return;
 
@@ -362,8 +362,10 @@ function Club() {
                             <br></br>
                             <hr></hr>
                             Accent:
-                            <input id='ProfileColorSlider' type="range" min="0" max="360" value={clubHue} onChange={e => {
-                                setClubHue(e.target.value);
+                            <input class="HueSlider" id='ProfileColorSlider' type="range" min="0" max="360" value={clubHue} onChange={e => {
+                                var hue = e.target.value;
+                                e.target.style.setProperty("--thumb-color", `hsl(${hue}, 100%, 50%)`);
+                                setClubHue(hue);
                             }}/>
                             <br></br>
                         </> : <></>}
@@ -397,7 +399,7 @@ function Club() {
                                     <Icon width={20} icon="iconamoon:exit" />
                                 </button>
                             </> : <>
-                                <button onClick={async () => {
+                                <button className="FunkinButton" onClick={async () => {
                                     if (!window.confirm('Are you sure?'))
                                         return;
 
@@ -440,7 +442,7 @@ function Club() {
                                 </button>
                             </> : <></>
                         }
-                        <Popup trigger={<button id='openbannereditor' style={{display: 'none'}}></button>} modal>
+                        <Popup trigger={<button className="FunkinButton" id='openbannereditor' style={{display: 'none'}}></button>} modal>
                             <div className='Content'> 
                                 <BannerEditor/>
                             </div>
@@ -548,8 +550,8 @@ function BannerEditor() {
             <br/>
             <br/>
             <center>
-                <button onClick={onClickSave}> Save </button>
-                <button onClick={onClickPreview}> Preview </button>
+                <button className="FunkinButton" onClick={onClickSave}> Save </button>
+                <button className="FunkinButton" onClick={onClickPreview}> Preview </button>
             </center>
             {/* <br />
             <img id='avatarpreview' alt='Preview'></img>
