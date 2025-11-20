@@ -220,11 +220,13 @@ export class NetworkRoom extends Room<NetworkSchema> {
     if (!player)
       throw new ServerError(401, "Unauthorized to Network");
 
-    for (const friend of player.friends) {
-      if (!this.IDtoClient.has(friend))
-        continue;
+    if ((Date.now() - player.lastActive.getTime()) > (1000 * 60)) {
+      for (const friend of player.friends) {
+        if (!this.IDtoClient.has(friend))
+          continue;
 
-      this.IDtoClient.get(friend).send("friendOnlineNotif", player.name);
+        this.IDtoClient.get(friend).send("friendOnlineNotif", player.name);
+      }
     }
 
     const notifs = await getNotifications(player.id);
