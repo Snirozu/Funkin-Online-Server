@@ -694,13 +694,13 @@ select, input[type="text"], .FunkinButton {
   border-width: 1px;
   border-style: solid;
   border-radius: 5px;
-  border: 2px solid var(--border-color);
+  border-color: var(--border-color);
   background: #0000003d;
   transition: 0.2s ease-out;
 }
 
 select {
-  padding: 3px;
+  padding: 5px;
 }
 
 .FunkinButton {
@@ -712,7 +712,8 @@ select {
 .FunkinButton,
 select:hover,
 select:focus {
-  background: #5c5c5c3d;
+  background: #acacac3d;
+  border-color: #727272;
 }
 
 option:not(option:last-of-type) {
