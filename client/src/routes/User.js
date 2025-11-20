@@ -139,10 +139,8 @@ function User() {
         const color = document?.getElementById('ProfileColorSlider')?.value ?? data.profileHue;
         const color2 = document?.getElementById('ProfileColorSlider2')?.value ?? data.profileHue2;
 
-        if (e)
-        {
-            var hue = e.target.value;
-            e.target.style.setProperty("--thumb-color", `hsl(${hue}, 100%, 50%)`);
+        if (e) {
+            e.target.style.setProperty("--thumb-color", `hsl(${e.target.value}, 100%, 50%)`);
         }
 
         if (data.profileHue === undefined)
