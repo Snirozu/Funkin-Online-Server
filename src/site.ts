@@ -136,13 +136,13 @@ export async function initExpress(app: Express) {
                     Data.PERSIST.props.NEXT_WEEKLY_DATE += WEEK_TIME_MS;
                     Data.PERSIST.save();
 
-                    async function getPlaceMessage(player: any) {
-                        const clubPlate = await getPlayerClubTag(player.id);
-                        return player.name + (clubPlate ? ' [' + clubPlate + ']' : '') + ' with ' + player.pointsWeekly + 'FP!';
+                    async function getPlaceMessage(stats: any) {
+                        const clubPlate = await getPlayerClubTag(stats.userRe.id);
+                        return stats.userRe.name + (clubPlate ? ' [' + clubPlate + ']' : '') + ' with ' + stats.points4k + 'FP!';
                     }
 
                     const _top = await topPlayers(0, undefined, "week");
-                    let leadersMessage = '• Weekly Leaderboard Finals! •';
+                    let leadersMessage = '• Weekly 4k Leaderboard Finals! •';
                     leadersMessage = leadersMessage + '\n1st. ' + await getPlaceMessage(_top[0]);
                     leadersMessage = leadersMessage + '\n2nd. ' + await getPlaceMessage(_top[1]);
                     leadersMessage = leadersMessage + '\n3rd. ' + await getPlaceMessage(_top[2]);
