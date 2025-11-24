@@ -54,7 +54,7 @@ export class AccountRoute {
                     profileHue: player.profileHue ?? 250,
                     profileHue2: player.profileHue2,
                     country: player.country,
-                    access: Data.CONFIG.ROLES.get(player.role ?? Data.CONFIG.DEFAULT_ROLE).access ?? [],
+                    access: Data.CONFIG.ROLES.get(!player.role || !Data.CONFIG.ROLES.has(player.role) ? Data.CONFIG.DEFAULT_ROLE : player.role).access ?? [],
                     club: await getPlayerClubTag(id),
                     notifs: await getNotificationsCount(id) 
                 });

@@ -57,22 +57,6 @@ access = [
     '/api/user/*',
     '/api/club/*',
     'room.auth',
-    # '/api/account/info',
-    # '/api/account/me',
-    # '/api/account/friends',
-    # '/api/account/ping',
-    # '/api/account/avatar',
-    # '/api/account/background',
-    # '/api/account/removeimages',
-    # '/api/account/email/set',
-    # '/api/account/delete',
-    # '/api/account/profile/set',
-    # '/api/account/rename',
-    # '/api/song/comment',
-    # '/api/score/report',
-    # '/api/score/submit',
-    # '/api/user/friends/remove',
-    # '/api/user/friends/request',
 ]
 
 
