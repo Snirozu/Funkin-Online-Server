@@ -2,7 +2,7 @@ import { matchMaker } from 'colyseus';
 import { Express } from 'express';
 import { Data } from '../../data';
 import { networkRoom } from '../../rooms/NetworkRoom';
-import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID } from '../database';
+import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma } from '../database';
 import dotenv from 'dotenv';
 import { logActionOnRequest } from '../mods';
 import fs from 'fs';
@@ -245,9 +245,18 @@ export class AdminRoute {
             }
         });
 
-        app.get("/api/admin/logs/process", checkAccess, async (_, res) => {
+        app.get("/api/admin/logs/process", checkAccess, async (req, res) => {
             try {
-                res.send(fs.readFileSync("/root/.pm2/logs/funkin-online-0.log", 'utf8'));
+                const logs = fs.readFileSync("/root/.pm2/logs/funkin-online-0.log", 'utf8').split('\n');
+                let i = logs.length;
+                let remaining = req.query.lines ? (Number.parseInt(req.query.lines as string) + 1) : logs.length;
+                const outLogs = [];
+                while (--i > 0) {
+                    if (--remaining > 0) {
+                        outLogs.push(logs[i]);
+                    }
+                }
+                res.send(outLogs);
             }
             catch (exc) {
                 console.error(exc);
@@ -258,6 +267,70 @@ export class AdminRoute {
         app.get("/api/admin/cooldown/clear", checkAccess, async (_, res) => {
             try {
                 await clearCooldowns();
+                res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/endweekly", checkAccess, async (_, res) => {
+            try {
+                await endWeekly();
+                res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/updateweekly", checkAccess, async (_, res) => {
+            try {
+                const stats = await prisma.userStats.findMany({
+                    select: {
+                        user: true
+                    },
+                    where: {
+                        type: 'week',
+                        OR: [
+                            {
+                                points4k: {
+                                    gt: 0
+                                }
+                            },
+                            {
+                                points5k: {
+                                    gt: 0
+                                }
+                            },
+                            {
+                                points6k: {
+                                    gt: 0
+                                }
+                            },
+                            {
+                                points7k: {
+                                    gt: 0
+                                }
+                            },
+                            {
+                                points8k: {
+                                    gt: 0
+                                }
+                            },
+                            {
+                                points9k: {
+                                    gt: 0
+                                }
+                            },
+                        ]
+                    }
+                })
+                for (const stat of stats) {
+                    await updatePlayerStats(stat.user);
+                }
                 res.sendStatus(200);
             }
             catch (exc) {

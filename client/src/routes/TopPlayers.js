@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import AvatarImg from "../AvatarImg";
 import { CountrySelect, Flag } from "./User";
 import { useSearchParams } from "react-router-dom";
-import { TopCategorySelect } from "../components";
+import { ManiaSelect, TopCategorySelect, TopPlayerSortSelect } from "../components";
 import moment from "moment";
 
 function TopPlayers() {
@@ -156,6 +156,13 @@ function TopPlayers() {
 
         return daPlayers;
     }
+
+    function fancySort() {
+        if (sort.startsWith('points') && sort.endsWith('k')) {
+            return sort.split('points')[1] + ' FP';
+        }
+        return sort;
+    }
     
     return (
             <div className='Content'>
@@ -166,9 +173,9 @@ function TopPlayers() {
                         <p>Error: {error}</p>
                     ) : (
                         <>
-                            <h1 className="davefont">Top Players by FP
+                            <h1 className="davefont">Top Players by {fancySort()}
                             {country ? ' from ' + allCountries.get(country) : ''}
-                            {category === 'week' ? ' this week' : ''}
+                            {category === 'week' ? ' (Weekly)' : ''}
                             </h1>
                             {category === 'week' && weekReset ? <>
                                 <center> <Countdown suffix="Next reset" time={weekReset}></Countdown> </center> <br></br>
@@ -191,7 +198,15 @@ function TopPlayers() {
                                 if (!selCountry)
                                     searchParams.delete('country');
                                 setSearchParams(searchParams);
-                            }} country={country}/></center>
+                            }} country={country}/>
+                            &nbsp;
+                            Sort: <TopPlayerSortSelect v={searchParams.get('sort')} onSelect={(sel) => {
+                                searchParams.set('sort', sel);
+                                if (!sel)
+                                    searchParams.delete('sort');
+                                setSearchParams(searchParams);
+                            }} />
+                            </center>
                             {(page > 0) ?
                                 <button className='SvgButton' style={{float: 'left'}} onClick={() => {
                                     searchParams.set('page', page - 1);

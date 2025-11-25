@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { getHost, moneyFormatter, ordinalNum, timeAgo } from "../Util";
 import AvatarImg from "../AvatarImg";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import { TopCategorySelect, TopSortSelect } from "../components";
+import { ManiaSelect, TopCategorySelect, TopSortSelect } from "../components";
 
 function Song() {
     const { song } = useParams();
@@ -17,11 +17,12 @@ function Song() {
 
     const category = searchParams.get('category');
     const sort = searchParams.get('sort');
+    const keys = searchParams.get('keys');
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const response = await fetch(getHost() + '/api/top/song?song=' + song + "&strum=" + searchParams.get("strum") + "&page=" + tablePage + (category ? '&category=' + category : '') + (sort ? '&sort=' + sort : ''));
+            const response = await fetch(getHost() + '/api/top/song?song=' + song + "&strum=" + searchParams.get("strum") + "&page=" + tablePage + (category ? '&category=' + category : '') + (sort ? '&sort=' + sort : '') + (keys ? '&keys=' + keys : ''));
             if (!response.ok) {
                 throw new Error('Song not found.');
             }
@@ -154,6 +155,15 @@ function Song() {
                     searchParams.set('sort', sel);
                     if (!sel)
                         searchParams.delete('sort');
+                    setSearchParams(searchParams);
+
+                    setTablePage(0);
+                }} />
+                &nbsp;
+                Mania: <ManiaSelect default={searchParams.get('keys')} v={sort} onSelect={(sel) => {
+                    searchParams.set('keys', sel);
+                    if (!sel)
+                        searchParams.delete('keys');
                     setSearchParams(searchParams);
 
                     setTablePage(0);

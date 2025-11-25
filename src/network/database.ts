@@ -1364,7 +1364,7 @@ export async function grantPlayerRole(name: string, role: string) {
         return null;
     }
 
-    var player = await getPlayerByName(name);
+    const player = await getPlayerByName(name);
     if (!player) {
         //console.log('No player found by the name: ' + name);
         return null;

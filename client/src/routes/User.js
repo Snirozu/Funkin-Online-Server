@@ -9,7 +9,7 @@ import { Icon } from '@iconify/react';
 import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
 import Popup from 'reactjs-popup';
-import { TopCategorySelect, TopSortSelect } from '../components';
+import { ManiaSelect, TopCategorySelect, TopSortSelect } from '../components';
 
 function User() {
     let { name } = useParams();
@@ -39,6 +39,7 @@ function User() {
     const [adminMode, setAdminMode] = useState(Cookies.get('admin') ?? undefined);
     const [topCategory, setTopCategory] = useState(Cookies.get('user_topcategory'));
     const [topSort, setTopSort] = useState(Cookies.get('user_topsort'));
+    const [topMania, setTopMania] = useState(Cookies.get('user_topmania'));
 
     document.documentElement.style.setProperty('--background-image', 'url("' + getHost() + "/api/user/background/" + encodeURIComponent(name) + '")');
 
@@ -48,7 +49,7 @@ function User() {
 
     const fetchData = async () => {
         try {
-            const response = await axios.get(getHost() + '/api/user/details?name=' + name, {
+            const response = await axios.get(getHost() + '/api/user/details?name=' + name + (topCategory ? '&category=' + topCategory : '') + (topMania ? '&keys=' + topMania : ''), {
                 headers: {
                     'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
                 }
@@ -161,7 +162,7 @@ function User() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [topCategory, topMania]);
 
     useLayoutEffect(() => {
         onColorChange(null);
@@ -196,7 +197,6 @@ function User() {
                 id: '',
                 modURL: '',
                 misses: 0,
-                pointsWeekly: 0,
             }
         ]);
         const [loading, setLoading] = useState(true);
@@ -208,7 +208,7 @@ function User() {
             setError(null);
 
             try {
-                const response = await axios.get(getHost() + '/api/user/scores?name=' + props.user + "&page=" + page + (topCategory ? '&category=' + topCategory : '') + (topSort ? '&sort=' + topSort : ''));
+                const response = await axios.get(getHost() + '/api/user/scores?name=' + props.user + "&page=" + page + (topCategory ? '&category=' + topCategory : '') + (topSort ? '&sort=' + topSort : '') + (topMania ? '&keys=' + topMania : ''));
                 if (response.status !== 200) {
                     throw new Error('User not found.');
                 }
@@ -231,7 +231,7 @@ function User() {
 
             let i = 0;
             for (const score of scores) {
-                const songURL = "/song/" + score.songId + "?strum=" + score.strum + (topCategory ? '&category=' + topCategory : '');
+                const songURL = "/song/" + score.songId + "?strum=" + score.strum + (topCategory ? '&category=' + topCategory : '') + (topMania ? '&keys=' + topMania : '');
                 children.push(<tr key={score.submitted}>
                     <td>
                         <a href={songURL}> {score.name} <img alt={score.strum !== 2 ? ' (op)' : ' (bf)'} src={'/images/' + (score.strum !== 2 ? 'op' : 'bf') + '_icon.png'} style={{ maxHeight: '20px' }}></img> </a>
@@ -371,6 +371,13 @@ function User() {
                     Cookies.remove('user_topsort');
                 setTopSort(sel);
             }} />
+            &nbsp;
+            Mania: <ManiaSelect v={topMania} onSelect={(sel) => {
+                Cookies.set('user_topmania', sel);
+                if (!sel)
+                    Cookies.remove('user_topmania');
+                setTopMania(sel);
+            }} />
             </center>
             {(page > 0) ?
                 <button className='SvgButton' style={{ float: 'left' }} onClick={() => {
@@ -429,7 +436,7 @@ function User() {
                             ) : <></>}
                         </>}
                         <b>Rank: </b> {ordinalNum(data.rank)} <br />
-                        <b>Points: </b> {moneyFormatter.format(topCategory === 'week' ? data.pointsWeekly : data.points)} <br />
+                        <b>Points: </b> {moneyFormatter.format(data.points)} <br />
                         <b>Accuracy: </b> {(data.avgAccuracy * 100).toFixed(2)}% <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
                         <b>Joined: </b> {returnDate(Date.parse(data.joined))} <br />
