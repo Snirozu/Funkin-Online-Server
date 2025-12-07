@@ -339,9 +339,9 @@ export async function updatePlayerStats(id: string, keys?: Array<number> | numbe
     for (const category of [undefined, 'week']) {
         const statsData = {};
 
-        for (const kys of keysList) {
+        for (let kys of keysList) {
             if (!kys)
-                continue;
+                kys = 4;
 
             if (!KEYS_LIST.includes(kys)) {
                 throw { error_message: "Stats - Invalid Key: " + kys }
