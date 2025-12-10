@@ -704,8 +704,12 @@ export class GameRoom extends Room<RoomState> {
                         const clPerson = this.getStatePerson(cl);
                         if (!clPerson)
                             continue;
+
+                        const usrArr = (message as string[]).slice();
+                        usrArr.shift();
+                        const username = usrArr.join(' ').toLowerCase();
                         
-                        if (!this.isOwner(cl) && (message[1] ? clPerson.name == message[1] : true)) {
+                        if (!this.isOwner(cl) && (username ? clPerson.name.toLowerCase() == username : true)) {
                             await this.removePlayer(cl);
                             kickCount++;
                         }
