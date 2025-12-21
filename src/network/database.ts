@@ -156,7 +156,10 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     const submitter = await getPlayerByID(submitterID);
     if (!submitter)
         throw { error_message: "Unknown Submitter!" }
+
     const prevRank = await getPlayerRank(submitter.name);
+    const prevStats = await getUserStats(submitter.id);
+    const prevStatsWeek = await getUserStats(submitter.id, 'week');
 
     // create the song model
 
@@ -300,9 +303,6 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
             id: true
         }
     })
-
-    const prevStats = await getUserStats(submitter.id);
-    const prevStatsWeek = await getUserStats(submitter.id, 'week');
 
     await updatePlayerStats(submitter.id, daKeyValue);
     await updateSongMaxPoints(song.id);
