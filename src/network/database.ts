@@ -157,7 +157,14 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     if (!submitter)
         throw { error_message: "Unknown Submitter!" }
 
-    const prevRank = await getPlayerRank(submitter.name);
+    const daKeyValue = replay.keys ?? 4;
+    if (!KEYS_LIST.includes(daKeyValue)) {
+        throw { error_message: "Submit - Invalid Key: " + daKeyValue }
+    }
+
+    const daStrum = replay.opponent_mode ? 1 : 2;
+
+    const prevRank = await getPlayerRank(submitter.name, undefined, daKeyValue);
     const prevStats = await getUserStats(submitter.id);
     const prevStatsWeek = await getUserStats(submitter.id, 'week');
 
@@ -184,13 +191,6 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
             }
         });
     }
-
-    const daKeyValue = replay.keys ?? 4;
-    if (!KEYS_LIST.includes(daKeyValue)) {
-        throw { error_message: "Submit - Invalid Key: " + daKeyValue }
-    }
-
-    const daStrum = replay.opponent_mode ? 1 : 2;
 
     // remove bad scores
 
@@ -307,10 +307,10 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     await updatePlayerStats(submitter.id, daKeyValue);
     await updateSongMaxPoints(song.id);
 
-    const newRank = await getPlayerRank(submitter.name);
+    const newRank = await getPlayerRank(submitter.name, undefined, daKeyValue);
 
-    if (newRank <= 30 && newRank < prevRank) {
-        await logToAll(formatLog(submitter.name + ' climbed to ' + ordinalNum(newRank) + ' place on the global leaderboard!'))
+    if (daKeyValue == 4 && newRank <= 30 && newRank < prevRank) {
+        await logToAll(formatLog(submitter.name + ' climbed to ' + ordinalNum(newRank) + ' place on the global 4k leaderboard!'))
     }
 
     const newStats = await getUserStats(submitter.id);
