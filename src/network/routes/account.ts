@@ -102,7 +102,7 @@ export class AccountRoute {
                 const [id] = getIDToken(req);
 
                 const file = req.files.file as UploadedFile;
-                if (file.size > 1024 * 200) {
+                if (file.size > 1024 * 250) {
                     return res.sendStatus(413);
                 }
                 if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg' && file.mimetype != 'image/gif') {

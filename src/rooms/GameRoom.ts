@@ -41,7 +41,7 @@ export class GameRoom extends Room<RoomState> {
      * the maximum amount of people that can join the room
      * this also counts spectators
      */
-    maxClients = 4; // 6 or more is supported but expected graphical errors
+    maxClients = 6; // 6 or more is supported but expected graphical errors
     /**
      * a colyseus channel that holds all of the room ids 
      * this is so conflicts don't happen when creating a room with the same id
@@ -93,6 +93,7 @@ export class GameRoom extends Room<RoomState> {
         this.networkOnly = options.networkOnly;
 
         await this.setMetadata({ name: options.name, networkOnly: this.networkOnly });
+        this.updateRoomMetaClients();
 
         this.onMessage("togglePrivate", async (client) => {
             this.keepAliveClient(client);
@@ -911,33 +912,45 @@ export class GameRoom extends Room<RoomState> {
             this.metadata.points = playerPoints;
             this.metadata.verified = isVerified;
 
-            // var dummy = new Player();
-            // //dummy.i = this.totalClientsJoined++;
-            // dummy.name = 'Test 1';
-            // this.dummies.push(dummy);
-            // this.state.players.set(dummy.name, dummy);
-            // this.setPlayerSide(dummy, false);
+            let dummy = new Player();
+            //dummy.i = this.totalClientsJoined++;
+            dummy.name = 'Test 1';
+            this.dummies.push(dummy);
+            this.state.players.set(dummy.name, dummy);
+            this.setPlayerSide(dummy, false);
 
-            // var dummy = new Player();
-            // //dummy.i = this.totalClientsJoined++;
-            // dummy.name = 'Test 2';
-            // this.dummies.push(dummy);
-            // this.state.players.set(dummy.name, dummy);
-            // this.setPlayerSide(dummy, true);
+            dummy = new Player();
+            //dummy.i = this.totalClientsJoined++;
+            dummy.name = 'Test 2';
+            this.dummies.push(dummy);
+            this.state.players.set(dummy.name, dummy);
+            this.setPlayerSide(dummy, true);
 
-            // this.state.folder = 'dad-battle';
-            // this.state.song = 'dad-battle-nightmare';
-            // this.state.diff = 4;
-            // this.chartHash = 'c6e45da60216fb63e070fdcf1181ab97';
-            // this.state.modDir = '';
-            // this.state.modURL = null;
-            // this.state.diffList = ['Easy', 'Normal', 'Hard', 'Erect', 'Nightmare'];
+            this.state.folder = 'dad-battle';
+            this.state.song = 'dad-battle-nightmare';
+            this.state.diff = 4;
+            this.chartHash = 'c6e45da60216fb63e070fdcf1181ab97';
+            this.state.modDir = '';
+            this.state.modURL = null;
+            this.state.diffList = ['Easy', 'Normal', 'Hard', 'Erect', 'Nightmare'];
 
-            // var dummy = new Player();
-            // dummy.name = 'Test 3';
-            // this.setPlayerSide(dummy, true);
-            // this.dummies.push(dummy);
-            // this.state.players.set(dummy.name, dummy);
+            dummy = new Player();
+            dummy.name = 'Test 3';
+            this.setPlayerSide(dummy, true);
+            this.dummies.push(dummy);
+            this.state.players.set(dummy.name, dummy);
+
+            dummy = new Player();
+            dummy.name = 'Test 4';
+            this.setPlayerSide(dummy, false);
+            this.dummies.push(dummy);
+            this.state.players.set(dummy.name, dummy);
+
+            dummy = new Player();
+            dummy.name = 'Test 5';
+            this.setPlayerSide(dummy, true);
+            this.dummies.push(dummy);
+            this.state.players.set(dummy.name, dummy);
         }
 
         if (process.env.DEBUG == "true")
@@ -985,6 +998,13 @@ export class GameRoom extends Room<RoomState> {
             if (client != null)
                 client.send("checkChart", "", { afterNextPatch: true });
         }, 1000);
+
+        this.updateRoomMetaClients();
+    }
+
+    updateRoomMetaClients() {
+        this.metadata.clients = this.clients.length;
+        this.metadata.maxClients = this.maxClients;
     }
 
     async onLeave(client: Client, consented: boolean) {
@@ -1008,6 +1028,8 @@ export class GameRoom extends Room<RoomState> {
             await this.removePlayer(client);
             delete this.clientsRemoved[this.clientsRemoved.indexOf(client.sessionId)];
         }
+
+        this.updateRoomMetaClients();
     }
 
     async removePlayer(client: Client) {
@@ -1042,6 +1064,8 @@ export class GameRoom extends Room<RoomState> {
         // if (this.clients.length < this.maxClients) {
         //     this.unlock();
         // }
+
+        this.updateRoomMetaClients();
     }
 
     async onDispose() {

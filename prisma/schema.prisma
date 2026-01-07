@@ -67,6 +67,7 @@ model Song {
   scores Score[]
   comments SongComment[]
   maxPoints Float?
+  verified Boolean
 }
 
 // recommended to have `score` and `points` descending index set

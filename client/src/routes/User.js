@@ -30,7 +30,8 @@ function User() {
         avgAccuracy: 0,
         rank: -1,
         country: '',
-        club: ''
+        club: '',
+        achievements: []
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -393,6 +394,24 @@ function User() {
         </>);
     }
 
+    function UserAchievements(props) {
+        props = {};
+        props.data = ['1000combo', 'week1_nomiss', 'week2_nomiss', 'week3_nomiss', 'week4_nomiss', 'week5_nomiss', 'week6_nomiss'];
+
+        if (!props.data) {
+            return 'No achievemtns';
+        }
+
+        const list = [];
+        for (const achievement of props.data) {
+            list.push(
+                <img alt={achievement} src={"https://raw.githubusercontent.com/Snirozu/Funkin-Psych-Online/refs/heads/main/assets/preload/images/achievements/" + achievement + ".png"} style={{
+                    width: 60
+                }}/>);
+        }
+        return list;
+    }
+
     return (
         <div className='Content' id='ProfileContent'>
             {loading ? (
@@ -547,6 +566,12 @@ function User() {
                         <b>Avg. Accuracy Rank: </b> 9999nd <br />
                         <h2> Achievements </h2>
                         TBA ;) */}
+                        <br></br>
+                        <h2> Achievements </h2>
+                        <center>
+                        <UserAchievements data={data.achievements} />
+
+                        </center>
                         <Popup trigger={<button id='openavatareditor' style={{display: 'none'}}></button>} modal>
                             <div className='Content'> 
                                 <UserIconEditor/>
@@ -696,8 +721,8 @@ function UserIconEditor() {
 }
 
 function uploadAvatarFile(file) {
-    if (file.size > 1024 * 200) {
-        alert("Compressed Image has exceeded 200kB!\n\nTry adjusting the compression value to make it lighter! (" + (file.size * 0.001) + "kB)");
+    if (file.size > 1024 * 250) {
+        alert("Compressed Image has exceeded 250kB!\n\nTry adjusting the compression value to make it lighter! (" + (file.size * 0.001) + "kB)");
         return;
     }
     const formData = new FormData();
