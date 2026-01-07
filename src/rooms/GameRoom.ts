@@ -912,45 +912,45 @@ export class GameRoom extends Room<RoomState> {
             this.metadata.points = playerPoints;
             this.metadata.verified = isVerified;
 
-            let dummy = new Player();
-            //dummy.i = this.totalClientsJoined++;
-            dummy.name = 'Test 1';
-            this.dummies.push(dummy);
-            this.state.players.set(dummy.name, dummy);
-            this.setPlayerSide(dummy, false);
+            // let dummy = new Player();
+            // //dummy.i = this.totalClientsJoined++;
+            // dummy.name = 'Test 1';
+            // this.dummies.push(dummy);
+            // this.state.players.set(dummy.name, dummy);
+            // this.setPlayerSide(dummy, false);
 
-            dummy = new Player();
-            //dummy.i = this.totalClientsJoined++;
-            dummy.name = 'Test 2';
-            this.dummies.push(dummy);
-            this.state.players.set(dummy.name, dummy);
-            this.setPlayerSide(dummy, true);
+            // dummy = new Player();
+            // //dummy.i = this.totalClientsJoined++;
+            // dummy.name = 'Test 2';
+            // this.dummies.push(dummy);
+            // this.state.players.set(dummy.name, dummy);
+            // this.setPlayerSide(dummy, true);
 
-            this.state.folder = 'dad-battle';
-            this.state.song = 'dad-battle-nightmare';
-            this.state.diff = 4;
-            this.chartHash = 'c6e45da60216fb63e070fdcf1181ab97';
-            this.state.modDir = '';
-            this.state.modURL = null;
-            this.state.diffList = ['Easy', 'Normal', 'Hard', 'Erect', 'Nightmare'];
+            // this.state.folder = 'dad-battle';
+            // this.state.song = 'dad-battle-nightmare';
+            // this.state.diff = 4;
+            // this.chartHash = 'c6e45da60216fb63e070fdcf1181ab97';
+            // this.state.modDir = '';
+            // this.state.modURL = null;
+            // this.state.diffList = ['Easy', 'Normal', 'Hard', 'Erect', 'Nightmare'];
 
-            dummy = new Player();
-            dummy.name = 'Test 3';
-            this.setPlayerSide(dummy, true);
-            this.dummies.push(dummy);
-            this.state.players.set(dummy.name, dummy);
+            // dummy = new Player();
+            // dummy.name = 'Test 3';
+            // this.setPlayerSide(dummy, true);
+            // this.dummies.push(dummy);
+            // this.state.players.set(dummy.name, dummy);
 
-            dummy = new Player();
-            dummy.name = 'Test 4';
-            this.setPlayerSide(dummy, false);
-            this.dummies.push(dummy);
-            this.state.players.set(dummy.name, dummy);
+            // dummy = new Player();
+            // dummy.name = 'Test 4';
+            // this.setPlayerSide(dummy, false);
+            // this.dummies.push(dummy);
+            // this.state.players.set(dummy.name, dummy);
 
-            dummy = new Player();
-            dummy.name = 'Test 5';
-            this.setPlayerSide(dummy, true);
-            this.dummies.push(dummy);
-            this.state.players.set(dummy.name, dummy);
+            // dummy = new Player();
+            // dummy.name = 'Test 5';
+            // this.setPlayerSide(dummy, true);
+            // this.dummies.push(dummy);
+            // this.state.players.set(dummy.name, dummy);
         }
 
         if (process.env.DEBUG == "true")
