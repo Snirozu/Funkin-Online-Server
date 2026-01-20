@@ -25,6 +25,14 @@ import { AuthRoute } from './network/routes/auth';
 import { cooldownRequest } from './cooldown';
 
 export async function initExpress(app: Express) {
+    app.get("/rooms/room", async (_req, res) => {
+        res.json(await matchMaker.query({
+            name: 'room',
+            locked: false,
+            private: false,
+        }));
+    });
+
     app.get("/api/front", async (_req, res) => {
         try {
             const [playerCount, roomFreeCount] = await countPlayers();

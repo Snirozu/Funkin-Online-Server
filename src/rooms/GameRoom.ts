@@ -1103,7 +1103,7 @@ export class GameRoom extends Room<RoomState> {
             Data.INFO.MAP_USERNAME_PLAYINGROOM.delete(this.getStatePlayer(client).name);
         }
 
-        this.presence.hset(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip)) - 1) + ""));
+        await this.presence.hset(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip)) - 1) + ""));
         this.clientsInfo.delete(client.sessionId);
         this.clientsRemoved.push(client.sessionId);
         this.clients.delete(client);
