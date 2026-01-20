@@ -25,12 +25,22 @@ import { AuthRoute } from './network/routes/auth';
 import { cooldownRequest } from './cooldown';
 
 export async function initExpress(app: Express) {
-    app.get("/rooms/room", async (_req, res) => {
-        res.json(await matchMaker.query({
+    app.get("/rooms/:roomName?", async (_req, res) => {
+        const rooms = await matchMaker.query({
             name: 'room',
             locked: false,
             private: false,
-        }));
+        });
+        const showRooms = [];
+        for (const room of rooms) {
+            showRooms.push({
+                clients: room.clients,
+                maxClients: room.maxClients,
+                metadata: room.metadata,
+                roomId: room.roomId
+            });
+        }
+        res.json(showRooms);
     });
 
     app.get("/api/front", async (_req, res) => {

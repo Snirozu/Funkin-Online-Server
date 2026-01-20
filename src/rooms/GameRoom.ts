@@ -83,7 +83,7 @@ export class GameRoom extends Room<RoomState> {
     async onCreate(options: any) {
         this.roomId = await this.generateRoomId();
         await this.setPrivate();
-        this.setState(new RoomState());
+        this.state = new RoomState();
         this.autoDispose = true;
 
         if (process.env.DEBUG == "true")
