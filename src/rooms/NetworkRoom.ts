@@ -1,5 +1,4 @@
-import { Room, Client } from "@colyseus/core";
-import { IncomingMessage } from "http";
+import { Room, Client, AuthContext } from "@colyseus/core";
 import { ServerError } from "colyseus";
 import { authPlayer, getNotifications, getPlayerByID, getPlayerByName, getPlayerClubTag, getPlayerIDByName, hasAccess } from "../network/database";
 import { NetworkSchema } from "./schema/NetworkSchema";
@@ -191,7 +190,7 @@ export class NetworkRoom extends Room<NetworkSchema> {
     });
   }
   
-  async onAuth(client: Client, options: any, _request: IncomingMessage) {
+  async onAuth(client: Client, options: any, _context: AuthContext) {
     const latestVersion = ServerInstance.NETWORK_PROTOCOL_VERSION;
     if (latestVersion != options.protocol) {
       throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");

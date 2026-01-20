@@ -23,4 +23,6 @@ export class RoomState extends Schema {
   @type("number") winCondition: number = 0;
   @type("boolean") teamMode: boolean = false;
   @type("boolean") disableSkins: boolean = false;
+  @type("boolean") royalMode: boolean = false;
+  @type("boolean") royalModeBfSide: boolean = true;
 }

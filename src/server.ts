@@ -6,9 +6,10 @@ import { DiscordBot } from "./discord";
 import { Data } from "./data";
 import ip from 'ip';
 import { saveAndCleanCooldownData } from "./cooldown";
+import { Encoder } from "@colyseus/schema";
 
 export class ServerInstance {
-    public static PROTOCOL_VERSION = 10;
+    public static PROTOCOL_VERSION = 11;
     public static NETWORK_PROTOCOL_VERSION = 8;
 
     static async init() {
@@ -27,6 +28,8 @@ export class ServerInstance {
         setInterval(async () => {
             await saveAndCleanCooldownData();
         }, 1000 * 30);
+
+        Encoder.BUFFER_SIZE = 16 * 1024;
 
         try {
             if (process.env["DISCORD_TOKEN"]) {

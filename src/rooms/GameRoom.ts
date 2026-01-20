@@ -1,4 +1,4 @@
-import { Room, Client } from "@colyseus/core";
+import { Room, Client, AuthContext } from "@colyseus/core";
 import { RoomState } from "./schema/RoomState";
 import { ColorArray, Person, Player } from "./schema/Player";
 import { ServerError } from "colyseus";
@@ -7,7 +7,6 @@ import jwt from "jsonwebtoken";
 import { filterChatMessage, filterUsername, formatLog, getRequestIP } from "../util";
 import { Data } from "../data";
 import { ServerInstance } from "../server";
-import { IncomingMessage } from "http";
 import { cooldown, cooldownLeft } from "../cooldown";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -501,6 +500,28 @@ export class GameRoom extends Room<RoomState> {
             }
         });
 
+        this.onMessage("royalMode", (client, _message) => {
+            this.keepAliveClient(client);
+
+            if (this.hasPerms(client)) {
+                this.state.royalMode = !this.state.royalMode;
+            }
+            else {
+                client.send('alert', 'You don\'t have a permission to do that.')
+            }
+        });
+
+        this.onMessage("royalModeBfSide", (client, _message) => {
+            this.keepAliveClient(client);
+
+            if (this.hasPerms(client)) {
+                this.state.royalModeBfSide = !this.state.royalModeBfSide;
+            }
+            else {
+                client.send('alert', 'You don\'t have a permission to do that.')
+            }
+        });
+
         this.onMessage("toggleGF", (client, _message) => {
             this.keepAliveClient(client);
 
@@ -701,18 +722,28 @@ export class GameRoom extends Room<RoomState> {
                     }
 
                     let kickCount = 0;
-                    for (const cl of this.clients) {
-                        const clPerson = this.getStatePerson(cl);
-                        if (!clPerson)
-                            continue;
-
+                    for (const [clSID, clPerson] of this.state.players) {
                         const usrArr = (message as string[]).slice();
                         usrArr.shift();
                         const username = usrArr.join(' ').toLowerCase();
                         
-                        if (!this.isOwner(cl) && (username ? clPerson.name.toLowerCase() == username : true)) {
-                            await this.removePlayer(cl);
-                            kickCount++;
+                        if (this.state.host != clSID && (username ? clPerson.name.toLowerCase() == username : true)) {
+                            if (this.clients.getById(clSID)) {
+                                await this.removePlayer(this.clients.getById(clSID));
+                                kickCount++;
+                            }
+                            else {
+                                for (const [i, dummy] of this.dummies.entries()) {
+                                    if (dummy.name.toLowerCase() != username) {
+                                        continue;
+                                    }
+
+                                    this.state.players.delete(dummy.name);
+                                    this.dummies.splice(i, 1);
+                                    this.updateSides();
+                                    kickCount++;
+                                }
+                            }
                         }
                     }
                     client.send("log", formatLog("> Kicked " + kickCount + " people"));
@@ -738,6 +769,26 @@ export class GameRoom extends Room<RoomState> {
                             client.send("log", formatLog("> Reports X to the moderation team.\nUse '/report chat' to report all messages from this room."));
                         }
                     }
+                    break;
+                case "addDummy":
+                case "addDummies":
+                    for (let i = 0; i < (message[0] == "addDummies" ? message[1] : 1); i++) {
+                        if (this.state.players.size >= this.maxClients)
+                            break;
+
+                        const dummy = new Player();
+                        dummy.name = 'Dummy' + this.dummies.length;
+                        this.dummies.push(dummy);
+                        this.state.players.set(dummy.name, dummy);
+
+                        const sideCount = [0, 0];
+                        for (const [_, player] of this.state.players) {
+                            sideCount[player.bfSide ? 1 : 0]++;
+                        }
+                        this.setPlayerSide(dummy, sideCount[0] > sideCount[1]);
+                        this.updateSides();
+                    }
+
                     break;
                 case "help":
                     client.send("log", formatLog("> Global Commands: /roll, /kick <name>, /report"));
@@ -821,7 +872,7 @@ export class GameRoom extends Room<RoomState> {
     }
 
     //why does this function exist
-    async onAuth(client: Client, options: any, request: IncomingMessage) {
+    async onAuth(client: Client, options: any, context: AuthContext) {
         const latestVersion = ServerInstance.PROTOCOL_VERSION;
         if (options == null || options.name == null || (options.name + "").trim().length < 3) {
             throw new ServerError(5000, "Too short name!"); // too short name error
@@ -836,11 +887,11 @@ export class GameRoom extends Room<RoomState> {
             throw new ServerError(5001, "Too long name!");
         }
 
-        if (!await this.isClientAllowed(request)) {
+        if (!await this.isClientAllowed(context)) {
             throw new ServerError(5002, "Can't join/create 4 servers on the same IP!");
         }
 
-        const playerIp = getRequestIP(request);
+        const playerIp = getRequestIP(context);
         try {
             const ipInfo = await (await fetch("http://ip-api.com/json/" + encodeURIComponent(playerIp))).json();
             if (process.env["NETWORK_ENABLED"] == "true" && ipInfo.country) {
@@ -1013,7 +1064,7 @@ export class GameRoom extends Room<RoomState> {
 
         try {
             if (process.env.DEBUG == "true")
-                console.log(client.sessionId + " is " + (!consented && !this.clientsRemoved.includes(client.sessionId) ? 'allowed ' : 'not allowed') + " to reconnect with token " + client._reconnectionToken + " " + this.roomId);
+                console.log(client.sessionId + " is " + (!consented && !this.clientsRemoved.includes(client.sessionId) ? 'allowed ' : 'not allowed') + " to reconnect with token " + client.reconnectionToken + " " + this.roomId);
 
             await this.allowReconnection(client, !consented && !this.clientsRemoved.includes(client.sessionId) ? 20 : 0);
             if (process.env.DEBUG == "true")
@@ -1026,13 +1077,17 @@ export class GameRoom extends Room<RoomState> {
             }
 
             await this.removePlayer(client);
-            delete this.clientsRemoved[this.clientsRemoved.indexOf(client.sessionId)];
+            this.clientsRemoved.splice(this.clientsRemoved.indexOf(client.sessionId), 1);
         }
 
         this.updateRoomMetaClients();
     }
 
     async removePlayer(client: Client) {
+        if (!client) {
+            return;
+        }
+
         // if (this.state.isStarted) {
         //     await this.endSong();
         // }
@@ -1042,9 +1097,12 @@ export class GameRoom extends Room<RoomState> {
             }
         }
 
-        this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has left the room!"));
+        const player = this.getStatePlayer(client);
+        if (player) {
+            this.broadcast("log", formatLog(this.getStatePlayer(client).name + " has left the room!"));
+            Data.INFO.MAP_USERNAME_PLAYINGROOM.delete(this.getStatePlayer(client).name);
+        }
 
-        Data.INFO.MAP_USERNAME_PLAYINGROOM.delete(this.getStatePlayer(client).name);
         this.presence.hset(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip, ((Number.parseInt(await this.presence.hget(this.IPS_CHANNEL, this.clientsInfo.get(client.sessionId).ip)) - 1) + ""));
         this.clientsInfo.delete(client.sessionId);
         this.clientsRemoved.push(client.sessionId);
@@ -1206,12 +1264,12 @@ export class GameRoom extends Room<RoomState> {
         return id;
     }
 
-    async isClientAllowed(request: IncomingMessage): Promise<boolean> {
+    async isClientAllowed(context: AuthContext): Promise<boolean> {
         if (process.env.DISABLE_IP_LOCK == "true") {
             return true;
         }
 
-        const requesterIP = getRequestIP(request);
+        const requesterIP = getRequestIP(context);
 
         const currentIps = await this.presence.hget(this.IPS_CHANNEL, requesterIP);
         const ipOccurs = !currentIps ? 0 : Number.parseInt(currentIps);

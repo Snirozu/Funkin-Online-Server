@@ -41,7 +41,7 @@ function Notifications() {
             throw new Error('Could not remove notification.\n' + await response.text());
         }
         const notifsCopy = notifs.slice();
-        delete notifsCopy[index];
+        notifsCopy.splice(index, 1);
         setNotifs(notifsCopy);
     }
 

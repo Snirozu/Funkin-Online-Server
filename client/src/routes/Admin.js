@@ -42,7 +42,7 @@ function Admin() {
             throw new Error('Could not remove report.\n' + await response.text());
         }
         const reportsCopy = reports.slice();
-        delete reportsCopy[index];
+        reportsCopy.splice(index, 1);
         setReports(reportsCopy);
     }
 

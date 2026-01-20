@@ -49,13 +49,13 @@
     "typescript-eslint": "^8.46.0"
   },
   "dependencies": {
-    "@colyseus/tools": "^0.15.41",
+    "@colyseus/tools": "^0.16.18",
     "@prisma/client": "^5.15.0",
     "@types/nodemailer": "^6.4.15",
     "body-parser": "github:Snirozu/body-parser",
     "canvas": "^3.2.0",
     "chart.js": "^4.4.3",
-    "colyseus": "^0.15.15",
+    "colyseus": "^0.16.5",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "cross-spawn": "^7.0.6",
@@ -63,7 +63,6 @@
     "elliptic": "^6.6.1",
     "express": "^4.21.0",
     "express-fileupload": "^1.5.1",
-    "funkin-online-server": "file:",
     "ip": "^2.0.1",
     "javascript-time-ago": "^2.5.10",
     "jsonwebtoken": "^9.0.2",
