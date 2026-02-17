@@ -27,12 +27,12 @@ export class Player extends Person {
     @type("boolean") bfSide: boolean = false;
     @type("boolean") hasEnded: boolean = false;
     @type("boolean") isReady: boolean = false;
-    @type("string") skinMod: string = null;
-    @type("string") skinName: string = null;
-    @type("string") skinURL: string = null;
     @type("number") points: number = 0;
     @type("boolean") botplay: boolean = false;
     @type("boolean") noteHold: boolean = false;
+
+    @type({ array: "string" }) skin: string[] = null;
+    @type("string") skinURL: string = null;
 
     @type("string") noteSkin: string = null;
     @type("string") noteSkinMod: string = null;

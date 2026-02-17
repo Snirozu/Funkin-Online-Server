@@ -36,14 +36,7 @@ export class ServerInstance {
                 await DiscordBot.init();
 
                 setInterval(async () => {
-                    if (!DiscordBot.networkChannel || !DiscordBot.client.isReady()) {
-                        try {
-                            await DiscordBot.client.destroy();
-                        } catch (exc) {
-                            console.error(exc);
-                        }
-                        await DiscordBot.init();
-                    }
+                    await DiscordBot.tryAlive();
                 }, 1000 * 60);
             }
 

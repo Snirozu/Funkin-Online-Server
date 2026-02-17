@@ -1,4 +1,4 @@
-import { ActivityType, Client, Collection, Events, GatewayIntentBits, MessageType, REST, Routes, SlashCommandBuilder, TextChannel } from 'discord.js';
+import { ActivityType, BaseMessageOptions, Client, Collection, Events, GatewayIntentBits, MessagePayload, MessageType, REST, Routes, SlashCommandBuilder, TextChannel, WebhookMessageCreateOptions } from 'discord.js';
 import { logToAll } from './rooms/NetworkRoom';
 import { intToHue } from './util';
 
@@ -9,8 +9,8 @@ interface ClientWithCommands extends Client {
 }
 
 export class DiscordBot {
-    static networkChannel: TextChannel = null;
-    static client: ClientWithCommands;
+    private static networkChannel: TextChannel = null;
+    private static client: ClientWithCommands;
 
     static async init() {
         //initialize the client and basic stuff before it starts anything
@@ -98,7 +98,24 @@ export class DiscordBot {
         });
     }
 
-    static async getWebhook(channel?:TextChannel) {
+    static async sendNetworkMessage(content:string) {
+        content = DiscordBot.filterText(content);
+        await DiscordBot.networkChannel.send(content);
+    }
+
+    static async sendWebhookMessage(options: WebhookMessageCreateOptions) {
+        options.content = DiscordBot.filterText(options.content);
+        await (await DiscordBot.getWebhook()).send(options);
+    }
+
+    static filterText(content:string) {
+        content = content.replaceAll('<@', '?');
+        content = content.replaceAll('@everyone', '?');
+        content = content.replaceAll('@here', '?');
+        return content;
+    }
+
+    private static async getWebhook(channel?:TextChannel) {
         if (!channel)
             channel = DiscordBot.networkChannel;
 
@@ -122,6 +139,17 @@ export class DiscordBot {
         }
 
         return webhook;
+    }
+
+    static async tryAlive() {
+        if (!DiscordBot.networkChannel || !DiscordBot.client.isReady()) {
+            try {
+                await DiscordBot.client.destroy();
+            } catch (exc) {
+                console.error(exc);
+            }
+            await DiscordBot.init();
+        }
     }
 }
 

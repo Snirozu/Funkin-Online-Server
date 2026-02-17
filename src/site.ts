@@ -30,9 +30,14 @@ export async function initExpress(app: Express) {
             name: 'room',
             locked: false,
             private: false,
+            unlisted: false
         });
         const showRooms = [];
         for (const room of rooms) {
+            if (room.clients >= room.maxClients) {
+                continue;
+            }
+
             showRooms.push({
                 clients: room.clients,
                 maxClients: room.maxClients,

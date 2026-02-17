@@ -37,7 +37,7 @@ export async function logToAll(content: string, notDiscord?:boolean) {
 
     networkRoom.broadcast('log', content);
     if (!notDiscord)
-      await DiscordBot.networkChannel.send(JSON.parse(content).content);
+      await DiscordBot.sendNetworkMessage(JSON.parse(content).content);
   }
   catch (exc) {
     console.error(exc);
@@ -45,13 +45,12 @@ export async function logToAll(content: string, notDiscord?:boolean) {
 }
 
 export async function discordChatMessage(user: string, content: string) {
-  const webhook = await DiscordBot.getWebhook();
   const tag = await getPlayerClubTag(await getPlayerIDByName(user))
-  await webhook.send({
+  await DiscordBot.sendWebhookMessage({
     content: content,
     username: user + (tag ? ' [' + tag + ']' : ''),
     avatarURL: "https://funkin.sniro.boo/api/user/avatar/" + user // maybe make a .env value for domain? because i hate this with a burning passion
-});
+  });
 }
 
 export class NetworkRoom extends Room<NetworkSchema> {

@@ -40,7 +40,7 @@ export class GameRoom extends Room<RoomState> {
      * the maximum amount of people that can join the room
      * this also counts spectators
      */
-    maxClients = 6; // 6 or more is supported but expected graphical errors
+    maxClients = 6; // more is supported but expected graphical errors
     /**
      * a colyseus channel that holds all of the room ids 
      * this is so conflicts don't happen when creating a room with the same id
@@ -67,10 +67,6 @@ export class GameRoom extends Room<RoomState> {
      * the last time the room has requested ping from the clients
      */
     lastPingTime: number = null;
-    /**
-     * (TODO unused but working) if true, only players with a network account can join the room
-     */
-    networkOnly: boolean = false;
 
     dummies:Player[] = [];
 
@@ -89,9 +85,9 @@ export class GameRoom extends Room<RoomState> {
         if (process.env.DEBUG == "true")
             console.log("new room created: " + this.roomId);
 
-        this.networkOnly = options.networkOnly;
+        this.state.networkOnly = options.networkOnly;
 
-        await this.setMetadata({ name: options.name, networkOnly: this.networkOnly });
+        await this.setMetadata({ name: options.name, networkOnly: this.state.networkOnly });
         this.updateRoomMetaClients();
 
         this.onMessage("togglePrivate", async (client) => {
@@ -100,6 +96,31 @@ export class GameRoom extends Room<RoomState> {
             if (this.hasPerms(client)) {
                 this.state.isPrivate = !this.state.isPrivate;
                 await this.setPrivate(this.state.isPrivate);
+            }
+            else {
+                client.send('alert', 'You don\'t have a permission to do that.')
+            }
+        });
+
+        this.onMessage("toggleNetworkOnly", async (client) => {
+            this.keepAliveClient(client);
+
+            const requester = this.getStatePlayer(client);
+            if (!requester)
+                return;
+
+            if (this.hasPerms(client)) {
+                if (!requester.verified) {
+                    client.send('alert', 'You\'re not logged in!')
+                    return;
+                }
+                for (const [clSID, player] of this.state.players) {
+                    if (!player.verified) {
+                        await this.removePlayer(this.clients.getById(clSID));
+                        return;
+                    }
+                }
+                this.state.networkOnly = !this.state.networkOnly;
             }
             else {
                 client.send('alert', 'You don\'t have a permission to do that.')
@@ -211,7 +232,7 @@ export class GameRoom extends Room<RoomState> {
 
             if (this.checkInvalid(message, VerifyTypes.ARRAY, 6)) return;
 
-            if (this.hasPerms(client)) {
+            if (this.hasPerms(client) || this.state.allPlayersChoose) {
                 this.state.folder = message[0];
                 this.state.song = message[1];
                 this.state.diff = message[2];
@@ -242,7 +263,7 @@ export class GameRoom extends Room<RoomState> {
 
             if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) return;
 
-            if (this.hasPerms(client)) {
+            if (this.hasPerms(client) || this.state.allPlayersChoose) {
                 this.state.stageName = message[0];
                 this.state.stageMod = message[1];
                 this.state.stageURL = message[2];
@@ -489,6 +510,17 @@ export class GameRoom extends Room<RoomState> {
             }
         });
 
+        this.onMessage("togglePlayersCanChoose", (client, _message) => {
+            this.keepAliveClient(client);
+
+            if (this.hasPerms(client)) {
+                this.state.allPlayersChoose = !this.state.allPlayersChoose;
+            }
+            else {
+                client.send('alert', 'You don\'t have a permission to do that.')
+            }
+        });
+
         this.onMessage("teamMode", (client, _message) => {
             this.keepAliveClient(client);
 
@@ -511,11 +543,11 @@ export class GameRoom extends Room<RoomState> {
             }
         });
 
-        this.onMessage("royalModeBfSide", (client, _message) => {
+        this.onMessage("royalModeDadSide", (client, _message) => {
             this.keepAliveClient(client);
 
             if (this.hasPerms(client)) {
-                this.state.royalModeBfSide = !this.state.royalModeBfSide;
+                this.state.royalModeDadSide = !this.state.royalModeDadSide;
             }
             else {
                 client.send('alert', 'You don\'t have a permission to do that.')
@@ -541,8 +573,7 @@ export class GameRoom extends Room<RoomState> {
 
                 if (this.state.disableSkins) {
                     for (const [_, player] of this.state.players) {
-                        player.skinMod = null;
-                        player.skinName = null;
+                        player.skin = null;
                         player.skinURL = null;
                     }
                 }
@@ -621,16 +652,14 @@ export class GameRoom extends Room<RoomState> {
 
             this.keepAliveClient(client);
 
-            if (this.checkInvalid(message, VerifyTypes.ARRAY, 2)) {
-                this.getStatePlayer(client).skinMod = null;
-                this.getStatePlayer(client).skinName = null;
+            if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) {
+                this.getStatePlayer(client).skin = null;
                 this.getStatePlayer(client).skinURL = null;
                 return;
             }
 
-            this.getStatePlayer(client).skinMod = message[0];
-            this.getStatePlayer(client).skinName = message[1];
-            this.getStatePlayer(client).skinURL = message[2];
+            this.getStatePlayer(client).skin = message[0];
+            this.getStatePlayer(client).skinURL = message[1];
         });
 
         this.onMessage("updateFP", async (client, message) => {
@@ -953,7 +982,7 @@ export class GameRoom extends Room<RoomState> {
             })
         }
 
-        if (!isVerified && this.networkOnly) {
+        if (!isVerified && this.state.networkOnly) {
             client.error(400, "Only Registered Network players can join!");
             await this.removePlayer(client);
             return;
@@ -1014,8 +1043,7 @@ export class GameRoom extends Room<RoomState> {
         // }
         requester.name = playerName;
         if (!this.state.disableSkins) {
-            requester.skinMod = options.skinMod;
-            requester.skinName = options.skinName;
+            requester.skin = options.skin;
             requester.skinURL = options.skinURL;
         }
         this.setPlayerPoints(requester, playerPoints);
