@@ -1290,7 +1290,12 @@ export class GameRoom extends Room {
             this.state.gameplaySettings.set(key, value.toString());
             return true;
         }
-        return false;
+
+        if (key == 'songspeed' || key == 'mania') {
+            return false;
+        }
+
+        return true;
     }
 
     // 1. Get room IDs already registered with the Presence API.
