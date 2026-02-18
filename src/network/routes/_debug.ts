@@ -1,9 +1,9 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { prisma } from '../database';
 
 export class DebugRoutes {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    static init(app: Express) {
+    static init(app: Application) {
         // app.all("/removeclones", async (req, res) => {
         //     try {
         //         const datas = [];

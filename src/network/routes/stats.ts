@@ -1,8 +1,8 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { Data } from '../../data';
 
 export class StatsRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         app.get("/api/stats/day_players", (_req, res) => {
             try {
                 res.send(Data.INFO.DAY_PLAYERS);

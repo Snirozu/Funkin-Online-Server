@@ -1,10 +1,10 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { validateEmail, getPlayerByEmail, createUser, genAccessToken, getPlayerNameByID } from '../database';
 import { emailCodes, generateCode, sendCodeMail, tempSetCode } from '../email';
 import { cooldownReq, CooldownTime, setCooldown } from '../../cooldown';
 
 export class AuthRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         // registers the user to the database
         // requires 'username' json body field
         // todo to add user deletion from the database

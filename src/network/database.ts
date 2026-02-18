@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
 import { filterSongName, filterUsername, formatLog, hasOnlyLettersAndNumbers, ordinalNum, removeFromArray, validCountries } from "../util";
-import { logToAll, networkRoom, notifyPlayer } from "../rooms/NetworkRoom";
+import { NetworkRoom } from "../rooms/NetworkRoom";
 import sanitizeHtml from 'sanitize-html';
 import { Data } from "../data";
 import { logAction } from "./mods";
@@ -310,7 +310,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     const newRank = await getPlayerRank(submitter.name, undefined, daKeyValue);
 
     if (daKeyValue == 4 && newRank <= 30 && newRank < prevRank) {
-        await logToAll(formatLog(submitter.name + ' climbed to ' + ordinalNum(newRank) + ' place on the global 4k leaderboard!'))
+        await NetworkRoom.logToAll(formatLog(submitter.name + ' climbed to ' + ordinalNum(newRank) + ' place on the global 4k leaderboard!'))
     }
 
     const newStats = await getUserStats(submitter.id);
@@ -2080,7 +2080,7 @@ export async function requestFriendRequest(req:any) {
             href: '/user/' + encodeURIComponent(want.name)
         });
 
-        notifyPlayer(want.id, 'You are now friends with ' + me.name + '!');
+        NetworkRoom.notifyPlayer(want.id, 'You are now friends with ' + me.name + '!');
 
         return;
     }
@@ -2168,7 +2168,7 @@ export async function deleteUser(id:string) {
     cachedNameToID.delete(user.name);
 
     try {
-        networkRoom.IDtoClient.get(user.id).leave(403);
+        NetworkRoom.instance.IDtoClient.get(user.id).leave(403);
     }
     catch (_) {}
 
@@ -2262,7 +2262,7 @@ export async function setUserBanStatus(id: string, to: boolean) {
         } catch (_) {}
         
         try {
-            networkRoom.IDtoClient.get(player.id).leave(403);
+            NetworkRoom.instance.IDtoClient.get(player.id).leave(403);
         }
         catch (_) { }
     }
@@ -2852,7 +2852,7 @@ export async function sendNotification(toID: string, content: NotificationConten
         }
     });
 
-    notifyPlayer(toID, '[NOTIFICATION] ' + (content?.content ?? content.title));
+    NetworkRoom.notifyPlayer(toID, '[NOTIFICATION] ' + (content?.content ?? content.title));
 }
 
 class NotificationContent {

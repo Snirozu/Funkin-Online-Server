@@ -1,11 +1,11 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { UploadedFile } from 'express-fileupload';
 import { getClub, getPlayerByID, getPlayerNameByID, getClubRank, getClubBanner, checkAccess, getIDToken, getPlayerClub, createClub, requestJoinClub, acceptJoinClub, getPlayerIDByName, removePlayerFromClub, promoteClubMember, demoteClubMember, uploadClubBanner, postClubEdit, getUserStats } from '../database';
 import { CooldownTime, setCooldown } from '../../cooldown';
 import { Image } from 'canvas';
 
 export class ClubRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         app.get("/api/club/details", async (req, res) => {
             try {
                 if (!req.query.tag)

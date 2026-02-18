@@ -1,7 +1,7 @@
 import { matchMaker } from 'colyseus';
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { Data } from '../../data';
-import { networkRoom } from '../../rooms/NetworkRoom';
+import { NetworkRoom } from '../../rooms/NetworkRoom';
 import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma } from '../database';
 import dotenv from 'dotenv';
 import { logActionOnRequest } from '../mods';
@@ -9,7 +9,7 @@ import fs from 'fs';
 import { clearCooldowns } from '../../cooldown';
 
 export class AdminRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         app.get("/api/admin/user/data", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);
@@ -113,7 +113,7 @@ export class AdminRoute {
                     playing_rooms: Data.INFO.MAP_USERNAME_PLAYINGROOM
                 };
                 for (const room of await matchMaker.query()) {
-                    if (!networkRoom || room.roomId != networkRoom.roomId) {
+                    if (!NetworkRoom.instance || room.roomId != NetworkRoom.instance.roomId) {
                         jsonRooms.rooms.push({
                             id: room.roomId,
                             meta: room.metadata,

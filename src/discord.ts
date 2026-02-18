@@ -1,5 +1,5 @@
 import { ActivityType, BaseMessageOptions, Client, Collection, Events, GatewayIntentBits, MessagePayload, MessageType, REST, Routes, SlashCommandBuilder, TextChannel, WebhookMessageCreateOptions } from 'discord.js';
-import { logToAll } from './rooms/NetworkRoom';
+import { NetworkRoom } from './rooms/NetworkRoom';
 import { intToHue } from './util';
 
 //add timed matchmaking role for 30 minutes
@@ -37,7 +37,7 @@ export class DiscordBot {
                 if (message.type == MessageType.Reply) {
                     suffix = ' (replying to @' + (await message.fetchReference()).author.username + ')';
                 }
-                await logToAll(JSON.stringify({
+                await NetworkRoom.logToAll(JSON.stringify({
                     content: '[DC] @' + message.author.username + suffix + ': ' + message.content,
                     hue: intToHue(message.member.displayColor),
                     date: message.createdAt.getTime(),

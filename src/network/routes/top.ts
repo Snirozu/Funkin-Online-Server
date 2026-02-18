@@ -1,8 +1,8 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { topScores, getPlayerNameByID, topPlayers, getPlayerClubTag, topClubs } from '../database';
 
 export class TopRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         app.get("/api/top/song", async (req, res) => {
             try {
                 if (!req.query.song)

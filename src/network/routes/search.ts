@@ -1,9 +1,9 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { searchSongs, searchUsers } from '../database';
 import { setCooldown } from '../../cooldown';
 
 export class SearchRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         setCooldown("/api/search/songs", 1);
         app.get("/api/search/songs", async (req, res) => {
             try {

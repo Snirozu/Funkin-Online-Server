@@ -1,9 +1,9 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 
 // forward deprecated urls to new ones
 
 export class RedirectRoutes {
-    static init(app: Express) {
+    static init(app: Application) {
         app.get("/network/user*", async (req, res) => {
             res.redirect(req.url.substring("/network".length));
         });

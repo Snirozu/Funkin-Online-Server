@@ -1,4 +1,4 @@
-import { Room, Client, AuthContext } from "@colyseus/core";
+import { Room, Client, AuthContext, CloseCode } from "@colyseus/core";
 import { RoomState } from "./schema/RoomState";
 import { ColorArray, Person, Player } from "./schema/Player";
 import { ServerError } from "colyseus";
@@ -6,7 +6,6 @@ import { getPlayerByID, getUserStats, hasAccess, submitReport } from "../network
 import jwt from "jsonwebtoken";
 import { filterChatMessage, filterUsername, formatLog, getRequestIP } from "../util";
 import { Data } from "../data";
-import { ServerInstance } from "../server";
 import { cooldown, cooldownLeft } from "../cooldown";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -35,7 +34,12 @@ class ClientInfo {
     public aliveTime: number = 0;
 }
 
-export class GameRoom extends Room<RoomState> {
+export class GameRoom extends Room {
+    public static PROTOCOL_VERSION = 11;
+    /**
+     * schema of the current room
+     */
+    state = new RoomState();
     /**
      * the maximum amount of people that can join the room
      * this also counts spectators
@@ -79,7 +83,6 @@ export class GameRoom extends Room<RoomState> {
     async onCreate(options: any) {
         this.roomId = await this.generateRoomId();
         await this.setPrivate();
-        this.state = new RoomState();
         this.autoDispose = true;
 
         if (process.env.DEBUG == "true")
@@ -573,7 +576,7 @@ export class GameRoom extends Room<RoomState> {
 
                 if (this.state.disableSkins) {
                     for (const [_, player] of this.state.players) {
-                        player.skin = null;
+                        this.setPlayerSkin(player, null);
                         player.skinURL = null;
                     }
                 }
@@ -653,12 +656,12 @@ export class GameRoom extends Room<RoomState> {
             this.keepAliveClient(client);
 
             if (this.checkInvalid(message, VerifyTypes.ARRAY, 1)) {
-                this.getStatePlayer(client).skin = null;
+                this.setPlayerSkin(this.getStatePlayer(client), null);
                 this.getStatePlayer(client).skinURL = null;
                 return;
             }
 
-            this.getStatePlayer(client).skin = message[0];
+            this.setPlayerSkin(this.getStatePlayer(client), message[0]);
             this.getStatePlayer(client).skinURL = message[1];
         });
 
@@ -902,7 +905,7 @@ export class GameRoom extends Room<RoomState> {
 
     //why does this function exist
     async onAuth(client: Client, options: any, context: AuthContext) {
-        const latestVersion = ServerInstance.PROTOCOL_VERSION;
+        const latestVersion = GameRoom.PROTOCOL_VERSION;
         if (options == null || options.name == null || (options.name + "").trim().length < 3) {
             throw new ServerError(5000, "Too short name!"); // too short name error
         }
@@ -1086,15 +1089,15 @@ export class GameRoom extends Room<RoomState> {
         this.metadata.maxClients = this.maxClients;
     }
 
-    async onLeave(client: Client, consented: boolean) {
+    async onLeave(client: Client, code: CloseCode) {
         if (process.env.DEBUG == "true")
-            console.log(client.sessionId + " has left " + this.roomId + " " + (consented ? 'with consent' : 'without consent'));
+            console.log(client.sessionId + " has left " + this.roomId + " " + (code == CloseCode.CONSENTED ? 'with consent' : 'without consent'));
 
         try {
             if (process.env.DEBUG == "true")
-                console.log(client.sessionId + " is " + (!consented && !this.clientsRemoved.includes(client.sessionId) ? 'allowed ' : 'not allowed') + " to reconnect with token " + client.reconnectionToken + " " + this.roomId);
+                console.log(client.sessionId + " is " + (code != CloseCode.CONSENTED && !this.clientsRemoved.includes(client.sessionId) ? 'allowed ' : 'not allowed') + " to reconnect with token " + client.reconnectionToken + " " + this.roomId);
 
-            await this.allowReconnection(client, !consented && !this.clientsRemoved.includes(client.sessionId) ? 20 : 0);
+            await this.allowReconnection(client, code != CloseCode.CONSENTED && !this.clientsRemoved.includes(client.sessionId) ? 20 : 0);
             if (process.env.DEBUG == "true")
                 console.log(client.sessionId + " has reconnected on " + this.roomId);
         }
@@ -1244,19 +1247,31 @@ export class GameRoom extends Room<RoomState> {
         if (this.checkInvalid(v, VerifyTypes.NUMBER)) return;
         player.points = v;
     }
+
+    setPlayerSkin(player: Player, v: string[]) {
+        v = v as string[];
+        if (v == null || v.length != 4)
+            player.skin = [];
+        player.skin = v;
+    }
     
     updateArrowColors(player: Player, message: Array<any>) {
-        for (const [i, _maniaColors] of message.entries()) {
-            const maniaColors: Map<string, Array<Array<number>>> = new Map(Object.entries(_maniaColors));
+        try {
+            for (const [i, _maniaColors] of message.entries()) {
+                const maniaColors: Map<string, Array<Array<number>>> = new Map(Object.entries(_maniaColors));
 
-            for (const [mania, colors2D] of maniaColors) {
-                const colors1D = new ColorArray();
-                for (const colors of colors2D) {
-                    colors1D.value.push(...colors);
+                for (const [mania, colors2D] of maniaColors) {
+                    const colors1D = new ColorArray();
+                    for (const colors of colors2D) {
+                        colors1D.value.push(...colors);
+                    }
+                    (i == 0 ? player.arrowColors : player.arrowColorsPixel)
+                        .set(mania, colors1D);
                 }
-                (i == 0 ? player.arrowColors : player.arrowColorsPixel)
-                    .set(mania, colors1D);
             }
+        }
+        catch (exc) {
+            console.error(exc);
         }
     }
 

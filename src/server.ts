@@ -5,13 +5,10 @@ import { initDatabaseCache } from "./network/database";
 import { DiscordBot } from "./discord";
 import { Data } from "./data";
 import ip from 'ip';
-import { saveAndCleanCooldownData } from "./cooldown";
+import { saveAndCleanCooldownData, setCooldown } from "./cooldown";
 import { Encoder } from "@colyseus/schema";
 
 export class ServerInstance {
-    public static PROTOCOL_VERSION = 11;
-    public static NETWORK_PROTOCOL_VERSION = 8;
-
     static async init() {
         console.log('\n⌚ Starting the Psych Online server...\n');
         //load .env

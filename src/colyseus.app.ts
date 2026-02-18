@@ -1,31 +1,34 @@
-import config from "@colyseus/tools";
+import { defineServer, defineRoom, matchMaker } from "colyseus";
+
 //import { monitor } from "@colyseus/monitor";
 //import { playground } from "@colyseus/playground";
 
-import { GameRoom } from "./rooms/GameRoom";
-import { matchMaker } from "colyseus";
-import { NetworkRoom } from "./rooms/NetworkRoom";
 import { initExpress } from "./site";
+import { GameRoom } from "./rooms/GameRoom";
+import { NetworkRoom } from "./rooms/NetworkRoom";
 import { setCooldown } from "./cooldown";
 
-export default config({
-    initializeGameServer: async (gameServer) => {
-        setCooldown('command.report', 30);
+function registerRooms() {
+    let rooms = {
+        room: defineRoom(GameRoom)
+    };
+    if (process.env["NETWORK_ENABLED"] == "true") {
+        rooms["network"] = defineRoom(NetworkRoom);
+    }
+    return rooms;
+}
 
-        gameServer.define('room', GameRoom);
-    
-        if (process.env["NETWORK_ENABLED"] == "true") {
-            gameServer.define('network', NetworkRoom);
-            await matchMaker.createRoom("network", {});
-        }
-    },
-    initializeExpress: async (app) => {
+export default defineServer({
+    rooms: registerRooms(),
+    express: async (app) => {
         await initExpress(app);
         console.log('Express initialized');
     },
-    options: {
-        greet: false
+    greet: false,
+    async beforeListen() {
+        setCooldown('command.report', 30);
+        if (process.env["NETWORK_ENABLED"] == "true") {
+            await matchMaker.createRoom("network", {});
+        }
     },
-    displayLogs: false
 });
-

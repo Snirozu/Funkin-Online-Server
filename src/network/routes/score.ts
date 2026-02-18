@@ -1,9 +1,9 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { getScore, getReplayFile, checkAccess, getIDToken, submitReport, submitScore, getPlayerNameByID, removeScore, authPlayer, setScoreModURL } from '../database';
 import { setCooldown } from '../../cooldown';
 
 export class ScoreRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         app.get("/api/score/replay", async (req, res) => {
             try {
                 if (!req.query.id)

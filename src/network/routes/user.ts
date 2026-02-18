@@ -1,8 +1,8 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { authPlayer, checkAccess, getAvatar, getBackground, getPlayerByName, getPlayerClubTag, getPlayerIDByName, getPlayerRank, getUserStats, getScoresPlayer, getUserFriends, removeFriendFromUser, requestFriendRequest } from '../database';
 
 export class UserRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         app.get("/api/user/friends/remove", checkAccess, async (req, res) => {
             try {
                 if (!req.query.name)

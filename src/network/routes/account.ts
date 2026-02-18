@@ -2,12 +2,12 @@ import { UploadedFile } from "express-fileupload";
 import { Data } from "../../data";
 import { isUserIDInRoom, findPlayerSIDByNID } from "../../util";
 import { checkAccess, getIDToken, pingPlayer, getPlayerClubTag, getPlayerByID, getUserFriends, searchFriendRequests, getPlayerProfileHue, getPlayerNameByID, uploadAvatar, uploadBackground, removeImages, setPlayerBio, renamePlayer, deleteUser, getPlayerByEmail, setEmail, validateEmail, getNotifications, deleteNotification, getNotificationsCount, getUserStats } from "../database";
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { emailCodes, generateCode, tempSetCode, sendCodeMail } from "../email";
 import { setCooldown } from "../../cooldown";
 
 export class AccountRoute {
-    static init(app: Express) {        
+    static init(app: Application) {        
         app.get("/api/account/info", checkAccess, async (req, res) => {
             try {
                 const [id] = getIDToken(req);

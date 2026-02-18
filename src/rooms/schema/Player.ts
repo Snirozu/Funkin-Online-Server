@@ -1,4 +1,4 @@
-import { MapSchema, Schema, type } from "@colyseus/schema";
+import { ArraySchema, MapSchema, Schema, type } from "@colyseus/schema";
 
 export class Person extends Schema {
     @type("string") name: string = "";
@@ -27,19 +27,15 @@ export class Player extends Person {
     @type("boolean") bfSide: boolean = false;
     @type("boolean") hasEnded: boolean = false;
     @type("boolean") isReady: boolean = false;
+    @type({ array: "string" }) skin: string[] = new ArraySchema();
+    @type("string") skinURL: string = null;
     @type("number") points: number = 0;
     @type("boolean") botplay: boolean = false;
     @type("boolean") noteHold: boolean = false;
-
-    @type({ array: "string" }) skin: string[] = null;
-    @type("string") skinURL: string = null;
-
     @type("string") noteSkin: string = null;
     @type("string") noteSkinMod: string = null;
 	@type("string") noteSkinURL: string = null;
-
     @type({ map: "string" }) gameplaySettings = new MapSchema<string>();
-
     // maniaK => colors
     @type({ map: ColorArray }) arrowColors = new MapSchema<ColorArray>();
     // maniaK => colorsPixel

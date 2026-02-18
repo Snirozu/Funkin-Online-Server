@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import { endWeekly, getClub, getPlayerByName, getPlayerClubTag, getPlayerNameByID, getUserStats, getSong, hasAvatar, topPlayers } from "./network/database";
 import cookieParser from "cookie-parser";
-import express, { Request, Response, Express } from 'express';
+import express, { Request, Response, Express, Application } from 'express';
 import fileUpload from "express-fileupload";
-import { logToAll, networkRoom } from "./rooms/NetworkRoom";
+import { NetworkRoom } from "./rooms/NetworkRoom";
 import {formatLog, isUserNameInRoom } from "./util";
 import cors from 'cors';
 import { matchMaker } from "colyseus";
@@ -24,7 +24,7 @@ import sanitizeHtml from 'sanitize-html';
 import { AuthRoute } from './network/routes/auth';
 import { cooldownRequest } from './cooldown';
 
-export async function initExpress(app: Express) {
+export async function initExpress(app: Application) {
     app.get("/rooms/:roomName?", async (_req, res) => {
         const rooms = await matchMaker.query({
             name: 'room',
@@ -171,11 +171,11 @@ export async function initExpress(app: Express) {
                     leadersMessage = leadersMessage + '\n3rd. ' + await getPlaceMessage(_top[2]);
                     leadersMessage = leadersMessage + '\n4th. ' + await getPlaceMessage(_top[3]);
                     leadersMessage = leadersMessage + '\n5th. ' + await getPlaceMessage(_top[4]);
-                    await logToAll(formatLog(leadersMessage))
+                    await NetworkRoom.logToAll(formatLog(leadersMessage))
 
                     await endWeekly();
 
-                    await logToAll(formatLog('[!] The weekly leaderboard has been reset!'))
+                    await NetworkRoom.logToAll(formatLog('[!] The weekly leaderboard has been reset!'))
                 }
             }, 1000);
         }
@@ -310,7 +310,7 @@ export async function countPlayers(): Promise<number[]> {
     const rooms = await matchMaker.query();
     if (rooms.length >= 1) {
         rooms.forEach((room) => {
-            if (!networkRoom || room.roomId != networkRoom.roomId) {
+            if (!NetworkRoom.instance || room.roomId != NetworkRoom.instance.roomId) {
                 playerCount += room.clients;
                 playingCount += room.clients;
                 if (!room.private && !room.locked)

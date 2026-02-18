@@ -1,11 +1,11 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { getSongComments, getPlayerNameByID, checkAccess, getIDToken, submitSongComment } from '../database';
 import { setCooldown } from '../../cooldown';
 
 // forward deprecated urls to new ones
 
 export class SongRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         app.get("/api/song/comments", async (req, res) => {
             try {
                 if (!req.query.id)

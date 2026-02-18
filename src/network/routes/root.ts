@@ -1,13 +1,13 @@
-import { Express } from 'express';
+import { Application, Express } from 'express';
 import { checkAccess, getIDToken, getPlayerNameByID } from '../database';
 import { matchMaker } from 'colyseus';
-import { networkRoom } from "../../rooms/NetworkRoom";
+import { NetworkRoom } from "../../rooms/NetworkRoom";
 import { Data } from '../../data';
 import { countPlayers } from '../../site';
 import { CooldownTime, setCooldown } from '../../cooldown';
 
 export class RootRoute {
-    static init(app: Express) {
+    static init(app: Application) {
         app.get("/api/sezdetal", async (_req, res) => {
             try {
                 const sezlist = [];
@@ -32,7 +32,7 @@ export class RootRoute {
                 const rooms = await matchMaker.query();
                 if (rooms.length >= 1) {
                     rooms.forEach((room) => {
-                        if (!room.private && !room.locked && (!networkRoom || room.roomId != networkRoom.roomId))
+                        if (!room.private && !room.locked && (!NetworkRoom.instance || room.roomId != NetworkRoom.instance.roomId))
                             roomArray.push({
                                 code: room.roomId,
                                 player: room?.metadata?.name ?? "???",

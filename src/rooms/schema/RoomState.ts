@@ -1,11 +1,11 @@
-import { Schema, MapSchema, type } from "@colyseus/schema";
+import { Schema, MapSchema, type, ArraySchema } from "@colyseus/schema";
 import { Person, Player } from "./Player";
 
 export class RoomState extends Schema {
   @type("string") song: string = "";
   @type("string") folder: string = "";
   @type("number") diff: number = 1;
-  @type({ array: "string" }) diffList: string[] = [];
+  @type({ array: "string" }) diffList: string[] = new ArraySchema();
   @type("string") stageName: string = "";
   @type("string") stageMod: string = "";
   @type("string") stageURL: string = "";
