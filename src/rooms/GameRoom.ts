@@ -1046,7 +1046,7 @@ export class GameRoom extends Room {
         // }
         requester.name = playerName;
         if (!this.state.disableSkins) {
-            requester.skin = options.skin;
+            this.setPlayerSkin(requester, options.skin);
             requester.skinURL = options.skinURL;
         }
         this.setPlayerPoints(requester, playerPoints);
@@ -1250,7 +1250,7 @@ export class GameRoom extends Room {
 
     setPlayerSkin(player: Player, v: string[]) {
         v = v as string[];
-        if (v == null || v.length != 4)
+        if (!v || v.length != 4)
             player.skin = [];
         player.skin = v;
     }
