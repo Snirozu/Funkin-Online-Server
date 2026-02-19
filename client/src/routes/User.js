@@ -564,14 +564,12 @@ function User() {
                         <h3> Rank <a href="a" className='SmallText' style={{color: 'var(--text-profile-color)', fontWeight: 'normal'}}> (Show for Poland) </a> </h3>
                         <b>FP Rank: </b> 9999nd <br />
                         <b>Avg. Accuracy Rank: </b> 9999nd <br />
-                        <h2> Achievements </h2>
-                        TBA ;) */}
                         <br></br>
                         <h2> Achievements </h2>
                         <center>
                         <UserAchievements data={data.achievements} />
-
                         </center>
+                        TBA ;) */}
                         <Popup trigger={<button id='openavatareditor' style={{display: 'none'}}></button>} modal>
                             <div className='Content'> 
                                 <UserIconEditor/>
