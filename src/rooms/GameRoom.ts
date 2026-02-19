@@ -1249,9 +1249,8 @@ export class GameRoom extends Room {
     }
 
     setPlayerSkin(player: Player, v: string[]) {
-        v = v as string[];
-        if (!v || v.length != 4)
-            player.skin = [];
+        if (!Array.isArray(v) || v.length != 4)
+            return player.skin = [];
         player.skin = v;
     }
     
