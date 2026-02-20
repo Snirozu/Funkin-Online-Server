@@ -145,36 +145,7 @@ export class GameRoom extends Room {
                 }
             }
 
-            const sideCount = [0, 0];
-            for (const [_, player] of this.state.players) {
-                if (!player.isReady || !player.hasSong)
-                    return;
-
-                sideCount[player.bfSide ? 1 : 0]++;
-            }
-
-            for (const count of sideCount) {
-                if (count > this.maxClients / 2)
-                    return;
-            }
-
-            for (const [_, player] of this.state.players) {
-                player.score = 0;
-                player.misses = 0;
-                player.sicks = 0;
-                player.goods = 0;
-                player.bads = 0;
-                player.shits = 0;
-                player.songPoints = 0;
-                player.hasLoaded = false;
-                player.hasEnded = false;
-                player.isReady = false;
-            }
-
-            await this.lock();
-            this.state.isStarted = true;
-            this.state.health = 1;
-            this.broadcast("gameStarted", "", { afterNextPatch: true });
+            await this.startGame();
         });
 
         this.onMessage("addScore", (client, message) => {
@@ -1142,6 +1113,11 @@ export class GameRoom extends Room {
         this.updateSides();
         client.leave();
 
+        if (!this.state.isStarted)
+            await this.startGame();
+
+        this.updateRoomMetaClients();
+
         if (this.clients.length < 1)
             await this.destroy();
         else if (this.isOwner(client))
@@ -1153,8 +1129,6 @@ export class GameRoom extends Room {
         // if (this.clients.length < this.maxClients) {
         //     this.unlock();
         // }
-
-        this.updateRoomMetaClients();
     }
 
     async onDispose() {
@@ -1295,6 +1269,39 @@ export class GameRoom extends Room {
         }
 
         return true;
+    }
+
+    async startGame() {
+        const sideCount = [0, 0];
+        for (const [_, player] of this.state.players) {
+            if (!player.isReady || !player.hasSong)
+                return;
+
+            sideCount[player.bfSide ? 1 : 0]++;
+        }
+
+        for (const count of sideCount) {
+            if (count > this.maxClients / 2)
+                return;
+        }
+
+        for (const [_, player] of this.state.players) {
+            player.score = 0;
+            player.misses = 0;
+            player.sicks = 0;
+            player.goods = 0;
+            player.bads = 0;
+            player.shits = 0;
+            player.songPoints = 0;
+            player.hasLoaded = false;
+            player.hasEnded = false;
+            player.isReady = false;
+        }
+
+        await this.lock();
+        this.state.isStarted = true;
+        this.state.health = 1;
+        this.broadcast("gameStarted", "", { afterNextPatch: true });
     }
 
     // 1. Get room IDs already registered with the Presence API.
