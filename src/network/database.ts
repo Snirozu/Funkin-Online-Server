@@ -111,8 +111,8 @@ export async function authPlayer(req: any, checkPerms:boolean = true) {
 }
 
 export function hasAccess(user: any, to: string):boolean {
-    let role = user.role;
-    if (!user.role || !Data.CONFIG.ROLES.has(role))
+    let role = user?.role;
+    if (!role || !Data.CONFIG.ROLES.has(role))
         role = Data.CONFIG.DEFAULT_ROLE;
 
     for (const access of Data.CONFIG.ROLES.get(role).access) {
