@@ -27,7 +27,7 @@ function Rules() {
                         <li> Any discrimination towards anyone or any group. </li>
                         <dd> ex. racism, xenophobia, homophobia, transphobia, sexism etc. </dd>
                         <li> Sexually harrasing people. </li>
-                        <li> Sexually suggestive language. </li>
+                        <li> Sexually suggestive content. </li>
                     </ul>
 
                     <h3> Source Code </h3>
@@ -58,7 +58,7 @@ function Rules() {
 
                     <hr></hr>
 
-                    <h5> Updated: 26/02/2026 03:18 CET/CEST </h5> 
+                    <h5> Updated: 26/02/2026 03:22 CET/CEST </h5> 
                 </div>
             </div>
         </>
