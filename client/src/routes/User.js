@@ -474,6 +474,7 @@ function User() {
                             <button title='Remove Warn' className='SvgNoButton' style={{ color: 'white' }} 
                                 onClick={() => {
                                     navigate("/api/admin/user/warn/delete?id=" + encodeURIComponent(warn.id));
+                                    window.location.reload();
                                 }}>
                                 <Icon width={40} icon="gridicons:cross" />
                             </button>
@@ -635,6 +636,7 @@ function User() {
                                         return;
 
                                     navigate("/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true") + "&reason=" + encodeURIComponent(reason));
+                                    window.location.reload();
                                 }}>
                                     <button className='SvgButton'>
                                         {(data.role === "Banned" ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
@@ -647,6 +649,7 @@ function User() {
                                         return;
 
                                     navigate("/api/admin/user/warn?username=" + encodeURIComponent(name) + "&reason=" + encodeURIComponent(reason));
+                                    window.location.reload();
                                 }}>
                                     <button className='SvgButton'>
                                         <Icon width={20} icon="material-symbols:warning-outline" />
