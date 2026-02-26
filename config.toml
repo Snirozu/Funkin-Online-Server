@@ -20,8 +20,6 @@ priority = 2
 access = [
     '/api/admin/user/set/email',
     '/api/admin/user/ban',
-    '/api/admin/user/warn',
-    '/api/admin/user/warn/delete',
     '/api/admin/user/grant',
     '/api/admin/user/rename',
     '/api/admin/user/notify',
@@ -44,6 +42,8 @@ name = "Helper"
 priority = 1
 access = [
     '/api/admin/score/delete',
+    '/api/admin/user/warn',
+    '/api/admin/user/warn/delete',
     '/api/admin/report/*',
     '/admin',
 ]
