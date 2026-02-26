@@ -32,7 +32,8 @@ access = [
     '/api/admin/logs/process',
     '/api/admin/user/delete',
     'command.announce',
-    'admin.club.edit'
+    'admin.club.edit',
+    'mod.warns'
 ]
 extends = 'Helper'
 
