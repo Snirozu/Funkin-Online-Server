@@ -1,10 +1,11 @@
 import { UploadedFile } from "express-fileupload";
 import { Data } from "../../data";
 import { isUserIDInRoom, findPlayerSIDByNID } from "../../util";
-import { checkAccess, getIDToken, pingPlayer, getPlayerClubTag, getPlayerByID, getUserFriends, searchFriendRequests, getPlayerProfileHue, getPlayerNameByID, uploadAvatar, uploadBackground, removeImages, setPlayerBio, renamePlayer, deleteUser, getPlayerByEmail, setEmail, validateEmail, getNotifications, deleteNotification, getNotificationsCount, getUserStats } from "../database";
+import { checkAccess, getIDToken, pingPlayer, getPlayerClubTag, getPlayerByID, getPlayerProfileHue, getPlayerNameByID, uploadAvatar, uploadBackground, removeImages, setPlayerBio, renamePlayer, deleteUser, getPlayerByEmail, setEmail, validateEmail, getNotifications, deleteNotification, getNotificationsCount, getUserStats, linkNewgrounds, userIDsToNames, getSentFriendRequests } from "../database";
 import { Application, Express } from 'express';
 import { emailCodes, generateCode, tempSetCode, sendCodeMail } from "../email";
 import { setCooldown } from "../../cooldown";
+import axios from "axios";
 
 export class AccountRoute {
     static init(app: Application) {        
@@ -69,9 +70,9 @@ export class AccountRoute {
             try {
                 const [id] = getIDToken(req);
                 const player = await getPlayerByID(id);
-                const friendList = await getUserFriends(player.friends);
-                const pending = await getUserFriends(player.pendingFriends);
-                const request = await searchFriendRequests(player.id);
+                const friendList = await userIDsToNames(player.friends);
+                const gotRequests = await userIDsToNames(player.friendRequests);
+                const sentRequests = await getSentFriendRequests(player.id);
 
                 const friends: any[] = [];
                 for (const friend of friendList) {
@@ -86,8 +87,8 @@ export class AccountRoute {
 
                 res.send({
                     friends: friends,
-                    pending: pending,
-                    requests: request,
+                    pending: sentRequests,
+                    requests: gotRequests,
                 });
             }
             catch (exc) {
@@ -334,6 +335,98 @@ export class AccountRoute {
                 res.sendStatus(200);
             }
             catch (exc) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        async function requestNGio(execute: any, sessionId?:string) {
+            const ngReq = {
+                "app_id": process.env["NG_IO_APP_ID"],
+                "execute": execute,
+                "session_id": sessionId
+            };
+
+            const formData = new FormData();
+            formData.append('request', JSON.stringify(ngReq));
+
+            const response = await axios.post("https://www.newgrounds.io/gateway_v3.php", formData, {
+                headers: {
+                    'content-type': 'application/x-www-form-urlencoded',
+                }
+            });
+
+            if (response.status !== 200 || !response.data) {
+                throw new Error('NG Refused');
+            }
+
+            if (!response.data.success) {
+                throw response.data.error;
+            }
+
+            return response.data.result.data;
+        }
+
+        const ngSessions:Map<string, any> = new Map();
+        setCooldown("/api/account/link/newgrounds", 5);
+        app.get("/api/account/link/newgrounds", checkAccess, async (req, res) => {
+            try {
+                const [id] = getIDToken(req);
+
+                const user = await getPlayerByID(id);
+                if (user.ngId) {
+                    res.sendStatus(200);
+                    return;
+                }
+
+                const lastSession = ngSessions.get(id);
+                if (lastSession) {
+                    const response = await requestNGio({
+                        "component": "App.checkSession"
+                    }, lastSession.id);
+
+                    if (!response.expired) {
+                        if (!response.session.user) {
+                            res.status(200).send(response.session.passport_url);
+                            ngSessions.set(id, response.session);
+                            return;
+                        }
+                        await linkNewgrounds(id, Number(response.session.user.id).toString(), response.session.user.url);
+                        res.sendStatus(200);
+                        ngSessions.delete(id);
+                        return;
+                    }
+                    else {
+                        await requestNGio({
+                            "component": "App.endSession"
+                        }, lastSession.id);
+                        ngSessions.delete(id);
+                    }
+                }
+
+                const response = await requestNGio({
+                    "component": "App.startSession"
+                });
+
+                res.status(200).send(response.session.passport_url);
+                ngSessions.set(id, response.session);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.get("/api/account/unlink/newgrounds", checkAccess, async (req, res) => {
+            try {
+                const [id] = getIDToken(req);
+
+                ngSessions.delete(id);
+                await linkNewgrounds(id, null, null);
+
+                res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
                 res.status(400).send(exc?.error_message ?? "Unknown error...");
             }
         });

@@ -22,13 +22,16 @@ model User {
   lastActive  DateTime @default(now())
 
   role String?
-  pendingFriends String[] //list of players to accept invites from
+  friendRequests String[] // list of players that want this user friended
   friends String[] // friends ids
   email String? @unique
   bio String?
   profileHue Int?
   profileHue2 Int?
   country String?
+  ips String[]
+  ngUrl String?
+  ngId String?
 
   scores  Score[]
   songComments SongComment[]
@@ -36,6 +39,7 @@ model User {
   background FileBackground?
   notifications Notification[]
   stats UserStats[]
+  warnings UserWarning[]
 }
 
 model UserStats {
@@ -177,4 +181,15 @@ model FileClubBanner {
   date    DateTime @default(now())
   clubRe  Club     @relation(fields: [clubTag], references: [tag])
   clubTag String   @unique
+}
+
+model UserWarning {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  reason    String
+  date    DateTime @default(now())
+
+  onRe User     @relation(fields: [on], references: [id])
+  on   String   @db.ObjectId @unique
+
+  by String // @db.ObjectId of the moderator
 }

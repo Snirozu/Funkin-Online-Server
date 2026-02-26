@@ -471,6 +471,7 @@ td > * {
 .CenterFlex {
   display: flex;
   justify-content: center;
+  align-items: center;
   flex-wrap: wrap;
 }
 
@@ -486,6 +487,10 @@ td > * {
   border-right: 3px solid #121418;
   height: 100%;
   max-width: 1px;
+}
+
+.Sidebar * {
+  max-width: calc(var(--profile-sidebar-width) - 10px);
 }
 
 .NameContainer {

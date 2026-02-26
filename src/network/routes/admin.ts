@@ -2,7 +2,7 @@ import { matchMaker } from 'colyseus';
 import { Application, Express } from 'express';
 import { Data } from '../../data';
 import { NetworkRoom } from '../../rooms/NetworkRoom';
-import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma } from '../database';
+import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma, warnUser, removeUserWarn } from '../database';
 import dotenv from 'dotenv';
 import { logActionOnRequest } from '../mods';
 import fs from 'fs';
@@ -79,7 +79,36 @@ export class AdminRoute {
                 const target = await getPlayerByName(req.query.username as string);
                 if (!reqPlayer || getPriority(target) >= getPriority(reqPlayer))
                     return res.sendStatus(403);
-                await setUserBanStatus(target.id, (req.query.to as string ?? "false") == "true")
+                if ((req.query.to as string ?? "false") == "true") {
+                    await warnUser(target.id, reqPlayer.id, req.query.reason as string);
+                }
+                await setUserBanStatus(target.id, (req.query.to as string ?? "false") == "true", req.query.reason as string)
+                return res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/user/warn", checkAccess, logActionOnRequest, async (req, res) => {
+            try {
+                const reqPlayer = await authPlayer(req);
+                const target = await getPlayerByName(req.query.username as string);
+                if (!reqPlayer || getPriority(target) >= getPriority(reqPlayer))
+                    return res.sendStatus(403);
+                await warnUser(target.id, reqPlayer.id, req.query.reason as string);
+                return res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/user/warn/delete", checkAccess, logActionOnRequest, async (req, res) => {
+            try {
+                await removeUserWarn(req.query.id as string);
                 return res.sendStatus(200);
             }
             catch (exc) {

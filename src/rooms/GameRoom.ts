@@ -4,7 +4,7 @@ import { ColorArray, Person, Player } from "./schema/Player";
 import { ServerError } from "colyseus";
 import { getPlayerByID, getUserStats, hasAccess, submitReport } from "../network/database";
 import jwt from "jsonwebtoken";
-import { filterChatMessage, filterUsername, formatLog, getRequestIP } from "../util";
+import { filterChatMessage, filterUsername, formatLog, getRequestIP, removeFromArray } from "../util";
 import { Data } from "../data";
 import { cooldown, cooldownLeft } from "../cooldown";
 
@@ -1079,7 +1079,7 @@ export class GameRoom extends Room {
             }
 
             await this.removePlayer(client);
-            this.clientsRemoved.splice(this.clientsRemoved.indexOf(client.sessionId), 1);
+            removeFromArray(this.clientsRemoved, client.sessionId);
         }
 
         this.updateRoomMetaClients();

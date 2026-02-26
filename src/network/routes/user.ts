@@ -1,5 +1,6 @@
 import { Application, Express } from 'express';
-import { authPlayer, checkAccess, getAvatar, getBackground, getPlayerByName, getPlayerClubTag, getPlayerIDByName, getPlayerRank, getUserStats, getScoresPlayer, getUserFriends, removeFriendFromUser, requestFriendRequest } from '../database';
+import { authPlayer, checkAccess, getAvatar, getBackground, getPlayerByName, getPlayerClubTag, getPlayerIDByName, getPlayerRank, getUserStats, getScoresPlayer, removeFriendFromUser, requestFriendRequest, getUserWarnings, hasAccess, getIDToken, userIDsToNames } from '../database';
+import { HttpStatusCode } from 'axios';
 
 export class UserRoute {
     static init(app: Application) {
@@ -21,7 +22,13 @@ export class UserRoute {
                 if (!req.query.name)
                     return res.sendStatus(400);
 
-                await requestFriendRequest(req);
+                const [id] = getIDToken(req);
+
+                const targetId = await getPlayerIDByName(req.query.name as string);
+                if (!targetId)
+                    return res.sendStatus(HttpStatusCode.NotFound);
+
+                await requestFriendRequest(id, targetId);
                 res.sendStatus(200);
             }
             catch (exc: any) {
@@ -105,7 +112,7 @@ export class UserRoute {
                 if (!user)
                     return res.sendStatus(404);
 
-                const pingasFriends = auth?.pendingFriends ?? [];
+                const pingasFriends = user?.friendRequests ?? [];
 
                 res.send({
                     role: user.role,
@@ -113,19 +120,20 @@ export class UserRoute {
                     lastActive: user.lastActive,
                     isSelf: auth?.id == user.id,
                     bio: user.bio,
-                    friends: await getUserFriends(user.friends),
-                    canFriend: !pingasFriends.includes(user?.id),
+                    friends: await userIDsToNames(user.friends),
+                    canFriend: !pingasFriends.includes(auth?.id),
                     profileHue: user.profileHue ?? 250,
                     profileHue2: user.profileHue2,
                     points: stats["points" + (req.query.keys ?? 4) + "k"],
                     avgAccuracy: stats["avgAcc" + (req.query.keys ?? 4) + "k"],
                     rank: await getPlayerRank(user.name, req.query.category as string, Number.parseInt(req.query.keys as string)),
                     country: user.country,
-                    club: await getPlayerClubTag(user.id)
+                    club: await getPlayerClubTag(user.id),
+                    ng: user.ngUrl,
+                    warns: await getUserWarnings(user.id, hasAccess(auth, 'mod.warns'))
                 });
             }
             catch (exc) {
-                console.error(exc);
                 res.sendStatus(500);
             }
         });

@@ -1,6 +1,6 @@
 import { Application, Express } from 'express';
 import { UploadedFile } from 'express-fileupload';
-import { getClub, getPlayerByID, getPlayerNameByID, getClubRank, getClubBanner, checkAccess, getIDToken, getPlayerClub, createClub, requestJoinClub, acceptJoinClub, getPlayerIDByName, removePlayerFromClub, promoteClubMember, demoteClubMember, uploadClubBanner, postClubEdit, getUserStats } from '../database';
+import { getClub, getPlayerByID, getPlayerNameByID, getClubRank, getClubBanner, checkAccess, getIDToken, getPlayerClub, createClub, requestJoinClub, acceptJoinClub, getPlayerIDByName, removePlayerFromClub, promoteClubMember, demoteClubMember, uploadClubBanner, postClubEdit, getUserStats, hasAccess, authPlayer, rejectJoinClub } from '../database';
 import { CooldownTime, setCooldown } from '../../cooldown';
 import { Image } from 'canvas';
 
@@ -139,6 +139,24 @@ export class ClubRoute {
             }
         });
 
+        app.get("/api/club/reject", checkAccess, async (req, res) => {
+            try {
+                if (!req.query.user)
+                    return res.sendStatus(400);
+
+                const [id, _] = getIDToken(req);
+                const club = await getPlayerClub(id);
+                if (!club.leaders.includes(id)) {
+                    throw { error_message: 'Only club leaders can do that!' }
+                }
+                await rejectJoinClub(club.tag, await getPlayerIDByName(req.query.user as string));
+                res.sendStatus(200);
+            }
+            catch (exc: any) {
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
         app.get("/api/club/kick", checkAccess, async (req, res) => {
             try {
                 if (!req.query.user)
@@ -229,8 +247,15 @@ export class ClubRoute {
         app.post("/api/club/banner", checkAccess, async (req, res) => {
             try {
                 const [id, _] = getIDToken(req);
-                const club = await getPlayerClub(id);
-                if (!club.leaders.includes(id)) {
+
+                if (!req.query.tag) {
+                    throw { error_message: 'Invalid Request!' }
+                }
+
+                const club = await getClub(req.query.tag as string);
+                const canForceEdit = hasAccess(await authPlayer(req), 'admin.club.edit');
+
+                if (!canForceEdit && !club.leaders.includes(id)) {
                     throw { error_message: 'Only club leaders can do that!' }
                 }
 
@@ -276,11 +301,19 @@ export class ClubRoute {
         app.post("/api/club/edit", checkAccess, async (req, res) => {
             try {
                 const [id, _] = getIDToken(req);
-                const club = await getPlayerClub(id);
-                if (!club.leaders.includes(id)) {
+
+                if (!req.query.tag) {
+                    throw { error_message: 'Invalid Request!' }
+                }
+
+                const club = await getClub(req.query.tag as string);
+                const canForceEdit = hasAccess(await authPlayer(req), 'admin.club.edit');
+
+                if (!canForceEdit && !club.leaders.includes(id)) {
                     throw { error_message: 'Only club leaders can do that!' }
                 }
-                await postClubEdit(club.tag, req.body);
+
+                await postClubEdit(club.tag, req.body, canForceEdit);
                 res.sendStatus(200);
             }
             catch (exc: any) {

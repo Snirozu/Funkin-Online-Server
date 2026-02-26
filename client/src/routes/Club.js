@@ -32,7 +32,8 @@ function Club() {
     const [error, setError] = useState(null);
 
     const [clanEditMode, setClanEditMode] = useState(false);
-    const isMod = data.leaders.includes(Cookies.get('username'));
+    const isSelfLeader = data.leaders.includes(Cookies.get('username'));
+    const isMod = isSelfLeader || hasAccess('admin.club.edit');
     let isMember = false;
     for (const member of data.members) {
         if (member.player === Cookies.get('username'))
@@ -102,7 +103,7 @@ function Club() {
         setClanEditMode(!clanEditMode);
         if (clanEditMode) {
             try {
-                const response = await axios.post(getHost() + '/api/club/edit', {
+                const response = await axios.post(getHost() + '/api/club/edit?tag=' + clubTag, {
                     content: htmlContent,
                     name: clubName,
                     hue: Number(clubHue),
@@ -116,11 +117,42 @@ function Club() {
                 if (response.status !== 200) {
                     throw new Error(response.data);
                 }
-                navigate('/club');
+                navigate('/club/' + clubTag);
             } catch (error) {
                 console.error(error);
                 window.alert(error);
             }
+        }
+    }
+
+    async function uploadBanner(file) {
+        if (file.size > 1024 * 300) {
+            alert("Compressed Image has exceeded 350kb! (" + (file.size * 0.001) + "kB)");
+            return;
+        }
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await axios.post(getHost() + '/api/club/banner?tag=' + clubTag, formData, {
+                headers: {
+                    'content-type': 'multipart/form-data',
+                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken')),
+                },
+                responseType: 'json', transformResponse: (body) => {
+                    try { return JSON.parse(body) } catch (exc) { return null; }
+                }, validateStatus: () => true
+            });
+
+            if (response.status === 200) {
+                alert('Banner Uploaded!');
+                window.location.reload();
+            }
+            else {
+                alert(response.data.error);
+            }
+        } catch (error) {
+            alert(error.message);
         }
     }
 
@@ -132,6 +164,114 @@ function Club() {
         else {
             document.getElementById('openbannereditor').click();
         }
+    }
+
+    function BannerEditor() {
+        let editor = null;
+
+        const [zoom, setZoom] = useState(1);
+        const [angle, setAngle] = useState(0);
+        const [asPNG, setAsPNG] = useState(false);
+
+        let jpegCompression = 0.9; // 90% should be semi-lossless quality, and should save more space
+
+        function onClickPreview() {
+            const canvas = editor.getImage()
+
+            canvas.toBlob(
+                (file) => {
+                    const fileURL = URL.createObjectURL(file);
+                    window.open(fileURL, '_blank').focus();
+
+                    // document.getElementById('avatarpreview').src = fileURL;
+                    // document.getElementById('avatarpreviewsize').textContent = (file.size * 0.001) + 'kB (' + (jpegCompression * 100) + "%)";
+                },
+                asPNG ? "image/png" : "image/jpeg",
+                jpegCompression
+            );
+        }
+
+        function onClickSave() {
+            if (editor) {
+                // If you want the image resized to the canvas size (also a HTMLCanvasElement)
+                const canvasScaled = editor.getImageScaledToCanvas()
+
+                canvasScaled.toBlob(
+                    async (file) => {
+                        await uploadBanner(file);
+                    },
+                    asPNG ? "image/png" : "image/jpeg",
+                    jpegCompression
+                );
+            }
+        }
+
+        function avatarScrollEvent(e) {
+            if (!e.shiftKey) {
+                let daZoom = zoom - (e.deltaY / 500);
+                if (daZoom < 1)
+                    daZoom = 1;
+                if (daZoom > 5)
+                    daZoom = 5;
+                setZoom(daZoom);
+                document.getElementById('avatarzoom').value = daZoom * 100;
+            }
+            else {
+                let daAngle = angle + (e.deltaY / 10);
+                if (daAngle < 0)
+                    daAngle = 360;
+                if (daAngle > 360)
+                    daAngle = 0;
+                setAngle(daAngle);
+                document.getElementById('avatarangle').value = daAngle;
+            }
+        }
+
+        function onClickTransparent(e) {
+            setAsPNG(!asPNG);
+        }
+
+        return (
+            <div style={{display: 'inline'}}>
+                <AvatarEditor
+                    ref={(refEditor) => editor = refEditor}
+                    image={daUploadedBanner}
+                    width={256}
+                    height={128}
+                    border={50}
+                    color={[255, 255, 255, 0.6]} // RGBA
+                    scale={zoom}
+                    rotate={angle}
+                    onWheel={avatarScrollEvent}
+                />
+                <br/>
+                Scale:
+                <input id="avatarzoom" type="range" min="100" max="500" defaultValue={zoom * 100} onInput={(e) => setZoom(e.target.value / 100)} />
+                <br />
+                Angle:
+                <input id="avatarangle" type="range" min="0" max="360" defaultValue={angle} onInput={(e) => setAngle(e.target.value)} />
+                <br/>
+                {!asPNG ? <>
+                    Compression:
+                    <input type="range" min="0" max="100" defaultValue={100 - (jpegCompression * 100)} onInput={(e) => jpegCompression = 1 - (e.target.value / 100)} />
+                    <br />
+                </> : <></>}
+                <br/>
+                Transparent (No Compression):
+                <input id="aspng" type="checkbox" onInput={onClickTransparent} />
+                <br/>
+                <br/>
+                <center>
+                    <button className="FunkinButton" onClick={onClickSave}> Save </button>
+                    <button className="FunkinButton" onClick={onClickPreview}> Preview </button>
+                </center>
+                {/* <br />
+                <img id='avatarpreview' alt='Preview'></img>
+                <center>
+                    <p id='avatarpreviewsize'></p>
+                </center> */}
+            </div>
+        );
     }
 
     function renderPlayers(data) {
@@ -165,7 +305,7 @@ function Club() {
                         </div>
                     </a>
                     {
-                        clanEditMode ? <>
+                        clanEditMode && isSelfLeader ? <>
                             {
                                 isLeader ? 
                                     <button className="FunkinButton" onClick={async () => {
@@ -256,23 +396,43 @@ function Club() {
                             <span style={{ fontSize: '35px' }}> {player} </span>
                         </div>
                     </a>
-                    <button className="FunkinButton" onClick={async () => {
-                        if (!window.confirm('Are you sure?'))
-                            return;
+                    { isSelfLeader ? <>
+                        <button className="FunkinButton" onClick={async () => {
+                            if (!window.confirm('Are you sure?'))
+                                return;
 
-                        const response = await axios.get(getHost() + '/api/club/accept?user=' + player, {
-                            headers: {
-                                'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
-                            }, validateStatus: () => true
-                        });
+                            const response = await axios.get(getHost() + '/api/club/accept?user=' + player, {
+                                headers: {
+                                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                                }, validateStatus: () => true
+                            });
 
-                        if (response.status === 200) {
-                            window.location.reload();
-                        }
-                        else {
-                            alert(response.data);
-                        }
-                    }}> Accept {player} </button>
+                            if (response.status === 200) {
+                                window.location.reload();
+                            }
+                            else {
+                                alert(response.data);
+                            }
+                        }}> Accept {player} </button>
+
+                        <button className="FunkinButton" onClick={async () => {
+                            if (!window.confirm('Are you sure?'))
+                                return;
+
+                            const response = await axios.get(getHost() + '/api/club/reject?user=' + player, {
+                                headers: {
+                                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                                }, validateStatus: () => true
+                            });
+
+                            if (response.status === 200) {
+                                window.location.reload();
+                            }
+                            else {
+                                alert(response.data);
+                            }
+                        }}> Reject {player} </button>
+                    </> : <></> }
                 </div>
             );
         }
@@ -452,145 +612,6 @@ function Club() {
             </div>
         </div>
     </>;
-}
-
-function BannerEditor() {
-    let editor = null;
-
-    const [zoom, setZoom] = useState(1);
-    const [angle, setAngle] = useState(0);
-    const [asPNG, setAsPNG] = useState(false);
-
-    let jpegCompression = 0.9; // 90% should be semi-lossless quality, and should save more space
-
-    function onClickPreview() {
-        const canvas = editor.getImage()
-
-        canvas.toBlob(
-            (file) => {
-                const fileURL = URL.createObjectURL(file);
-                window.open(fileURL, '_blank').focus();
-
-                // document.getElementById('avatarpreview').src = fileURL;
-                // document.getElementById('avatarpreviewsize').textContent = (file.size * 0.001) + 'kB (' + (jpegCompression * 100) + "%)";
-            },
-            asPNG ? "image/png" : "image/jpeg",
-            jpegCompression
-        );
-    }
-
-    function onClickSave() {
-        if (editor) {
-            // If you want the image resized to the canvas size (also a HTMLCanvasElement)
-            const canvasScaled = editor.getImageScaledToCanvas()
-
-            canvasScaled.toBlob(
-                async (file) => {
-                    await uploadBanner(file);
-                },
-                asPNG ? "image/png" : "image/jpeg",
-                jpegCompression
-            );
-        }
-    }
-
-    function avatarScrollEvent(e) {
-        if (!e.shiftKey) {
-            let daZoom = zoom - (e.deltaY / 500);
-            if (daZoom < 1)
-                daZoom = 1;
-            if (daZoom > 5)
-                daZoom = 5;
-            setZoom(daZoom);
-            document.getElementById('avatarzoom').value = daZoom * 100;
-        }
-        else {
-            let daAngle = angle + (e.deltaY / 10);
-            if (daAngle < 0)
-                daAngle = 360;
-            if (daAngle > 360)
-                daAngle = 0;
-            setAngle(daAngle);
-            document.getElementById('avatarangle').value = daAngle;
-        }
-    }
-
-    function onClickTransparent(e) {
-        setAsPNG(!asPNG);
-    }
-
-    return (
-        <div style={{display: 'inline'}}>
-            <AvatarEditor
-                ref={(refEditor) => editor = refEditor}
-                image={daUploadedBanner}
-                width={256}
-                height={128}
-                border={50}
-                color={[255, 255, 255, 0.6]} // RGBA
-                scale={zoom}
-                rotate={angle}
-                onWheel={avatarScrollEvent}
-            />
-            <br/>
-            Scale:
-            <input id="avatarzoom" type="range" min="100" max="500" defaultValue={zoom * 100} onInput={(e) => setZoom(e.target.value / 100)} />
-            <br />
-            Angle:
-            <input id="avatarangle" type="range" min="0" max="360" defaultValue={angle} onInput={(e) => setAngle(e.target.value)} />
-            <br/>
-            {!asPNG ? <>
-                Compression:
-                <input type="range" min="0" max="100" defaultValue={100 - (jpegCompression * 100)} onInput={(e) => jpegCompression = 1 - (e.target.value / 100)} />
-                <br />
-            </> : <></>}
-            <br/>
-            Transparent (No Compression):
-            <input id="aspng" type="checkbox" onInput={onClickTransparent} />
-            <br/>
-            <br/>
-            <center>
-                <button className="FunkinButton" onClick={onClickSave}> Save </button>
-                <button className="FunkinButton" onClick={onClickPreview}> Preview </button>
-            </center>
-            {/* <br />
-            <img id='avatarpreview' alt='Preview'></img>
-            <center>
-                <p id='avatarpreviewsize'></p>
-            </center> */}
-        </div>
-    );
-}
-
-async function uploadBanner(file) {
-    if (file.size > 1024 * 300) {
-        alert("Compressed Image has exceeded 350kb! (" + (file.size * 0.001) + "kB)");
-        return;
-    }
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-        const response = await axios.post(getHost() + '/api/club/banner', formData, {
-            headers: {
-                'content-type': 'multipart/form-data',
-                'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken')),
-            },
-            responseType: 'json', transformResponse: (body) => {
-                try { return JSON.parse(body) } catch (exc) { return null; }
-            }, validateStatus: () => true
-        });
-
-        if (response.status === 200) {
-            alert('Banner Uploaded!');
-            window.location.reload();
-        }
-        else {
-            alert(response.data.error);
-        }
-    } catch (error) {
-        alert(error.message);
-    }
 }
 
 

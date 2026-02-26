@@ -31,7 +31,9 @@ function User() {
         rank: -1,
         country: '',
         club: '',
-        achievements: []
+        achievements: [],
+        ng: undefined,
+        warns: [],
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -135,6 +137,42 @@ function User() {
         }
 
         fetchData();
+    }
+
+    const unlinkNG = async () => {
+        if (!window.confirm('Are you sure?'))
+            return;
+
+        try {
+            const response = await axios.get(getHost() + "/api/account/unlink/newgrounds", {
+                headers: {
+                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                }
+            });
+            if (response.status !== 200) {
+                throw new Error('Failed.');
+            }
+        } catch (error) { }
+
+        fetchData();
+    }
+
+    const linkNG = async () => {
+        try {
+            const response = await axios.get(getHost() + "/api/account/link/newgrounds", {
+                headers: {
+                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                }
+            });
+            if (response.status !== 200) {
+                throw new Error('Failed.');
+            }
+            if (String(response.data).startsWith('https://')) {
+                window.open(response.data, '_blank');
+            }
+        } catch (error) {
+            alert(error);
+        }
     }
 
     function onColorChange(e) {
@@ -412,6 +450,42 @@ function User() {
         return list;
     }
 
+    function UserWarns() {
+        var warns = [];
+
+        for (const [i, warn] of data.warns.entries()) {
+            if (!warn)
+                continue;
+            warns.push(
+                <div className="Comment">
+                    <div>
+                        {warn.by ?
+                            <>
+                            <span style={{color: 'lightgray'}}>By: </span> <a href={'/user/' + encodeURIComponent(warn.by)}> {warn.by} </a> <br></br>
+                            </>
+                        : <></>}
+                        <span style={{color: 'white'}}> <span style={{color: 'lightgray'}}>Reason: </span>{warn.reason}</span>
+                        <br></br>
+                        <span className="SmallText"> {timeAgo.format(Date.parse(warn.date))} </span>
+                    </div>
+                    {
+                        hasAccess('/api/admin/user/ban') ? 
+                        <div className='FlexRight'>
+                            <button title='Remove Warn' className='SvgNoButton' style={{ color: 'white' }} 
+                                onClick={() => {
+                                    navigate("/api/admin/user/warn/delete?id=" + encodeURIComponent(warn.id));
+                                }}>
+                                <Icon width={40} icon="gridicons:cross" />
+                            </button>
+                        </div> : <></>
+                    }
+                </div>
+            );
+        }
+
+        return warns;
+    }
+
     return (
         <div className='Content' id='ProfileContent'>
             {loading ? (
@@ -459,10 +533,63 @@ function User() {
                         <b>Accuracy: </b> {(data.avgAccuracy * 100).toFixed(2)}% <br />
                         <b>Seen: </b> {timeAgo.format(Date.parse(data.lastActive))} <br />
                         <b>Joined: </b> {returnDate(Date.parse(data.joined))} <br />
+                        {data.warns.length > 0 ? <>
+                            <Popup trigger={<a style={{color: 'red'}}>⚠ {data.warns.length} warnings! ⚠</a>} modal>
+                                <div className='Content' style={{minWidth: '600px'}}> 
+                                    <div>
+                                        <h2>
+                                            Received Warnings by Moderators:
+                                        </h2>
+                                        <br></br>
+                                        <UserWarns/>
+                                    </div>
+                                </div>
+                            </Popup>
+                        </> : <></>}
+                        {
+                            data?.ng ? editBioMode ? <>
+                                <center>
+                                    <button className='TabButton' onClick={unlinkNG}> Unlink Newgrounds </button>
+                                </center>
+                            </> : <>
+                                <a href={data.ng} target='_blank' style={{
+                                    color: 'orange'
+                                }}>
+                                    <div className='CenterFlex' style={{
+                                        marginTop: '2px',
+                                    }}>
+                                        <img src="https://www.newgrounds.com/img/icons/favicon.png" style={{
+                                            width: "25px",
+                                            borderRadius: '0px',
+                                            padding: '4px',
+                                            paddingLeft: '0px',
+                                        }}></img> 
+                                        <span> Newgrounds </span>
+                                    </div>
+                                </a>
+                            </> :
+                            editBioMode ? <>
+                                <center>
+                                    <Popup onOpen={linkNG} trigger={<button className='TabButton'> Link Newgrounds! </button>} modal>
+                                        <div className='Content'> 
+                                            <div className='CenterFlex'>
+                                                <button className='TabButton' style={{
+                                                    fontSize: '25px'
+                                                }} onClick={async () => {
+                                                    await linkNG();
+                                                    fetchData();
+                                                }}> Press this very small button after you login! </button>
+                                                (A login popup may show up in up to 5 seconds.)
+                                            </div>
+                                        </div>
+                                    </Popup>
+                                </center>
+                            </> : 
+                            <></>
+                        }
                         {
                             data?.friends.length > 0 ?
                                 <>
-                                    <br></br>
                                     <center> <b>Friends</b> </center>
                                     <div className='FrenBox'>
                                         <Friends data={data.friends}></Friends>
@@ -501,16 +628,31 @@ function User() {
                         : <></>}
                         {
                             adminMode && hasAccess('/api/admin/user/ban') ? 
+                            <>
                                 <a title='Ban' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
-                                    if (!window.confirm('Are you sure?'))
+                                    const reason = window.prompt('Reason?');
+                                    if (!reason)
                                         return;
 
-                                    navigate("/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true"));
-                                }} href='##'>
+                                    navigate("/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true") + "&reason=" + encodeURIComponent(reason));
+                                }}>
                                     <button className='SvgButton'>
                                         {(data.role === "Banned" ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
                                     </button>
                                 </a>
+
+                                <a title='Warn' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
+                                    const reason = window.prompt('Reason?');
+                                    if (!reason)
+                                        return;
+
+                                    navigate("/api/admin/user/warn?username=" + encodeURIComponent(name) + "&reason=" + encodeURIComponent(reason));
+                                }}>
+                                    <button className='SvgButton'>
+                                        <Icon width={20} icon="material-symbols:warning-outline" />
+                                    </button>
+                                </a>
+                            </>
                             : <></>
                         }
                         {
@@ -769,7 +911,7 @@ const Friends = (props) => {
 
     if (other.length > 1) {
         children.push(
-            <a title="More" href={"#"} onClick={() => {
+            <a title="More" onClick={() => {
                 setMore(true);
             }}>
                 <div className='FrenAvatar' style={{

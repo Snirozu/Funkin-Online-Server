@@ -49,11 +49,12 @@
     "typescript-eslint": "^8.46.0"
   },
   "dependencies": {
-    "@colyseus/tools": "^0.17.18",
     "@colyseus/core": "^0.17.32",
+    "@colyseus/tools": "^0.17.18",
     "@colyseus/ws-transport": "^0.17.9",
     "@prisma/client": "^5.15.0",
     "@types/nodemailer": "^6.4.15",
+    "axios": "^1.13.5",
     "body-parser": "github:Snirozu/body-parser",
     "canvas": "^3.2.0",
     "chart.js": "^4.4.3",

@@ -7,6 +7,7 @@ import sanitizeHtml from 'sanitize-html';
 import { Data } from "../data";
 import { logAction } from "./mods";
 import { cooldown, cooldownLeft } from "../cooldown";
+import { Request } from "express";
 
 // this class is a mess
 
@@ -37,7 +38,7 @@ export function getIDToken(req:any):Array<string> {
     return [id, secret];
 }
 
-export async function checkAccess(req: any, res: any, next: any) {
+export async function checkAccess(req: Request, res: any, next: any) {
     if (!process.env["DATABASE_URL"]) {
         return res.sendStatus(401);
     }
@@ -61,6 +62,19 @@ export async function checkAccess(req: any, res: any, next: any) {
         if (err) {
             console.error(err);
             return res.sendStatus(403)
+        }
+
+        if (req.ip && !player.ips.includes(req.ip)) {
+            await prisma.user.update({
+                data: {
+                    ips: {
+                        push: req.ip
+                    }
+                },
+                where: {
+                    id: id
+                }
+            });
         }
 
         next()
@@ -538,6 +552,25 @@ export async function acceptJoinClub(clubTag: string, userID: string) {
     });
 }
 
+export async function rejectJoinClub(clubTag: string, userID: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const club = await getClub(clubTag);
+    if (!club.pending.includes(userID))
+        throw { error_message: "The user hasn't sent a request!" }
+
+    await prisma.club.update({
+        where: {
+            tag: clubTag
+        },
+        data: {
+            pending: removeFromArray(club.pending, userID)
+        },
+    });
+}
+
 export async function requestJoinClub(clubTag: string, userID: string) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
@@ -586,7 +619,7 @@ async function formatNewClubTag(tag: string, ignoreTag?: string) {
 
     tag = tag.toUpperCase();
 
-    if (tag != ignoreTag && await getClub(tag))
+    if (tag != ignoreTag.toUpperCase() && await getClub(tag))
         throw { error_message: "Tag taken!" }
 
     return tag;
@@ -730,7 +763,7 @@ export async function getPlayerClub(id: string) {
     }
 }
 
-export async function postClubEdit(tag: string, body: any) {
+export async function postClubEdit(tag: string, body: any, byAdmin?:boolean) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
@@ -752,7 +785,7 @@ export async function postClubEdit(tag: string, body: any) {
 
     body.tag = await formatNewClubTag(body.tag, tag);
 
-    if (body.tag != tag) {
+    if (!byAdmin && body.tag != tag) {
         if (!cooldown('club.'+club.id, 'club.edit.tag'))
             throw { error_message: "You can change the tag in " + cooldownLeft(['club.'+club.id, 'club.edit.tag']) + "s" }
     }
@@ -1308,6 +1341,39 @@ export async function setEmail(id: string, email: string) {
     }));
 }
 
+export async function linkNewgrounds(id: string, ngId: string, ngUrl: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const linkedPlayer = await getPlayerByNGId(ngId);
+    if (linkedPlayer) {
+        await prisma.user.update({
+            data: {
+                ngId: {
+                    set: null
+                },
+                ngUrl: {
+                    set: null
+                }
+            },
+            where: {
+                id: linkedPlayer.id
+            }
+        });
+    }
+
+    return (await prisma.user.update({
+        data: {
+            ngId: ngId,
+            ngUrl: ngUrl
+        },
+        where: {
+            id: id
+        }
+    }));
+}
+
 export async function renamePlayer(id: string, name: string) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
@@ -1503,6 +1569,23 @@ export async function getPlayerByEmail(email: string) {
     }
 }
 
+export async function getPlayerByNGId(ngId: string) {
+    if (!ngId || !process.env["DATABASE_URL"])
+        return null;
+
+    try {
+        return await prisma.user.findFirstOrThrow({
+            where: {
+                ngId: ngId
+            }
+        });
+    }
+    catch (_exc) {
+        // not found
+        return null;
+    }
+}
+
 export async function getLoginPlayerByID(id: string) {
     if (!id || !process.env["DATABASE_URL"])
         return null;
@@ -1516,7 +1599,8 @@ export async function getLoginPlayerByID(id: string) {
             },
             select: {
                 secret: true,
-                role: true
+                role: true,
+                ips: true
             }
         });
     }
@@ -1994,18 +2078,12 @@ export async function removeFriendFromUser(req: any) {
     if (!me.friends.includes(remove.id)) 
         throw { error_message: "Not on friend list" }
 
-    const meFriends = me.friends;
-    meFriends.splice(meFriends.indexOf(remove.id, 0), 1);
-    
-    const removedFriends = remove.friends;
-    removedFriends.splice(removedFriends.indexOf(me.id, 0), 1);
-
     await prisma.user.update({
         where: {
             id: me.id
         },
         data: {
-            friends: meFriends
+            friends: removeFromArray(me.friends, remove.id)
         }
     })
 
@@ -2014,114 +2092,101 @@ export async function removeFriendFromUser(req: any) {
             id: remove.id
         },
         data: {
-            friends: removedFriends
+            friends: removeFromArray(remove.friends, me.id)
         }
     })
 }
 
-export async function requestFriendRequest(req:any) {
-    if (!process.env["DATABASE_URL"]) {
+export async function requestFriendRequest(userId:string, targetId:string) {
+    if (!process.env["DATABASE_URL"])
         throw { error_message: "No database set on the server!" }
-    }
-    
-    // to and from is confusing for me sorry lol
-    // ----- aight whatever did i do here
-    const me = await getPlayerByName(req.query.name as string);
-    const want = await authPlayer(req, false);
 
-    if (!me || !want)
-        throw { error_message: "Player not found" }
-    
-    if (me.id == want.id)
-        throw { error_message: "bro" }
-
-    if (want.friends.includes(me.id)) {
+    const user = await getPlayerByID(userId);
+    if (user.friends.includes(targetId))
         throw { error_message: "Already frens :)" }
-    }
 
-    if (me.pendingFriends.includes(want.id)) {
-        //accept invite, we frens now
-        //https://youtu.be/b858s3ktOsU?si=2nNqP3_VQmqBcVwQ&t=227
+    const target = await getPlayerByID(targetId);
+    if (!target)
+        throw { error_message: "Target not found!" }
 
-        const newMePending = me.pendingFriends;
-        newMePending.splice(newMePending.indexOf(want.id, 0), 1);
-        
+    // targetId already invited userId to be friends!
+    if (user.friendRequests.includes(targetId)) {
         await prisma.user.update({
             data: {
-                pendingFriends: newMePending,
+                friendRequests: removeFromArray(user.friendRequests, targetId),
                 friends: {
-                    push: want.id
+                    push: targetId
                 }
             },
             where: {
-                id: me.id
+                id: userId
             }
         });
-
-        const newPending = want.pendingFriends;
-        newPending.splice(newPending.indexOf(me.id, 0), 1);
 
         await prisma.user.update({
             data: {
-                pendingFriends: newPending,
+                friendRequests: removeFromArray(target.friendRequests, userId),
                 friends: {
-                    push: me.id
+                    push: userId
                 }
             },
             where: {
-                id: want.id
+                id: targetId
             }
         });
 
-        await sendNotification(me.id, {
+        await sendNotification(targetId, {
             title: 'Friend Request Accepted',
-            content: 'You are now friends with ' + want.name + '!',
-            image: '/api/user/avatar/' + encodeURIComponent(want.name),
-            href: '/user/' + encodeURIComponent(want.name)
+            content: 'You are now friends with ' + user.name + '!',
+            image: '/api/user/avatar/' + encodeURIComponent(user.name),
+            href: '/user/' + encodeURIComponent(user.name)
         });
 
-        NetworkRoom.notifyPlayer(want.id, 'You are now friends with ' + me.name + '!');
+        NetworkRoom.notifyPlayer(userId, 'You are now friends with ' + target.name + '!');
 
         return;
     }
 
-    if (!want.pendingFriends.includes(me.id)) {
-        //send invite
+    // send friend request to target
 
-        await sendNotification(me.id, {
-            title: 'Friend Request',
-            content: want.name + ' sent you a friend request!',
-            image: '/api/user/avatar/' + encodeURIComponent(want.name),
-            href: '/user/' + encodeURIComponent(want.name)
-        });
+    if (target.friendRequests.includes(userId))
+        return;
 
-        return await prisma.user.update({
-            data: {
-                pendingFriends: {
-                    push: me.id
-                }
-            },
-            where: {
-                id: want.id
+    await prisma.user.update({
+        data: {
+            friendRequests: {
+                push: userId
             }
-        });
-    }
+        },
+        where: {
+            id: targetId
+        }
+    });
+
+    await sendNotification(targetId, {
+        title: 'Friend Request',
+        content: user.name + ' sent you a friend request!',
+        image: '/api/user/avatar/' + encodeURIComponent(user.name),
+        href: '/user/' + encodeURIComponent(user.name)
+    });
 }
 
-export async function getUserFriends(friends: Array<string>) {
+export async function userIDsToNames(IDs: Array<string>) {
     if (!process.env["DATABASE_URL"]) {
         return null;
     }
 
     const value: Array<string> = [];
-    for (const friendID of friends) {
-        const friend = await getPlayerNameByID(friendID);
+    for (const id of IDs) {
+        const friend = await getPlayerNameByID(id);
+        if (!friend)
+            continue;
         value.push(friend);
     }
     return value;
 }
 
-export async function searchFriendRequests(id:string) {
+export async function getSentFriendRequests(userId:string) {
     if (!process.env["DATABASE_URL"]) {
         return null;
     }
@@ -2129,8 +2194,8 @@ export async function searchFriendRequests(id:string) {
     const value: Array<string> = [];
     for (const pender of await prisma.user.findMany({
         where: {
-            pendingFriends: {
-                has: id
+            friendRequests: {
+                has: userId
             }
         },
         select: {
@@ -2140,6 +2205,29 @@ export async function searchFriendRequests(id:string) {
         value.push(pender.name);
     }
     return value;
+}
+
+export async function getUserWarnings(id:string, isMod:boolean) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const warns = await prisma.userWarning.findMany({
+        where: {
+            on: id
+        },
+        select: {
+            by: isMod,
+            date: true,
+            id: isMod,
+            reason: true
+        }
+    });
+    for (const warn of warns) {
+        if (warn.by)
+            warn.by = await getPlayerNameByID(warn.by);
+    }
+    return warns;
 }
 
 export async function deleteUser(id:string) {
@@ -2175,7 +2263,7 @@ export async function deleteUser(id:string) {
     console.log("Deleted user: " + user.name);
 }
 
-export async function setUserBanStatus(id: string, to: boolean) {
+export async function setUserBanStatus(id: string, to: boolean, reason?: string) {
     if (!id || !process.env["DATABASE_URL"]) {
         return null;
     }
@@ -2187,7 +2275,7 @@ export async function setUserBanStatus(id: string, to: boolean) {
         data: {
             role: to ? 'Banned' : Data.CONFIG.DEFAULT_ROLE,
             bio: {
-                unset: true
+                set: 'This account was banned by a moderator!\nReason: ' + reason
             }
         }
     })
@@ -2268,6 +2356,49 @@ export async function setUserBanStatus(id: string, to: boolean) {
     }
 
     console.log("Set " + id + "'s ban status to " + to);
+}
+
+export async function warnUser(userId: string, byId: string, reason: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const submitter = await getPlayerByID(userId);
+    if (!submitter)
+        throw { error_message: "Not registered!" }
+
+    if (reason.trim().length < 5) {
+        throw { error_message: "Reason too short!" }
+    }
+
+    await sendNotification(userId, {
+        title: 'You have been warned by a moderator!',
+        content: 'Reason: ' + reason
+    });
+
+    await prisma.userWarning.create({
+        data: {
+            reason: reason,
+            by: byId,
+            onRe: {
+                connect: {
+                    id: userId
+                }
+            }
+        }
+    });
+}
+
+export async function removeUserWarn(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    return await prisma.userWarning.delete({
+        where: {
+            id: id
+        }
+    });
 }
 
 export async function uploadClubBanner(tag: string, data: Buffer) {
@@ -2852,14 +2983,14 @@ export async function sendNotification(toID: string, content: NotificationConten
         }
     });
 
-    NetworkRoom.notifyPlayer(toID, '[NOTIFICATION] ' + (content?.content ?? content.title));
+    NetworkRoom.notifyPlayer(toID, (content?.content ?? content.title));
 }
 
 class NotificationContent {
     title: string;
-    content: string;
-    image: string;
-    href: string;
+    content?: string;
+    image?: string;
+    href?: string;
 }
 
 // STRUCTURES
