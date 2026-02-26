@@ -558,7 +558,7 @@ function User() {
                                     <div className='CenterFlex' style={{
                                         marginTop: '2px',
                                     }}>
-                                        <img src="https://www.newgrounds.com/img/icons/favicon.png" style={{
+                                        <img src="/images/ng.png" style={{
                                             width: "25px",
                                             borderRadius: '0px',
                                             padding: '4px',
