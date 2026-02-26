@@ -38,6 +38,8 @@ export function getIDToken(req:any):Array<string> {
     return [id, secret];
 }
 
+const INVALID_IPS = ['::1', '::ffff:127.0.0.1'];
+
 export async function checkAccess(req: Request, res: any, next: any) {
     if (!process.env["DATABASE_URL"]) {
         return res.sendStatus(401);
@@ -64,7 +66,7 @@ export async function checkAccess(req: Request, res: any, next: any) {
             return res.sendStatus(403)
         }
 
-        if (req.ip && !player.ips.includes(req.ip)) {
+        if (req.ip && !INVALID_IPS.includes(req.ip) && !player.ips.includes(req.ip)) {
             await prisma.user.update({
                 data: {
                     ips: {
