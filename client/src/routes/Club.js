@@ -103,7 +103,7 @@ function Club() {
         setClanEditMode(!clanEditMode);
         if (clanEditMode) {
             try {
-                const response = await axios.post(getHost() + '/api/club/edit?tag=' + clubTag, {
+                const response = await axios.post(getHost() + '/api/club/edit?tag=' + data.tag, {
                     content: htmlContent,
                     name: clubName,
                     hue: Number(clubHue),
@@ -134,7 +134,7 @@ function Club() {
         formData.append('file', file);
 
         try {
-            const response = await axios.post(getHost() + '/api/club/banner?tag=' + clubTag, formData, {
+            const response = await axios.post(getHost() + '/api/club/banner?tag=' + data.tag, formData, {
                 headers: {
                     'content-type': 'multipart/form-data',
                     'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken')),
