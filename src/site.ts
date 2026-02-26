@@ -25,6 +25,9 @@ import { AuthRoute } from './network/routes/auth';
 import { cooldownRequest } from './cooldown';
 
 export async function initExpress(app: Application) {
+    // set this to true if you use a proxy like nginx
+    app.set('trust proxy', process.env['EXPRESS_TRUST_PROXY'] == "true");
+
     app.get("/rooms/:roomName?", async (_req, res) => {
         const rooms = await matchMaker.query({
             name: 'room',
