@@ -15,12 +15,9 @@ export function filterUsername(str:string) {
 }
 
 export function getRequestIP(req: AuthContext) {
-    if (req.headers['x-forwarded-for']) {
-        return (req.headers['x-forwarded-for'] as string).split(",")[0].trim();
-    }
-    else {
-        return req.ip[0];
-    }
+    if (Array.isArray(req.ip))
+        return req.ip.toString();
+    return req.ip;
 }
 
 export function formatLog(content:string, hue:number = null, isPM:boolean = false):string {
