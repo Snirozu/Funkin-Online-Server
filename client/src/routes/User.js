@@ -622,40 +622,42 @@ function User() {
                             :
                             <></>
                         }
-                        {hasAccess('/api/admin/user/ban') || hasAccess('/api/admin/score/delete') ?
+                        {hasAccess('/admin') ?
                             <button className='SvgButton' title={adminMode ? "User Mode" : "Admin Mode"} onClick={toggleAdmin}>
                                 {adminMode ? <Icon width={20} icon="mdi:user-box" /> : <Icon width={20} icon="eos-icons:admin" />}
                             </button>
                         : <></>}
                         {
-                            adminMode && hasAccess('/api/admin/user/ban') ? 
-                            <>
-                                <a title='Ban' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
-                                    const reason = window.prompt('Reason?');
-                                    if (!reason)
-                                        return;
+                            adminMode ? (
+                                (hasAccess('/api/admin/user/ban') ? 
+                                    <a title='Ban' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
+                                        const reason = window.prompt('Reason?');
+                                        if (!reason)
+                                            return;
 
-                                    navigate("/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true") + "&reason=" + encodeURIComponent(reason));
-                                    window.location.reload();
-                                }}>
-                                    <button className='SvgButton'>
-                                        {(data.role === "Banned" ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
-                                    </button>
-                                </a>
+                                        navigate("/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true") + "&reason=" + encodeURIComponent(reason));
+                                        window.location.reload();
+                                    }}>
+                                        <button className='SvgButton'>
+                                            {(data.role === "Banned" ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
+                                        </button>
+                                    </a>
+                                : <></>)
+                                (hasAccess('/api/admin/user/warn') ? 
+                                    <a title='Warn' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
+                                        const reason = window.prompt('Reason?');
+                                        if (!reason)
+                                            return;
 
-                                <a title='Warn' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
-                                    const reason = window.prompt('Reason?');
-                                    if (!reason)
-                                        return;
-
-                                    navigate("/api/admin/user/warn?username=" + encodeURIComponent(name) + "&reason=" + encodeURIComponent(reason));
-                                    window.location.reload();
-                                }}>
-                                    <button className='SvgButton'>
-                                        <Icon width={20} icon="material-symbols:warning-outline" />
-                                    </button>
-                                </a>
-                            </>
+                                        navigate("/api/admin/user/warn?username=" + encodeURIComponent(name) + "&reason=" + encodeURIComponent(reason));
+                                        window.location.reload();
+                                    }}>
+                                        <button className='SvgButton'>
+                                            <Icon width={20} icon="material-symbols:warning-outline" />
+                                        </button>
+                                    </a>
+                                : <></>)
+                            )
                             : <></>
                         }
                         {
