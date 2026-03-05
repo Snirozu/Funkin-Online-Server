@@ -469,7 +469,7 @@ function User() {
                         <span className="SmallText"> {timeAgo.format(Date.parse(warn.date))} </span>
                     </div>
                     {
-                        hasAccess('/api/admin/user/ban') ? 
+                        hasAccess('/api/admin/user/warn') ? 
                         <div className='FlexRight'>
                             <button title='Remove Warn' className='SvgNoButton' style={{ color: 'white' }} 
                                 onClick={() => {
