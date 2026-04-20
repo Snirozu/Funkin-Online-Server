@@ -1560,7 +1560,7 @@ export async function getPlayerByEmail(email: string) {
             where: {
                 email: {
                     equals: email,
-                    mode: "default"
+                    mode: "insensitive"
                 }
             }
         });
