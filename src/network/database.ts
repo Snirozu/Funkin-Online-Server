@@ -621,7 +621,7 @@ async function formatNewClubTag(tag: string, ignoreTag?: string) {
 
     tag = tag.toUpperCase();
 
-    if (tag != ignoreTag.toUpperCase() && await getClub(tag))
+    if (tag != (ignoreTag ?? '').toUpperCase() && await getClub(tag))
         throw { error_message: "Tag taken!" }
 
     return tag;
