@@ -29,6 +29,17 @@ function HeadBar() {
     const [error, setError] = useState(null);
     const [topTab, setTopTab] = useState(false);
 
+    function checkMobile() {
+        //element.scrollHeight > element.offsetHeight
+        return window.innerWidth < 1200;
+    }
+    const [isMobile, setMobile] = useState(checkMobile());
+    const [isMenuOpen, setMenuOpen] = useState(false);
+
+    window.addEventListener("resize", () => {
+        setMobile(checkMobile());
+    });
+
     const fetchData = async () => {
         try {
             const response = await axios.get(getHost() + '/api/account/me', {
@@ -65,27 +76,55 @@ function HeadBar() {
     //     </>);
     // }
 
+    let menuItems = (
+        <>
+            {
+            !topTab ? <>
+                <a className='TabButton' href="/network">NETWORK</a>
+                <a className='TabButton' href="/stats">STATS</a>
+                <a className='TabButton' href="/search">SEARCH</a>
+                <a className='TabButton' href="##" onClick={() => {
+                    setTopTab(true);
+                }}>TOP</a>
+                <a className='TabButton' href="/club">CLUB</a>
+                {Cookies.get('authid') ? <a className='TabButton' href="/friends">FRIENDS</a> : <></>}
+                {hasAccess('/admin') ? <a className='TabButton' href="/admin" style={{ color: 'tomato' }}>ADMIN</a> : <></>}
+            </> : 
+            <>
+                <a className='TabButton' href="/top/players">PLAYERS</a>
+                <a className='TabButton' href="/top/clubs">CLUBS</a>
+            </>
+            }
+        </>
+    )
+
     return (
         <>
-            <div className="Bar" onMouseLeave={() => {
+            {isMenuOpen && isMobile ? <> 
+                <div onClick={() => {
+                    setMenuOpen(false);
+                }} style={{
+                    backgroundColor: '#0000002d',
+                    position: 'fixed',
+                    top: '0px',
+                    width: '100%',
+                    height: '100%',
+                    zIndex: '150',
+                }}>
+                </div> 
+                <div style={{top: '60px'}} id="TopBarMenu">
+                    {menuItems}
+                </div> 
+            </> : <></>}
+            <div id="bar" className="Bar" onMouseLeave={() => {
                 setTopTab(false);
             }}>
                 <a href="/" style={{ display: 'flex', height: '45px', width: '45px' }}><img alt="HOME" src='/images/locon.png'></img></a>
                 {
-                    !topTab ? <>
-                        <a className='TabButton' href="/network">NETWORK</a>
-                        <a className='TabButton' href="/stats">STATS</a>
-                        <a className='TabButton' href="/search">SEARCH</a>
-                        <a className='TabButton' href="##" onClick={() => {
-                            setTopTab(true);
-                        }}>TOP</a>
-                        <a className='TabButton' href="/club">CLUB</a>
-                        {Cookies.get('authid') ? <a className='TabButton' href="/friends">FRIENDS</a> : <></>}
-                        {hasAccess('/admin') ? <a className='TabButton' href="/admin" style={{ color: 'tomato' }}>ADMIN</a> : <></>}
-                    </> : 
-                    <>
-                        <a className='TabButton' href="/top/players">PLAYERS</a>
-                        <a className='TabButton' href="/top/clubs">CLUBS</a>
+                    !isMobile ? (
+                        menuItems
+                    ) : <>
+                        <a className='TabButton' onClick={() => setMenuOpen(true)}> ☰ MENU </a>
                     </>
                 }
                 {loading ? (

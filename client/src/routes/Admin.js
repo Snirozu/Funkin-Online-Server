@@ -6,8 +6,12 @@ import axios from 'axios';
 
 function Admin() {
     const [reports, setReports] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [reportsLoading, setReportsLoading] = useState(true);
+    const [reportsError, setReportsError] = useState(null);
+
+    const [warneds, setWarned] = useState(null);
+    const [warnedLoading, setWarnedLoading] = useState(true);
+    const [warnedError, setWarnedError] = useState(null);
 
     const fetchReports = async () => {
         try {
@@ -20,16 +24,38 @@ function Admin() {
                 throw new Error('Could not load reports.');
             }
             const data = await response.json();
-            setError(null);
+            setReportsError(null);
             setReports(data);
-            setLoading(false);
+            setReportsLoading(false);
         } catch (error) {
-            setError(error.message);
-            setLoading(false);
+            setReportsError(error.message);
+            setReportsLoading(false);
         }
     };
+
+    const fetchWarned = async () => {
+        try {
+            const response = await fetch(getHost() + '/api/admin/user/warn/list', {
+                headers: {
+                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                }
+            });
+            if (!response.ok) {
+                throw new Error('Could not load warned players.');
+            }
+            const data = await response.json();
+            setWarnedError(null);
+            setWarned(data);
+            setWarnedLoading(false);
+        } catch (error) {
+            setWarnedError(error.message);
+            setWarnedLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchReports();
+        fetchWarned();
     }, []);
 
     async function removeReport(id, index) {
@@ -122,16 +148,55 @@ function Admin() {
             );
         }
 
+    var warnedBody = [];
+    if (warneds) {
+        for (const [player, warns] of Object.entries(warneds)) {
+            const warnsBody = [];
+            let maxDate = 0;
+
+            for (const warn of warns) {
+                warnsBody.push(<li>
+                    {warn.reason} 
+                    <span className="SmallText"> {timeAgo.format(Date.parse(warn.date))} </span>
+                </li>);
+                maxDate = Math.max(Date.parse(warn.date));
+            }
+
+            warnedBody.push(
+                <div className="Comment" warnDate={maxDate}>
+                    <img style={{ maxWidth: '60px', maxHeight: '60px' }} src={getHost() + '/api/user/avatar/' + player} alt=''></img>
+                    <div>
+                        <a href={'/user/' + player}> {player} <br></br> </a>
+                        <ul>
+                            {warnsBody}
+                        </ul>
+                    </div>
+                </div>
+            );
+        }
+    }
+
+    warnedBody.sort((a, b) => {
+        return b.props.warnDate - a.props.warnDate
+    })
+
     return (
         <div className='Content'>
             <div>
                 <h2> welcom to teh awsome admin <img height={40} src="images/peael.png" alt=''></img> {Cookies.get('username').toLowerCase()} </h2>
                 <h3> Reports: </h3>
                 {
-                    loading ? <center> Loading... </center> :
-                        error ? <center> Error: {error} </center> :
+                    reportsLoading ? <center> Loading... </center> :
+                        reportsError ? <center> Error: {reportsError} </center> :
                             reportsBody.length === 0 ? <center> None. </center> :
                                 reportsBody
+                }
+                <h3> Warned Players: </h3>
+                {
+                    warnedLoading ? <center> Loading... </center> :
+                        warnedError ? <center> Error: {warnedError} </center> :
+                            warnedBody.length === 0 ? <center> None. </center> :
+                                warnedBody
                 }
             </div>
         </div>
@@ -144,7 +209,9 @@ function ScoreReport(props) {
     async function fetchData() {
         const response = await fetch(getHost() + '/api/score/replay?id=' + props.id);
         if (!response.ok) {
-            throw new Error('Could not fetch replay.\n' + await response.text());
+            // throw new Error('Could not fetch replay.\n' + await response.text());
+            setData(undefined);
+            return;
         }
         setData(await response.json());
     }
@@ -159,7 +226,7 @@ function ScoreReport(props) {
             on
             <a href={'/song/' + data.songId + '?strum=' + (data.opponent_mode ? 1 : 2)}> {data.song + '-' + data.difficulty} </a>
         </> : <>
-            <> fetching </>
+            <> replay not found? </>
         </>}
     </>;
 }

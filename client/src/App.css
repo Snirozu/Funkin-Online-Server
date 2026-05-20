@@ -133,6 +133,27 @@ a:hover {
   padding: 5px;
 }
 
+#TopBarMenu {
+  position: fixed;
+  top: 0px;
+  padding: 20px;
+  background-color: #141414;
+  opacity: 0.95;
+  z-index: 1000;
+  display: inline;
+  font-size: 30px;
+  line-height: 60px;
+}
+
+#TopBarMenu > *::after {
+  content: '\A';
+  white-space: pre;
+}
+
+#TopBarMenu > * {
+  word-wrap: normal;
+}
+
 .Bar {
   /* background: var(--head-profile-color); */
   background-color: #141414;
@@ -149,7 +170,7 @@ a:hover {
   height: 50px;
   transition: 0.2s;
   position: fixed;
-  z-index: 9999;
+  z-index: 100;
   top: 0px;
 }
 
@@ -398,6 +419,12 @@ a:hover {
 
   margin-left: auto;
   margin-right: auto;
+}
+
+ul {
+  padding-left: 25px;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 
 td {

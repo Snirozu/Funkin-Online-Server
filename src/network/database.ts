@@ -2232,6 +2232,57 @@ export async function getUserWarnings(id:string, isMod:boolean) {
     return warns;
 }
 
+export async function getLookForWarned() {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const warnedObj = {};
+
+    // let orBody:any[] = [{
+    //     report: isReport
+    // }];
+    // if (!isReport) {
+    //     orBody.push({
+    //         report: {
+    //             isSet: false
+    //         }
+    //     });
+    // }
+
+    const warns = await prisma.userWarning.findMany({
+        // where: {
+        //     OR: orBody
+        // },
+        select: {
+            on: true,
+            reason: true,
+            date: true
+        }
+    });
+    for (const warn of warns) {
+        const _role = await prisma.user.findUnique({
+            where: {
+                id: warn.on
+            },
+            select: {
+                role: true
+            }
+        });
+
+        if (_role.role == 'Banned')
+            continue;
+
+        warnedObj[await getPlayerNameByID(warn.on)] ??= [];
+        warnedObj[await getPlayerNameByID(warn.on)].push({
+            reason: warn.reason,
+            date: warn.date
+        });
+    }
+
+    return warnedObj;
+}
+
 export async function deleteUser(id:string) {
     if (!id || !process.env["DATABASE_URL"]) {
         return null;

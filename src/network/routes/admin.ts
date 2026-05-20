@@ -2,7 +2,7 @@ import { matchMaker } from 'colyseus';
 import { Application, Express } from 'express';
 import { Data } from '../../data';
 import { NetworkRoom } from '../../rooms/NetworkRoom';
-import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma, warnUser, removeUserWarn, topScores, getScore, getReplayFile } from '../database';
+import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma, warnUser, removeUserWarn, topScores, getScore, getReplayFile, getLookForWarned } from '../database';
 import dotenv from 'dotenv';
 import { logActionOnRequest } from '../mods';
 import fs from 'fs';
@@ -103,7 +103,9 @@ export class AdminRoute {
             }
             catch (exc) {
                 console.error(exc);
-                res.sendStatus(500);
+                res.status(400).json({
+                    error: exc.error_message ?? "Couldn't create a club..."
+                });
             }
         });
 
@@ -111,6 +113,16 @@ export class AdminRoute {
             try {
                 await removeUserWarn(req.query.id as string);
                 return res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
+        app.get("/api/admin/user/warn/list", checkAccess, logActionOnRequest, async (req, res) => {
+            try {
+                return res.status(200).send(await getLookForWarned());
             }
             catch (exc) {
                 console.error(exc);

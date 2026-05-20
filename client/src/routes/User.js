@@ -645,18 +645,11 @@ function User() {
                         }
                         {
                             adminMode && hasAccess('/api/admin/user/warn') ? 
-                                <a title='Warn' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
-                                    const reason = window.prompt('Reason?');
-                                    if (!reason)
-                                        return;
-
-                                    navigate("/api/admin/user/warn?username=" + encodeURIComponent(name) + "&reason=" + encodeURIComponent(reason));
-                                    window.location.reload();
-                                }}>
-                                    <button className='SvgButton'>
-                                        <Icon width={20} icon="material-symbols:warning-outline" />
-                                    </button>
-                                </a>
+                                <Popup trigger={<button className='SvgButton'> <Icon width={20} icon="material-symbols:warning-outline" /> </button>} modal>
+                                    <div className='Content' style={{minWidth: '600px'}}> 
+                                        <WarnPad></WarnPad>
+                                    </div>
+                                </Popup>
                             : <></>
                         }
                         {
@@ -724,6 +717,95 @@ function User() {
                     </div>
                 </>
             )}
+        </div>
+    );
+}
+
+function WarnPad() {
+    let { name } = useParams();
+    name = decodeURIComponent(name);
+
+    const navigate = useNavigate();
+    const [warnReason, setWarnReason] = useState('');
+    const [warnReport, setWarnReport] = useState(true);
+    const [warnDuration, setWarnDuration] = useState(0);
+
+    const [postStatus, setPostStatus] = useState(undefined);
+
+    // to consider
+    function DurationSelect(props) {
+        const options = [];
+        const categoryMap = new Map([
+            ['day', undefined],
+            ['3 days', undefined],
+            ['permament', undefined],
+        ]);
+
+        categoryMap.forEach((v, k) => {
+            if (props.v == v)
+                options.push(<option v={v} selected>{k}</option>);
+            else
+                options.push(<option v={v}>{k}</option>);
+        });
+
+        return (<select id='category' onChange={props.onSelect ? (e) => {
+            props.onSelect(e.target.options[e.target.selectedIndex].getAttribute('v'));
+        } : undefined}> {options} </select>);
+    }
+
+    return (
+        <div style={{textAlign: 'center'}}>
+            <h2>
+                Add a warning:
+            </h2>
+            <label>
+                Reason:<br></br>
+                <textarea style={{fontSize: '18px'}} className="SeamlessInput" value={warnReason} onChange={e => {
+                    setWarnReason(e.target.value);
+                }}></textarea>
+            </label>
+            <br></br>
+            <label>
+                Report to Moderators Feed
+                <input type="checkbox" checked={warnReport} onChange={e => {
+                    setWarnReport(e.target.checked);
+                }}></input>
+            </label>
+            {/* <label>
+                Duration:&nbsp;
+                <DurationSelect onSelect={(duration) => {
+                    setWarnDuration(duration);
+                }} />
+            </label> */}
+            <br></br>
+            <br></br>
+            {
+                !postStatus ?
+                    <button onClick={async () => {
+                        setPostStatus('Posting...');
+                        try {
+                            const response = await axios.get(getHost() + "/api/admin/user/warn?username=" + encodeURIComponent(name) + "&reason=" + encodeURIComponent(warnReason) + "&report=" + (warnReport ? 'true' : 'false'), {
+                                headers: {
+                                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                                },
+                                responseType: 'json', transformResponse: (body) => {
+                                    try { return JSON.parse(body) } catch (exc) { return null; }
+                                }, validateStatus: () => true
+                            });
+
+                            if (response.status !== 200) {
+                                setPostStatus(undefined);
+                                throw response.data.error;
+                            }
+                            setPostStatus('Posted!');
+                            window.location.reload();
+                        } catch (error) {
+                            setPostStatus(undefined);
+                            alert(error);
+                        }
+                    }}> Add Warning </button>
+                : <> {postStatus} </>
+            }
         </div>
     );
 }
