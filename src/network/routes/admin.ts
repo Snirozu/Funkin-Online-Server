@@ -2,11 +2,12 @@ import { matchMaker } from 'colyseus';
 import { Application, Express } from 'express';
 import { Data } from '../../data';
 import { NetworkRoom } from '../../rooms/NetworkRoom';
-import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma, warnUser, removeUserWarn } from '../database';
+import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma, warnUser, removeUserWarn, topScores, getScore, getReplayFile } from '../database';
 import dotenv from 'dotenv';
 import { logActionOnRequest } from '../mods';
 import fs from 'fs';
 import { clearCooldowns } from '../../cooldown';
+import { NetNoteType, NetSong, Rating } from '../../chart_calc';
 
 export class AdminRoute {
     static init(app: Application) {
@@ -365,6 +366,334 @@ export class AdminRoute {
             catch (exc) {
                 console.error(exc);
                 res.sendStatus(500);
+            }
+        });
+
+        // very WIP
+        // input doesn't work and sustains are not properly counted 
+        app.post("/api/admin/song/submit", checkAccess, async (req, res) => {
+            try {
+                const song:NetSong = req.body;
+
+                // fs.writeFileSync('net_song.json', JSON.stringify(song));
+
+                const defaultNoteType:NetNoteType = {
+                    blockHit: false,
+                    hitCausesMiss: false,
+                    ignoreNote: false,
+                    lowPriority: false,
+                    name: null,
+                    ratingDisabled: false
+                };
+                function getNoteType(name:string):NetNoteType {
+                    for (const noteType of song.noteTypes) {
+                        if (noteType.name == name)
+                            return noteType;
+                    }
+                    return defaultNoteType;
+                }
+                
+                const top = await topScores(song.id, 2, 0, song.keys);
+
+                const netScore = await getScore(top[0].id);
+                if (!netScore)
+                    return res.sendStatus(404);
+
+                const file = await getReplayFile(netScore.replayFileId);
+                if (!file)
+                    return res.sendStatus(404);
+
+                const replay = JSON.parse(file.data.toString());
+                console.log(file.id);
+
+                function inputNameToStrum(inputName:string) {
+                    if (inputName.includes('k_note_')) {
+                        return Number.parseInt(inputName.substring(inputName.lastIndexOf('_') + 1));
+                    }
+
+                    switch (inputName) {
+                        case 'note_left': return 0;
+                        case 'note_down': return 1;
+                        case 'note_up': return 2;
+                        case 'note_right': return 3;
+                        default: return -1;
+                    }
+                }
+
+                function sortHitNotes(a:any[], b:any[]):number {
+                    if (a[1].lowPriority && !b[1].lowPriority)
+                        return 1;
+                    else if (!a[1].lowPriority && b[1].lowPriority)
+                        return -1;
+
+                    let result = 0;
+                    if (a[0][0] < b[0][0]) {
+                        result = -1;
+                    }
+                    else if (a[0][0] > b[0][0]) {
+                        result = 1;
+                    }
+
+                    return result;
+                }
+
+                const playbackRate:number = replay.gameplay_modifiers['songspeed'] ?? 1;
+                let songSpeed = song.speed;
+                switch(replay.gameplay_modifiers['scrolltype']) {
+                    case "multiplicative":
+                        songSpeed = song.speed * replay.gameplay_modifiers['scrollspeed'];
+                        break;
+                    case "constant":
+                        songSpeed = replay.gameplay_modifiers['scrollspeed'];
+                        break;
+                }
+
+                const stepCrochet = (60 / song.bpm) * 1000 / 4;
+
+                const safeFrames = 10; // replay data also stores it
+		        const safeZoneOffset = (safeFrames / 60) * 1000 * playbackRate;
+		        const noteKillOffset = Math.max(stepCrochet, 350 / songSpeed * playbackRate);
+
+                const holdArray = [];
+                const holdArrayTime = [];
+                let songPosition = 0;
+
+                const notes = song.notes.at(0).concat();
+                notes.sort((a, b) => {
+                    let result = 0;
+                    if (a[0] < b[0]) {
+                        result = -1;
+                    }
+                    else if (a[0] > b[0]) {
+                        result = 1;
+                    }
+                    return result;
+                });
+
+                let removeNoteQueue = [];
+                function removeNote(note:any[]) {
+                    removeNoteQueue.push(note);
+                }
+
+                function forEachAliveNote() {
+                    const aliveNotes = [];
+                    for (const note of notes) {
+                        if (removeNoteQueue.includes(note))
+                            continue;
+
+                        const strumTime:number = note[0], noteData:number = note[1], sustainLength:number = note[2], noteType:string = note[3];
+
+                        const canBeHit = (strumTime > songPosition - (safeZoneOffset) && strumTime < songPosition + (safeZoneOffset));
+                        const tooLate = strumTime < songPosition - safeZoneOffset;
+                        const missed = songPosition - strumTime > noteKillOffset;
+
+                        // you're spared, for now
+                        if (!canBeHit && !tooLate && !missed)
+                            break;
+
+                        aliveNotes.push(note);
+                    }
+                    return aliveNotes;
+                }
+
+                const ratingsData = Rating.loadDefault();
+                function judgeNote(diff:number):Rating {
+                    for (let i = 0; i < ratingsData.length - 1; i++) { //skips last window (Shit)
+                        if (diff <= ratingsData[i].hitWindow)
+                            return ratingsData[i];
+                    }
+
+                    return ratingsData[ratingsData.length - 1];
+                }
+
+                let combo = 0;
+                let score = 0;
+                let sicks = 0;
+                let goods = 0;
+                let bads = 0;
+                let shits = 0;
+                let misses = 0;
+
+                let totalPlayed = 0;
+                let totalNotesHit = 0;
+                let hits = 0;
+
+                function goodNoteHit(note:any[]) {
+                    // console.log('g: ' + note[0]);
+                    const strumTime:number = note[0], noteData:number = note[1], sustainLength:number = note[2], noteType:string = note[3];
+                    const isSustainNote = sustainLength == -1; // if this note is a tail then the sustainLength will be -1
+                    const noteInfo = getNoteType(noteType);
+
+                    if (noteInfo.hitCausesMiss) {
+                        noteMiss(note);
+
+                        if (!isSustainNote) {
+                            removeNote(note);
+                        }
+                        return;
+                    }
+                    
+                    if (isSustainNote) {
+                        removeNote(note);
+                        return;
+                    }
+
+                    combo++;
+                    if(combo > 9999) combo = 9999;
+
+		            const noteDiffNoAbs:number = strumTime - songPosition;
+		            const noteDiff:number = Math.abs(noteDiffNoAbs);
+                    
+                    let addScore = 350;
+                    var daRating:Rating = judgeNote(noteDiff / playbackRate);
+		            totalNotesHit += daRating.ratingMod;
+                    if(!noteInfo.ratingDisabled) daRating.hits++;
+                    addScore = daRating.score;
+
+                    score += addScore;
+                    switch (daRating.name) {
+                        case "sick":
+                            sicks++;
+                            break;
+                        case "good":
+                            goods++;
+                            break;
+                        case "bad":
+                            bads++;
+                            break;
+                        case "shit":
+                            shits++;
+                            combo = 0;
+                            break;
+                    }
+
+                    if(!noteInfo.ratingDisabled)
+                    {
+                        hits++;
+                        totalPlayed++;
+                    }
+
+                    removeNote(note);
+                }
+
+                function noteMiss(daNote:any[]) {
+                    console.log('b: ' + daNote[0]);
+                    //Dupe note remove
+                    for (const note of forEachAliveNote()) {
+                        if (note != daNote && daNote[1] == note[1] && (daNote[2] == -1) == (note[2] == -1) && Math.abs(daNote[0] - note[0]) < 1) {
+                            removeNote(note);
+                        }
+                    }
+
+                    combo = 0;
+                    score -= 10;
+                    misses++;
+                    totalPlayed++;
+
+                    removeNote(daNote);
+                }
+
+                // sort by time
+                replay.inputs.sort((a, b) => {
+                    let result = 0;
+                    if (a[0] < b[0]) {
+                        result = -1;
+                    }
+                    else if (a[0] > b[0]) {
+                        result = 1;
+                    }
+                    return result;
+                });
+
+                for (const rawInput of replay.inputs) {
+                    songPosition = rawInput[0];// + (replay.note_offset ?? 0);
+
+                    const inputName:string = rawInput[1], key:number = inputNameToStrum(rawInput[1]), isJustPressed:boolean = rawInput[2] == 0;
+
+                    if (key < 0) {
+                        // console.log(rawInput[1]);
+                        continue;
+                    }
+
+                    const prevHold = holdArray[key];
+                    holdArray[key] = isJustPressed;
+                    if (isJustPressed)
+                        holdArrayTime[key] = songPosition;
+
+                    const sortedNotesList = [];
+                    for (const note of forEachAliveNote()) {
+                        const strumTime:number = note[0], noteData:number = note[1], sustainLength:number = note[2], noteType:string = note[3];
+
+                        const isSustainNote = sustainLength == -1; // if this note is a tail then the sustainLength will be -1
+                        const canBeHit = (strumTime > songPosition - (safeZoneOffset) && strumTime < songPosition + (safeZoneOffset));
+                        const tooLate = strumTime < songPosition - safeZoneOffset;
+                        const missed = songPosition - strumTime > noteKillOffset;
+                        const noteInfo = getNoteType(noteType);
+
+                        // good TAIL note hit
+                        if (isSustainNote && ((holdArray[key] && canBeHit && !tooLate) || (prevHold && strumTime >= holdArrayTime[key])) && !noteInfo.blockHit) {
+                            goodNoteHit(note);
+                            continue;
+                        }
+
+                        // missed note, can't be hit
+                        if (missed) {
+                            // console.log(songPosition, strumTime);
+                            if (!noteInfo.ignoreNote && tooLate)
+                                noteMiss(note);
+                            else
+                                removeNote(note);
+                            continue;
+                        }
+
+                        // check if a REGULAR note can be hit and then add it to 'considering' array
+                        if (isJustPressed && canBeHit && !tooLate && !isSustainNote && !noteInfo.blockHit) {
+                            if(noteData == key) sortedNotesList.push([note, noteInfo]);
+                        }
+                    }
+                    sortedNotesList.sort(sortHitNotes);
+
+                    // regular notes
+				    const pressNotes:Array<any[]> = [];
+				    let notesStopped:boolean = false;
+                    if (sortedNotesList.length > 0) {
+                        for (const _epicNote of sortedNotesList) {
+                            const rawNote:any[] = _epicNote[0], noteInfo:NetNoteType = _epicNote[1];
+
+                            for (const doubleNote of pressNotes) {
+                                if (Math.abs(doubleNote[0] - rawNote[0]) < 1)
+                                    removeNote(doubleNote);
+                                else
+                                    notesStopped = true;
+                            }
+
+                            if (!notesStopped) {
+                                goodNoteHit(rawNote);
+                                pressNotes.push(rawNote);
+                            }
+
+                        }
+                    }
+
+                    for (const note of removeNoteQueue) {
+                        const i = notes.indexOf(note);
+                        if (i != -1)
+                            notes.splice(i, 1);
+                    }
+                    removeNoteQueue = [];
+                }
+
+                console.log(combo, score);
+                console.log(sicks, goods, bads, shits, misses);
+                console.log(totalPlayed, totalNotesHit, hits);
+
+                res.sendStatus(200);
+            }
+            catch (exc: any) {
+                console.error(exc);
+                res.status(400).json({
+                    error: exc.error_message ?? "Couldn't submit..."
+                });
             }
         });
     }
