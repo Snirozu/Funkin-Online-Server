@@ -3,6 +3,20 @@ import { Data } from "./data";
 import { getPlayerIDByName, getPlayerNameByID } from "./network/database";
 import { GameRoom } from "./rooms/GameRoom";
 
+export async function chunkifyArrayForCallback(array:any[], callback: (chunk: any[])=>void | Promise<void>, chunkSize:number = 100) {
+    while (array.length > 0) {
+        const chunk = array.splice(0, 100);
+        // try {
+        await callback(chunk);
+        // }
+        // catch (exc) {
+        //     console.error(exc);
+        //     array = array.concat(chunk);
+        //     continue;
+        // }
+    }
+}
+
 const songNameRegex = /[A-Z]|[a-z]|[0-9]/g;
 const userNameRegex = /[^<>\r\n\t]+/g;
 

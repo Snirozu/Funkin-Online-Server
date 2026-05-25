@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { PrismaClient } from '@prisma/client'
 import * as crypto from "crypto";
-import { filterSongName, filterUsername, formatLog, hasOnlyLettersAndNumbers, ordinalNum, removeFromArray, validCountries } from "../util";
+import { chunkifyArrayForCallback, filterSongName, filterUsername, formatLog, hasOnlyLettersAndNumbers, ordinalNum, removeFromArray, validCountries } from "../util";
 import { NetworkRoom } from "../rooms/NetworkRoom";
 import sanitizeHtml from 'sanitize-html';
 import { Data } from "../data";
@@ -341,6 +341,7 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
     }
 }
 
+//TODO VERY RESOURCE HEAVY
 export async function updatePlayerStats(id: string, keys?: Array<number> | number) {
     if (!keys) {
         keys = KEYS_LIST;
@@ -1119,15 +1120,17 @@ export async function removeScore(scores: string | string[], logInfo: boolean = 
             throw { error_message: "Unauthorized!" }
     }
 
-    debugPrint('deleting scores');
+    debugPrint('deleting ' + scoreIds.length + ' scores');
 
-    await prisma.score.deleteMany({
-        where: {
-            id: {
-                in: scoreIds
-            }
-        },
-    })
+    await chunkifyArrayForCallback(scoreIds, async chunk => {
+        await prisma.score.deleteMany({
+            where: {
+                id: {
+                    in: chunk
+                }
+            },
+        })
+    });
     
     debugPrint('updating player stats');
 
@@ -1143,25 +1146,15 @@ export async function removeScore(scores: string | string[], logInfo: boolean = 
 
     debugPrint('deleting replays');
 
-    try {
+    await chunkifyArrayForCallback(replays, async chunk => {
         await prisma.fileReplay.deleteMany({
             where: {
                 id: {
-                    in: replays
+                    in: chunk
                 }
-            }
-        });
-    }
-    catch (exc) {
-        console.error(exc);
-        for (const replay of replays) {
-            await prisma.fileReplay.delete({
-                where: {
-                    id: replay
-                }
-            })
-        }
-    }
+            },
+        })
+    });
 
     debugPrint('finished removing scores!');
 }

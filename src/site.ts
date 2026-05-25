@@ -154,12 +154,16 @@ export async function initExpress(app: Application) {
         const WEEK_TIME_MS = 604800000;
 
         // every second
-        if (process.env["PRODUCTION_MODE"] == "true") {
+        if (process.env["PRODUCTION_MODE"] == "true" || true) {
             setInterval(async function () {
                 if (Date.now() >= Data.PERSIST.props.NEXT_WEEKLY_DATE) {
                     console.log('NEXT WEEK!');
 
                     Data.PERSIST.props.NEXT_WEEKLY_DATE += WEEK_TIME_MS;
+                    while (Date.now() >= Data.PERSIST.props.NEXT_WEEKLY_DATE) {
+                        Data.PERSIST.props.NEXT_WEEKLY_DATE += WEEK_TIME_MS;
+                        console.log('skipping week ahead!');
+                    }
                     Data.PERSIST.save();
 
                     async function getPlaceMessage(stats: any) {
