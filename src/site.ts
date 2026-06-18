@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { endWeekly, getClub, getPlayerByName, getPlayerClubTag, getPlayerNameByID, getUserStats, getSong, hasAvatar, topPlayers } from "./network/database";
+import { endWeekly, getClub, getPlayerByName, getPlayerClubTag, getPlayerNameByID, getUserStats, getSong, hasAvatar, topPlayers, getMod } from "./network/database";
 import cookieParser from "cookie-parser";
 import express, { Request, Response, Express, Application } from 'express';
 import fileUpload from "express-fileupload";
@@ -236,6 +236,15 @@ async function showIndex(req: Request, res: Response) {
             params[i] = decodeURIComponent(param);
         }
         switch (params[0]) {
+            case "mod": {
+                const mod = await getMod(params[1]);
+                if (!mod)
+                    break;
+                title = mod.title;
+                description = mod.favorited.length + 'Likes | ' + mod.downloadsHits + 'Downloads' + '\n' + mod.description;
+                image = mod.images[0];
+                break;
+            }
             case "user": {
                 const player = await getPlayerByName(params[1]);
                 const stats = await getUserStats(player.id);
