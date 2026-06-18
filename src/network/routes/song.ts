@@ -20,7 +20,8 @@ export class SongRoute {
                     cmts.push({
                         player: await getPlayerNameByID(comment.by),
                         content: comment.content,
-                        at: comment.at
+                        at: comment.at,
+                        submitted: comment.submitted
                     });
                 }
                 res.send(cmts);

@@ -121,7 +121,7 @@ model SongComment {
   by        String @db.ObjectId
   song      Song   @relation(fields: [songid], references: [id])
   songid    String
-  submitted DateTime @default(now())
+  submitted DateTime? @default(now())
 }
 
 model Club {
@@ -205,7 +205,7 @@ model Mod {
   description    String
   downloads      ModDownload[]
   downloadHits   BigInt?
-  updated        DateTime @updatedAt
+  updated        DateTime? @updatedAt
 }
 
 model ModDownload {
