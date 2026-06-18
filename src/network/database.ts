@@ -493,7 +493,6 @@ export async function submitDownloadForMod(id: string, urls: string[], forModId:
                 }
             }
         },
-        select: {}
     });
 }
 
@@ -510,7 +509,6 @@ export async function editDownloadForMod(data:any) {
             urls: data.urls,
             size: BigInt(await fetchSizeForURLs(data.urls))
         },
-        select: {}
     })
 }
 
@@ -558,7 +556,6 @@ export async function removeDownloadForMod(id: string) {
                 }
             }
         },
-        select: {}
     })
 }
 
@@ -655,14 +652,12 @@ export async function giveDownloadURL(id: string) {
                 },
                 data: {
                     hits: download.hits
-                },
-                select: {}
+                }
             });
             await prisma.mod.update({
                 where: {
                     id: download.modID
                 },
-                select: {},
                 data: {
                     downloadHits: await getModDownloadHits(download.modID)
                 }
@@ -772,7 +767,6 @@ export async function editMod(data: any) {
             keywords: data.keywords,
             images: data.images,
         },
-        select: {}
     }));
 }
 
@@ -792,7 +786,6 @@ export async function deleteMod(data: any) {
         where: {
             id: data.id,
         },
-        select: {}
     });
 }
 
@@ -823,7 +816,6 @@ export async function toggleFavMod(userID: string, modID:string, forceRemove: bo
                 set: favorited
             }
         },
-        select: {}
     }));
 }
 
@@ -1703,7 +1695,6 @@ export async function resetSecret(id: string) {
         where: {
             id: id
         },
-        select: {}
     }));
 }
 
