@@ -114,13 +114,14 @@ model Report {
 }
 
 model SongComment {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
-  content String
-  at      Float
-  userRe  User   @relation(fields: [by], references: [id])
-  by      String @db.ObjectId
-  song    Song   @relation(fields: [songid], references: [id])
-  songid  String
+  id        String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  content   String
+  at        Float
+  userRe    User   @relation(fields: [by], references: [id])
+  by        String @db.ObjectId
+  song      Song   @relation(fields: [songid], references: [id])
+  songid    String
+  submitted DateTime @default(now())
 }
 
 model Club {
@@ -203,6 +204,8 @@ model Mod {
   title          String
   description    String
   downloads      ModDownload[]
+  downloadHits   BigInt?
+  updated        DateTime @updatedAt
 }
 
 model ModDownload {

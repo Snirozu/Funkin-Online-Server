@@ -1,7 +1,7 @@
 import { UploadedFile } from "express-fileupload";
 import { Data } from "../../data";
 import { isUserIDInRoom, findPlayerSIDByNID } from "../../util";
-import { checkAccess, getIDToken, pingPlayer, getPlayerClubTag, getPlayerByID, getPlayerProfileHue, getPlayerNameByID, uploadAvatar, uploadBackground, removeImages, setPlayerBio, renamePlayer, deleteUser, getPlayerByEmail, setEmail, validateEmail, getNotifications, deleteNotification, getNotificationsCount, getUserStats, linkNewgrounds, userIDsToNames, getSentFriendRequests } from "../database";
+import { checkAccess, getIDToken, pingPlayer, getPlayerClubTag, getPlayerByID, getPlayerProfileHue, getPlayerNameByID, uploadAvatar, uploadBackground, removeImages, setPlayerBio, renamePlayer, deleteUser, getPlayerByEmail, setEmail, validateEmail, getNotifications, deleteNotification, getNotificationsCount, getUserStats, linkNewgrounds, userIDsToNames, getSentFriendRequests, resetSecret } from "../database";
 import { Application, Express } from 'express';
 import { emailCodes, generateCode, tempSetCode, sendCodeMail } from "../email";
 import { setCooldown } from "../../cooldown";
@@ -423,6 +423,18 @@ export class AccountRoute {
                 ngSessions.delete(id);
                 await linkNewgrounds(id, null, null);
 
+                res.sendStatus(200);
+            }
+            catch (exc) {
+                console.error(exc);
+                res.status(400).send(exc?.error_message ?? "Unknown error...");
+            }
+        });
+
+        app.get("/api/account/resetsecret", checkAccess, async (req, res) => {
+            try {
+                const [id] = getIDToken(req);
+                await resetSecret(id);
                 res.sendStatus(200);
             }
             catch (exc) {

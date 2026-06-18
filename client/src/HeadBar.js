@@ -31,7 +31,7 @@ function HeadBar() {
 
     function checkMobile() {
         //element.scrollHeight > element.offsetHeight
-        return window.innerWidth < 1200;
+        return window.innerWidth < 1400;
     }
     const [isMobile, setMobile] = useState(checkMobile());
     const [isMenuOpen, setMenuOpen] = useState(false);
@@ -84,6 +84,7 @@ function HeadBar() {
                 <a className='TabButton' href="/stats">STATS</a>
                 <a className='TabButton' href="/rules">RULES</a>
                 <a className='TabButton' href="/search">SEARCH</a>
+                <a className='TabButton' href="/mods">MODS</a>
                 <a className='TabButton' href="##" onClick={() => {
                     setTopTab(true);
                 }}>TOP</a>

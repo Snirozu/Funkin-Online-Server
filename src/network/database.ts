@@ -493,6 +493,7 @@ export async function submitDownloadForMod(id: string, urls: string[], forModId:
                 }
             }
         },
+        select: {}
     });
 }
 
@@ -508,7 +509,8 @@ export async function editDownloadForMod(data:any) {
         data: {
             urls: data.urls,
             size: BigInt(await fetchSizeForURLs(data.urls))
-        }
+        },
+        select: {}
     })
 }
 
@@ -555,7 +557,8 @@ export async function removeDownloadForMod(id: string) {
                     id: id
                 }
             }
-        }
+        },
+        select: {}
     })
 }
 
@@ -627,7 +630,8 @@ export async function giveDownloadURL(id: string) {
             },
             select: {
                 urls: true,
-                hits: true
+                hits: true,
+                modID: true
             }
         });
 
@@ -651,8 +655,18 @@ export async function giveDownloadURL(id: string) {
                 },
                 data: {
                     hits: download.hits
+                },
+                select: {}
+            });
+            await prisma.mod.update({
+                where: {
+                    id: download.modID
+                },
+                select: {},
+                data: {
+                    downloadHits: await getModDownloadHits(download.modID)
                 }
-            })
+            });
         }
         return pickedDownload;
     }
@@ -692,7 +706,7 @@ export async function getMod(id: string) {
             },
             include: {
                 downloads: true
-            }
+            },
         });
 
         const downloadHits = await getModDownloadHits(id);
@@ -758,6 +772,7 @@ export async function editMod(data: any) {
             keywords: data.keywords,
             images: data.images,
         },
+        select: {}
     }));
 }
 
@@ -777,6 +792,7 @@ export async function deleteMod(data: any) {
         where: {
             id: data.id,
         },
+        select: {}
     });
 }
 
@@ -807,6 +823,7 @@ export async function toggleFavMod(userID: string, modID:string, forceRemove: bo
                 set: favorited
             }
         },
+        select: {}
     }));
 }
 
@@ -1685,7 +1702,8 @@ export async function resetSecret(id: string) {
         },
         where: {
             id: id
-        }
+        },
+        select: {}
     }));
 }
 
@@ -2357,7 +2375,7 @@ export async function getSongComments(id: string) {
     }
 }
 
-export async function searchSongs(query: string) {
+export async function searchSongs(query: string, page: number = 0) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
@@ -2380,7 +2398,8 @@ export async function searchSongs(query: string) {
                 id: true,
                 maxPoints: true
             },
-            take: 50
+            take: 50,
+            skip: 50 * page
         });
 
         const res = [];
@@ -2398,7 +2417,7 @@ export async function searchSongs(query: string) {
     }
 }
 
-export async function searchUsers(query: string) {
+export async function searchUsers(query: string, page: number = 0) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
@@ -2421,7 +2440,8 @@ export async function searchUsers(query: string) {
                 name: true,
                 role: true,
             },
-            take: 50
+            take: 50,
+            skip: 50 * page
         }))
     }
     catch (exc) {
@@ -2430,15 +2450,20 @@ export async function searchUsers(query: string) {
     }
 }
 
-export async function searchMods(query: string) {
+export async function searchMods(query: string, page: number = 0, sort: string) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
     }
 
-    if (query.trim().length < 3) {
-        throw {
-            error_message: "Search query needs to be longer than 3!"
-        }
+    const [_sortBy, _sortDirection] = (sort ?? '').split(':');
+
+    let sortBy = 'title';
+    let sortDirection = 'desc';
+    if (['title', 'submitted', 'favorited', 'downloadHits'].includes(_sortBy)) {
+        sortBy = _sortBy;
+    }
+    if (['desc', 'asc'].includes(_sortDirection)) {
+        sortDirection = _sortDirection;
     }
 
     try {
@@ -2458,13 +2483,17 @@ export async function searchMods(query: string) {
                     }
                 ]
             },
+            orderBy: {
+                [sortBy]: sortDirection,
+            },
             select: {
                 id: true,
                 images: true,
                 title: true,
                 keywords: true
             },
-            take: 15
+            take: 15,
+            skip: 15 * page
         }))
     }
     catch (exc) {

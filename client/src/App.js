@@ -19,6 +19,7 @@ import Admin from './routes/Admin';
 import Rules from './routes/Rules';
 import Mod from './routes/Mod';
 import ModSubmit from './routes/ModSubmit';
+import Mods from './routes/Mods';
 
 const App = () => {
   return (
@@ -41,8 +42,9 @@ const App = () => {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/rules" element={<Rules />} />
-        <Route path="/mod" element={<ModSubmit />} />
         <Route path="/mod/:id" element={<Mod />} />
+        <Route path="/mods/submit" element={<ModSubmit />} />
+        <Route path="/mods" element={<Mods />} />
         <Route status={404} path='*' element={<NotFound />} />
       </Routes>
     </div>

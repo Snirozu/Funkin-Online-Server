@@ -91,3 +91,28 @@ export function TopPlayerSortSelect(props) {
         props.onSelect(e.target.options[e.target.selectedIndex].getAttribute('v'));
     } : undefined}> {options} </select>);
 }
+
+export function ModsSortSelect(props) {
+    const options = [];
+    const categoryMap = new Map([
+        ['A-Z', 'title:desc'],
+        ['Z-A', 'title:asc'],
+        ['Newest Submitted', 'submitted:desc'],
+        ['Oldest Submitted', 'submitted:asc'],
+        ['Most Liked', 'liked:desc'],
+        ['Least Liked', 'liked:asc'],
+        ['Most Downloaded', 'downloadHits:asc'],
+        ['Least Downloaded', 'downloadHits:desc'],
+    ]);
+
+    categoryMap.forEach((v, k) => {
+        if ((props.v ?? props.default) === v)
+            options.push(<option v={v} selected>{k}</option>);
+        else
+            options.push(<option v={v}>{k}</option>);
+    });
+
+    return (<select id='category' onChange={props.onSelect ? (e) => {
+        props.onSelect(e.target.options[e.target.selectedIndex].getAttribute('v'));
+    } : undefined}> {options} </select>);
+}

@@ -672,6 +672,9 @@ function User() {
                                     <br></br>
                                     <br></br>
                                     <a className='TabButton' href="/login">LOGOUT</a>
+                                    <br></br>
+                                    <br></br>
+                                    <a className='TabButton' href="/api/account/resetsecret">RESET SECRET</a>
                                 </>
                             :
                                 <></>

@@ -726,7 +726,7 @@ tbody tr:nth-child(even) {
 .SvgNoButton {
   border: none;
   background-color: transparent;
-  opacity: 0.5;
+  opacity: 0.8;
 }
 
 .SvgNoButton:hover {
