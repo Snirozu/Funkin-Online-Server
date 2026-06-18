@@ -185,11 +185,32 @@ model FileClubBanner {
 
 model UserWarning {
   id      String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
-  reason    String
+  reason  String
   date    DateTime @default(now())
 
-  onRe User     @relation(fields: [on], references: [id])
-  on   String   @db.ObjectId @unique
+  onRe    User     @relation(fields: [on], references: [id])
+  on      String   @db.ObjectId @unique
 
-  by String // @db.ObjectId of the moderator
+  by      String // @db.ObjectId of the moderator
+}
+
+model Mod {
+  id             String @id @map("_id") // filled by prisma (if empty)
+  images         String[]
+  keywords       String[]
+  submitted      DateTime @default(now())
+  favorited      String[]
+  title          String
+  description    String
+  downloads      ModDownload[]
+}
+
+model ModDownload {
+  id      String @id @map("_id") // filled by prisma (if empty)
+  urls    String[]
+  hits    BigInt
+  size    BigInt
+
+  modID String
+  mod   Mod   @relation(fields: [modID], references: [id]) 
 }

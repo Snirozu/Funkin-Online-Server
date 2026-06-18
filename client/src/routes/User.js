@@ -536,7 +536,7 @@ function User() {
                         <b>Joined: </b> {returnDate(Date.parse(data.joined))} <br />
                         {data.warns.length > 0 ? <>
                             <Popup trigger={<a style={{color: 'red'}}>⚠ {data.warns.length} warnings! ⚠</a>} modal>
-                                <div className='Content' style={{minWidth: '600px'}}> 
+                                <div className='Content'> 
                                     <div>
                                         <h2>
                                             Received Warnings by Moderators:

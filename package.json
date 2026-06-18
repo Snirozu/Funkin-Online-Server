@@ -7,6 +7,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "type": "commonjs",
   "scripts": {
     "test": "nodemon src/index.ts",
     "start": "npm run build && pm2 start ecosystem.config.js",
@@ -15,8 +16,8 @@
     "build": "npm run clean && tsc",
     "clean": "rimraf build",
     "haxify": "npx schema-codegen src/rooms/schema/* --haxe --output src/rooms/schema/",
-    "servsetup": "node setupservice.js",
-    "postinstall": "npm install pm2 -g && npm install -g ts-node && prisma generate",
+    "servsetup": "npm install pm2 -g",
+    "postinstall": "npm install -g ts-node && prisma generate",
     "installclient": "cd client && npm install && npm run build && cd ..",
     "restartclient": "cd client && npm run build && pm2 restart funkin-online --update-env && cd..",
     "setupservice": "pm2 save && pm2 startup"
@@ -53,6 +54,7 @@
     "@colyseus/tools": "^0.17.18",
     "@colyseus/ws-transport": "^0.17.9",
     "@prisma/client": "^5.15.0",
+    "@types/jsdom": "^28.0.3",
     "@types/nodemailer": "^6.4.15",
     "axios": "^1.13.5",
     "body-parser": "github:Snirozu/body-parser",
@@ -68,6 +70,7 @@
     "express-fileupload": "^1.5.1",
     "ip": "^2.0.1",
     "javascript-time-ago": "^2.5.10",
+    "jsdom": "^29.1.1",
     "jsonwebtoken": "^9.0.2",
     "micromatch": "^4.0.8",
     "nodemailer": "^6.9.15",

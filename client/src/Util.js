@@ -1,3 +1,4 @@
+import axios from "axios";
 import TimeAgo from "javascript-time-ago";
 import en from 'javascript-time-ago/locale/en'
 import Cookies from 'js-cookie';
@@ -5,6 +6,31 @@ import Cookies from 'js-cookie';
 TimeAgo.addDefaultLocale(en);
 export const timeAgo = new TimeAgo('en-US')
 export const moneyFormatter = new Intl.NumberFormat();
+
+export async function doRequestAndAlert(method, path, body = undefined) {
+	try {
+		const config = {
+			headers: {
+				'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+			},
+			responseType: 'json', transformResponse: (body) => {
+				try { return JSON.parse(body) } catch (exc) { return body; }
+			}, validateStatus: () => true
+		};
+
+		const response = method.toLowerCase() == 'GET' ? await axios.get(getHost() + path, config) : await axios.post(getHost() + path, body, config);
+
+		if (response.status !== 200) {
+			throw new Error(typeof response.data == "object" ? response.data.error : response.data);
+		}
+
+		return true;
+	} 
+	catch (error) {
+		alert(error.message);
+	}
+	return false;
+}
 
 export function getResError(response) {
     return response.data ?? 'HTTP ' + response.status;

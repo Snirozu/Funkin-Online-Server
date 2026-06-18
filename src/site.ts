@@ -23,6 +23,7 @@ import { Data } from './data';
 import sanitizeHtml from 'sanitize-html';
 import { AuthRoute } from './network/routes/auth';
 import { cooldownRequest } from './cooldown';
+import { ModRoute } from './network/routes/mod';
 
 export async function initExpress(app: Application) {
     // set this to true if you use a proxy like nginx
@@ -103,6 +104,7 @@ export async function initExpress(app: Application) {
         AccountRoute.init(app);
         AuthRoute.init(app);
         ClubRoute.init(app);
+        ModRoute.init(app);
 
         if (process.env["DEBUG_ENABLED"] == "true") {
             DebugRoutes.init(app);
@@ -180,6 +182,7 @@ export async function initExpress(app: Application) {
                     leadersMessage = leadersMessage + '\n5th. ' + await getPlaceMessage(_top[4]);
                     await NetworkRoom.logToAll(formatLog(leadersMessage))
 
+                    //FIXME
                     await endWeekly();
 
                     await NetworkRoom.logToAll(formatLog('[!] The weekly leaderboard has been reset!'))
@@ -291,6 +294,9 @@ async function showIndex(req: Request, res: Response) {
         response = response.replaceAll('%___OG_TITLE___%', title);
         response = response.replace('%___OG_DESC___%', description);
         response = response.replace('%___OG_IMAGE___%', image);
+        if (req.path == "/404") {
+            res.status(404);
+        }
         res.send(response);
     }
     catch (exc) {

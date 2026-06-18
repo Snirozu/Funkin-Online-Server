@@ -105,7 +105,7 @@ function renderSezs(msgs) {
     return render;
 }
 
-function renderPlayers(players) {
+export function renderPlayers(players) {
     let render = [];
 
     for (const player of players) {
@@ -116,11 +116,11 @@ function renderPlayers(players) {
                     <br></br><span>{player}</span>
                 </a>
             </div>
-        )
+        );
     }
 
     if (render.length < 1) {
-        render.push(<p>No players...</p>);
+        render.push(<span>No players...</span>);
     }
 
     return render;

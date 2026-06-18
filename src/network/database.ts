@@ -8,6 +8,8 @@ import { Data } from "../data";
 import { logAction } from "./mods";
 import { cooldown, cooldownLeft } from "../cooldown";
 import { Request } from "express";
+import axios from "axios";
+import { JSDOM } from "jsdom";
 
 // this class is a mess
 
@@ -325,8 +327,8 @@ export async function submitScore(submitterID: string, replay: ReplayData) {
 
     const newRank = await getPlayerRank(submitter.name, undefined, daKeyValue);
 
-    if (daKeyValue == 4 && newRank <= 30 && newRank < prevRank) {
-        await NetworkRoom.logToAll(formatLog(submitter.name + ' climbed to ' + ordinalNum(newRank) + ' place on the global 4k leaderboard!'))
+    if (daKeyValue == 4 ? newRank <= 30 && newRank < prevRank : newRank <= 10 && newRank < prevRank) {
+        await NetworkRoom.logToAll(formatLog(submitter.name + ' climbed to ' + ordinalNum(newRank) + ' place on the global ' + daKeyValue + 'k leaderboard!'))
     }
 
     const newStats = await getUserStats(submitter.id);
@@ -456,6 +458,375 @@ export async function submitReport(id: string, content: any) {
             content: content
         },
     }));
+}
+
+export async function submitDownloadForMod(id: string, urls: string[], forModId:string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    if (id.trim().length < 1) {
+        throw { error_message: "ID needs a letter at least" }
+    }
+
+    if (await prisma.modDownload.count({
+        where: {
+            id: {
+                equals: forModId + ':' + id,
+                mode: "insensitive"
+            }
+        }
+    }) > 0)
+        throw { error_message: "The ID for this download is already taken!" }
+
+    await prisma.mod.update({
+        where: {
+            id: forModId,
+        },
+        data: {
+            downloads: {
+                create: {
+                    id: forModId + ':' + id,
+                    urls: urls,
+                    hits: 0,
+                    size: BigInt(await fetchSizeForURLs(urls))
+                }
+            }
+        },
+    });
+}
+
+export async function editDownloadForMod(data:any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    await prisma.modDownload.update({
+        where: {
+            id: data.id,
+        },
+        data: {
+            urls: data.urls,
+            size: BigInt(await fetchSizeForURLs(data.urls))
+        }
+    })
+}
+
+async function fetchSizeForURLs(urls:string[]):Promise<number> {
+    urls = sortDownloads(urls);
+    for (const url of urls) {
+        let head = await axios.head(url, {
+            maxRedirects: 5,
+            validateStatus: () => true,
+        })
+
+        const trueURL = await fetchTrueDownloadURL(head.config.url);
+        if (head.config.url != trueURL) {
+            head = await axios.head(trueURL, {
+                maxRedirects: 5,
+                validateStatus: () => true,
+            })
+        }
+
+        if (head.status == 200 && head.headers.getContentLength) {
+            return Number(head.headers["Content-Length"] ?? head.headers["content-length"]); // fine i guess
+        }
+    }
+    return -1;
+}
+
+export async function removeDownloadForMod(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    if (!id.includes(':'))
+        throw { error_message: "ID incomplete!" }
+
+    const modId = id.split(':')[0];
+
+    await prisma.mod.update({
+        where: {
+            id: modId,
+        },
+        data: {
+            downloads: {
+                delete: {
+                    id: id
+                }
+            }
+        }
+    })
+}
+
+async function fetchTrueDownloadURL(url: string) {
+    if (url.startsWith('https://drive.google.com/file/d/')) {
+        const gdriveId = url.substring("https://drive.google.com/file/d/".length).split("/")[0];
+        return 'https://drive.usercontent.google.com/download?id=' + gdriveId + '&export=download&confirm=t';
+    }
+
+    if (url.startsWith('https://www.mediafire.com/file/')) {
+        const res = await axios.get(url, {
+            validateStatus: () => true
+        })
+        if (res.status != 200)
+            return;
+
+        const dom = new JSDOM(res.data);
+        const doc = dom.window.document;
+        const node = doc.querySelector('#downloadButton');
+        if (node) {
+            if (node.hasAttribute('data-scrambled-url'))
+                return atob(node.getAttribute('data-scrambled-url'));
+
+            if (node.hasAttribute('href'))
+                return node.getAttribute('href');
+        }
+        return;
+    }
+
+    return url;
+}
+
+function sortDownloads(urls: string[]) {
+    urls = urls.concat();
+
+    function getDownloadPriority(url: string) {
+        if (url.startsWith('https://drive.google.com/file/d/')) {
+            return 3;
+        }
+        if (url.startsWith('https://www.mediafire.com/file/')) {
+            return 2;
+        }
+        if (url.startsWith('https://gamebanana.com/dl/')) {
+            return 1;
+        }
+        return 0;
+    }
+
+    urls.sort((a, b) => {
+        const pr1 = getDownloadPriority(a);
+        const pr2 = getDownloadPriority(b);
+        return pr1 == pr2 ? 0 : pr1 > pr2 ? -1 : 1;
+    });
+
+    return urls;
+}
+
+export async function giveDownloadURL(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    try {
+        const download = await prisma.modDownload.findFirstOrThrow({
+            where: {
+                id: {
+                    equals: id
+                }
+            },
+            select: {
+                urls: true,
+                hits: true
+            }
+        });
+
+        let pickedDownload = undefined;
+        for (const url of sortDownloads(download.urls)) {
+            const head = await axios.head(url, {
+                validateStatus: () => true
+            })
+            if (head.status == 200) {
+                pickedDownload = await fetchTrueDownloadURL(url);
+                if (pickedDownload)
+                    break;
+            }
+        }
+
+        if (pickedDownload) {
+            download.hits = download.hits + 1n;
+            await prisma.modDownload.update({
+                where: {
+                    id: id
+                },
+                data: {
+                    hits: download.hits
+                }
+            })
+        }
+        return pickedDownload;
+    }
+    catch (_exc) {
+        console.error(_exc);
+        // not found
+        return null;
+    }
+}
+
+export async function getModDownloadHits(modId:string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    return (await prisma.modDownload.aggregate({
+        where: {
+            modID: modId,
+        },
+        _sum: {
+            hits: true
+        }
+    }))._sum.hits;
+}
+
+export async function getMod(id: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    try {
+        const mod:any = await prisma.mod.findFirstOrThrow({
+            where: {
+                id: {
+                    equals: id
+                }
+            },
+            include: {
+                downloads: true
+            }
+        });
+
+        const downloadHits = await getModDownloadHits(id);
+        mod.downloadsHits = downloadHits;
+        return mod;
+    }
+    catch (_exc) {
+        // not found
+        return null;
+    }
+}
+
+export async function submitMod(data: any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    if (data.id.trim().length < 3) {
+        throw { error_message: "ID needs 3 letters at least" }
+    }
+
+    if (data.title.trim().length < 3) {
+        throw { error_message: "Title needs 3 letters at least" }
+    }
+
+    if (await prisma.mod.count({
+        where: {
+            id: {
+                equals: data.id,
+                mode: "insensitive"
+            }
+        }
+    }) > 0)
+        throw { error_message: "The ID for this mod is already taken!" }
+
+    return (await prisma.mod.create({
+        data: {
+            description: data.description,
+            keywords: data.keywords,
+            images: data.images,
+            id: data.id,
+            title: data.title
+        },
+    }));
+}
+
+export async function editMod(data: any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    if (data.title.trim().length < 3) {
+        throw { error_message: "Title needs 3 letters at least" }
+    }
+
+    return (await prisma.mod.update({
+        where: {
+            id: data.id,
+        },
+        data: {
+            title: data.title,
+            description: data.description,
+            keywords: data.keywords,
+            images: data.images,
+        },
+    }));
+}
+
+
+export async function deleteMod(data: any) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    await prisma.modDownload.deleteMany({
+        where: {
+            modID: data.id
+        },
+    });
+
+    await prisma.mod.delete({
+        where: {
+            id: data.id,
+        },
+    });
+}
+
+export async function toggleFavMod(userID: string, modID:string, forceRemove: boolean = false) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const favorited = (await prisma.mod.findFirst({
+        where: {
+            id: modID,
+        },
+        select: {
+            favorited: true
+        }
+    })).favorited;
+    if (favorited.includes(userID))
+        favorited.splice(favorited.indexOf(userID), 1);
+    else if (!forceRemove)
+        favorited.unshift(userID);
+
+    return (await prisma.mod.update({
+        where: {
+            id: modID,
+        },
+        data: {
+            favorited: {
+                set: favorited
+            }
+        },
+    }));
+}
+
+export async function getFavedModsByUser(userID: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const mods = (await prisma.mod.findMany({
+        where: {
+            favorited: {
+                has: userID
+            },
+        },
+        select: {
+            id: true
+        }
+    }));
+
+    return mods;
 }
 
 export async function demoteClubMember(userID: string) {
@@ -2059,6 +2430,49 @@ export async function searchUsers(query: string) {
     }
 }
 
+export async function searchMods(query: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    if (query.trim().length < 3) {
+        throw {
+            error_message: "Search query needs to be longer than 3!"
+        }
+    }
+
+    try {
+        return (await prisma.mod.findMany({
+            where: {
+                OR: [
+                    {
+                        keywords: {
+                            hasSome: query.split(' '),
+                        }
+                    },
+                    {
+                        id: {
+                            contains: query,
+                            mode: "insensitive"
+                        }
+                    }
+                ]
+            },
+            select: {
+                id: true,
+                images: true,
+                title: true,
+                keywords: true
+            },
+            take: 15
+        }))
+    }
+    catch (exc) {
+        console.error(exc);
+        return null;
+    }
+}
+
 export async function removeFriendFromUser(req: any) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
@@ -2390,6 +2804,10 @@ export async function setUserBanStatus(id: string, to: boolean, reason?: string)
                 owner: id
             }
         })
+
+        for (const mod of await getFavedModsByUser(id)) {
+            await toggleFavMod(id, mod.id, true);
+        }
 
         try {
             await removePlayerFromClub(id);
@@ -2914,7 +3332,7 @@ export function cachePlayerUniques(id:string, name:string) {
 }
 
 export async function initDatabaseCache() {
-    if (!process.env["DATABASE_URL"]) {
+    if (!process.env["DATABASE_URL"] || process.env["SKIP_CACHE"] == "true") {
         return;
     }
 

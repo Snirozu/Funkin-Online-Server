@@ -29,6 +29,7 @@ access = [
     '/api/admin/logs',
     '/api/admin/logs/process',
     '/api/admin/user/delete',
+    '/api/mod/delete',
     'command.announce',
     'admin.club.edit',
     'mod.warns'
@@ -38,6 +39,7 @@ extends = 'Helper'
 
 [[roles]]
 # manages scores and player reports
+# also creates new mod pages
 name = "Helper"
 priority = 1
 access = [
@@ -45,6 +47,9 @@ access = [
     '/api/admin/user/warn',
     '/api/admin/user/warn/delete',
     '/api/admin/report/*',
+    '/api/mod/dl/*',
+    '/api/mod/submit',
+    '/api/mod/edit',
     '/admin',
 ]
 extends = 'Member'
@@ -61,6 +66,7 @@ access = [
     '/api/score/*',
     '/api/user/*',
     '/api/club/*',
+    '/api/mod/fav',
     'room.auth',
 ]
 
