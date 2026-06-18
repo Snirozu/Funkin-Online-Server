@@ -240,8 +240,8 @@ async function showIndex(req: Request, res: Response) {
                 const mod = await getMod(params[1]);
                 if (!mod)
                     break;
-                title = mod.title;
-                description = mod.favorited.length + 'Likes | ' + mod.downloadsHits + 'Downloads' + '\n' + mod.description;
+                title = mod.title + ' · Mod';
+                description = mod.favorited.length + ' Likes · ' + mod.downloadsHits + ' Downloads' + '\n\n' + mod.description;
                 image = mod.images[0];
                 break;
             }
