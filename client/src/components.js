@@ -95,14 +95,14 @@ export function TopPlayerSortSelect(props) {
 export function ModsSortSelect(props) {
     const options = [];
     const categoryMap = new Map([
-        ['A-Z', 'title:desc'],
-        ['Z-A', 'title:asc'],
+        ['A-Z', 'title:asc'],
+        ['Z-A', 'title:desc'],
         ['Newest Submitted', 'submitted:desc'],
         ['Oldest Submitted', 'submitted:asc'],
-        ['Most Liked', 'liked:desc'],
-        ['Least Liked', 'liked:asc'],
-        ['Most Downloaded', 'downloadHits:asc'],
-        ['Least Downloaded', 'downloadHits:desc'],
+        ['Most Liked', 'favorited:desc'],
+        ['Least Liked', 'favorited:asc'],
+        ['Most Downloaded', 'downloadHits:desc'],
+        ['Least Downloaded', 'downloadHits:asc'],
     ]);
 
     categoryMap.forEach((v, k) => {
