@@ -46,6 +46,7 @@ access = [
     '/api/admin/score/delete',
     '/api/admin/user/warn',
     '/api/admin/user/warn/delete',
+    '/api/admin/user/warn/list',
     '/api/admin/report/*',
     '/api/mod/dl/*',
     '/api/mod/submit',
