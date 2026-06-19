@@ -1,6 +1,6 @@
 :root {
   --background-image: url('bg.png');
-  --background-color: #161516;
+  --background-color: #0e0d0e;
 }
 
 body {
@@ -21,10 +21,17 @@ html {
   background-color: var(--background-color) !important;
   background-image: var(--background-image);
   background-repeat: no-repeat;
-  /* background-size: 2145px 1035px; */
   background-size: cover;
   background-position: center;
+  /* 
+  background-size: 2145px auto;
+  background-position: center 0;
+  */
 }
+
+/* #root {
+  backdrop-filter: blur(8px);
+} */
 
 * {
   scrollbar-width: thin;

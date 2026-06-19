@@ -16,8 +16,8 @@
     "build": "npm run clean && tsc",
     "clean": "rimraf build",
     "haxify": "npx schema-codegen src/rooms/schema/* --haxe --output src/rooms/schema/",
-    "servsetup": "npm install pm2 -g",
-    "postinstall": "npm install -g ts-node && prisma generate",
+    "servsetup": "npm install pm2 -g && npm install -g ts-node",
+    "postinstall": "prisma generate",
     "installclient": "cd client && npm install && npm run build && cd ..",
     "restartclient": "cd client && npm run build && pm2 restart funkin-online --update-env && cd..",
     "setupservice": "pm2 save && pm2 startup"

@@ -114,6 +114,10 @@ function Mod() {
         imgs.push(<img src={image} />);
     }
 
+    // if (data.images.length > 1) {
+    //     document.documentElement.style.setProperty('--background-image', 'url("' + data.images[1] + '")');
+    // }
+
     const downloads = [];
     const rawDownloads = [];
     for (const download of data.downloads) {
