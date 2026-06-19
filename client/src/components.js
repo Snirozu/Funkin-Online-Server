@@ -95,12 +95,12 @@ export function TopPlayerSortSelect(props) {
 export function ModsSortSelect(props) {
     const options = [];
     const categoryMap = new Map([
-        ['A-Z', 'title:asc'],
-        ['Z-A', 'title:desc'],
         ['Newest Submitted', 'submitted:desc'],
         ['Oldest Submitted', 'submitted:asc'],
-        ['Most Liked', 'favorited:desc'],
-        ['Least Liked', 'favorited:asc'],
+        ['A-Z', 'title:asc'],
+        ['Z-A', 'title:desc'],
+        ['Most Liked', 'favoritedCount:desc'],
+        ['Least Liked', 'favoritedCount:asc'],
         ['Most Downloaded', 'downloadHits:desc'],
         ['Least Downloaded', 'downloadHits:asc'],
     ]);

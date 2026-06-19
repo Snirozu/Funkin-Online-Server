@@ -7,9 +7,7 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import { ModsSortSelect } from "../components";
 
 function Mods() {
-    const [searchParams] = useSearchParams();
-    const [input, setInput] = useState('');
-    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     function onKeyPressHandler(event) {
         if (event.key === "Enter") {
@@ -17,25 +15,41 @@ function Mods() {
         }
     }
 
+    const inputQuery = searchParams.get("q") ?? '';
+    const [query, setQuery] = useState(searchParams.get("q") ?? '');
     function redirectSearch() {
-        navigate('/mods' + (input.length > 0 ? '?q=' + encodeURIComponent(input) : ''));
+        setQuery(inputQuery);
     }
-
-    const daQuery = searchParams.get("q") ?? '';
 
     return (
         <>
             <div className="Content">
                 <div className="Main">
                     <h3> Mods </h3>
-                    Search for:
-                    <input type="text" onKeyUp={onKeyPressHandler} onChange={e => setInput(e.target.value)} value={input} name="myInput" />
-                    <button className="FunkinButton" onClick={e => {
+                    Search for: &nbsp;
+                    <input type="text" onKeyUp={onKeyPressHandler} onChange={e => {
+                        searchParams.set('q', e.target.value);
+                        if (searchParams.get('q').length == 0)
+                            searchParams.delete('q');
+                        setSearchParams(searchParams);
+                    }} value={inputQuery} name="myInput" />
+                    &nbsp;
+                    <button className="FunkinButton" style={{
+                        marginBottom: '5px'
+                    }} onClick={e => {
                         redirectSearch();
                     }}> Search </button>
                     <br></br>
+                    <center>
+                    Sort: <ModsSortSelect v={searchParams.get('sort')} onSelect={(sel) => {
+                        searchParams.set('sort', sel);
+                        if (!sel)
+                            searchParams.delete('sort');
+                        setSearchParams(searchParams);
+                    }} />
+                    </center>
                     <br></br>
-                    <ModSearchList query={daQuery}></ModSearchList>
+                    <ModSearchList query={query}></ModSearchList>
                 </div>
             </div>
         </>
@@ -43,15 +57,18 @@ function Mods() {
 }
 
 function ModSearchList(props) {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [data, setData] = useState([{
         id: '',
         images: [],
         title: '',
-        keywords: []
+        keywords: [],
+        downloadHits: 0,
+        favoritedCount: 0,
     }]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [searchParams, setSearchParams] = useSearchParams();
+
     const page = Number.parseInt(searchParams.get('page') ?? '0');
     const sort = searchParams.get('sort');
 
@@ -99,12 +116,28 @@ function ModSearchList(props) {
                             lineHeight: '2',
                             color: 'white'
                         }}> {mod.title} </a>
+                        <div style={{
+                            marginBottom: '10px'
+                        }}>
+                            <span className="SmallText">{mod.favoritedCount} Likes · {mod.downloadHits} Downloads </span>
+                        </div>
                         <div className="ModGenericFlex" style={{
                             fontSize: '14px',
                             color: '#ffffffcb',
                             maxWidth: '100%'
                         }}>
-                            <Keywords keywords={mod.keywords} take={5}></Keywords>
+                            <Keywords keywords={mod.keywords} onClick={keyword => {
+                                const inputQuery = (searchParams.get("q") ?? '');
+                                if (!inputQuery.includes(keyword)) {
+                                    searchParams.set("q", (inputQuery + ' ' + keyword).trim());
+                                }
+                                else {
+                                    searchParams.set('q', (inputQuery.replaceAll(keyword, '').replaceAll('  ', ' ')).trim());
+                                }
+                                if (searchParams.get('q').length == 0)
+                                    searchParams.delete('q');
+                                setSearchParams(searchParams);
+                            }} take={5}></Keywords>
                         </div>
                     </div>
                 </div>
@@ -122,18 +155,13 @@ function ModSearchList(props) {
                 <>
                     {daMods.length < 1 ? (
                         <span>No mods found!</span>
-                    ) : <div className="ModGenericFlex">
+                    ) : 
+                    <div className="ModGenericFlex" style={{
+                        justifyContent: 'center'
+                    }}>
                         {daMods}
-                    </div>}
-                    <br></br>
-                    <center>
-                    Sort: <ModsSortSelect v={searchParams.get('sort')} onSelect={(sel) => {
-                        searchParams.set('sort', sel);
-                        if (!sel)
-                            searchParams.delete('sort');
-                        setSearchParams(searchParams);
-                    }} />
-                    </center>
+                    </div>
+                    }
                     {(page > 0) ?
                     <button className='SvgButton' style={{float: 'left'}} onClick={() => {
                         searchParams.set('page', page - 1);

@@ -201,10 +201,11 @@ model Mod {
   keywords       String[]
   submitted      DateTime @default(now())
   favorited      String[]
+  favoritedCount BigInt? @default(0)
   title          String
   description    String
   downloads      ModDownload[]
-  downloadHits   BigInt?
+  downloadHits   BigInt? @default(0)
   updated        DateTime? @updatedAt
 }
 

@@ -646,7 +646,7 @@ function User() {
                         {
                             adminMode && hasAccess('/api/admin/user/warn') ? 
                                 <Popup trigger={<button className='SvgButton'> <Icon width={20} icon="material-symbols:warning-outline" /> </button>} modal>
-                                    <div className='Content' style={{minWidth: '600px'}}> 
+                                    <div className='Content'> 
                                         <WarnPad></WarnPad>
                                     </div>
                                 </Popup>

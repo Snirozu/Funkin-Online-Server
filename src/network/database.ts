@@ -64,7 +64,7 @@ export async function checkAccess(req: Request, res: any, next: any) {
 
     await jwt.verify(token, player.secret as string, async (err: any, _user: any) => {
         if (err) {
-            console.error(err);
+            // console.error(err);
             return res.sendStatus(403)
         }
 
@@ -723,6 +723,10 @@ export async function submitMod(data: any) {
         throw { error_message: "ID needs 3 letters at least" }
     }
 
+    if (/[^a-z0-9_-]/gmi.test(data.id)) {
+        throw { error_message: "ID Contains invalid characters" }
+    }
+
     if (data.title.trim().length < 3) {
         throw { error_message: "Title needs 3 letters at least" }
     }
@@ -814,7 +818,8 @@ export async function toggleFavMod(userID: string, modID:string, forceRemove: bo
         data: {
             favorited: {
                 set: favorited
-            }
+            },
+            favoritedCount: favorited.length
         },
     }));
 }
@@ -2448,9 +2453,9 @@ export async function searchMods(query: string, page: number = 0, sort: string) 
 
     const [_sortBy, _sortDirection] = (sort ?? '').split(':');
 
-    let sortBy = 'title';
+    let sortBy = 'submitted';
     let sortDirection = 'desc';
-    if (['title', 'submitted', 'favorited', 'downloadHits'].includes(_sortBy)) {
+    if (['title', 'submitted', 'favoritedCount', 'downloadHits'].includes(_sortBy)) {
         sortBy = _sortBy;
     }
     if (['desc', 'asc'].includes(_sortDirection)) {
@@ -2471,6 +2476,12 @@ export async function searchMods(query: string, page: number = 0, sort: string) 
                             contains: query,
                             mode: "insensitive"
                         }
+                    },
+                    {
+                        title: {
+                            contains: query,
+                            mode: "insensitive"
+                        }
                     }
                 ]
             },
@@ -2481,7 +2492,10 @@ export async function searchMods(query: string, page: number = 0, sort: string) 
                 id: true,
                 images: true,
                 title: true,
-                keywords: true
+                keywords: true,
+                downloadHits: true,
+                favoritedCount: true,
+                submitted: true,
             },
             take: 15,
             skip: 15 * page

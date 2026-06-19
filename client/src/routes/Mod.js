@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { doRequestAndAlert, getHost, hasAccess, timeAgo } from "../Util";
 import Cookies from 'js-cookie';
 import { Icon } from "@iconify/react/dist/iconify.js";
@@ -10,6 +10,8 @@ import { renderPlayers } from "./Network";
 function Mod() {
     let { id } = useParams();
     id = decodeURIComponent(id);
+
+    const navigate = useNavigate();
 
     const [data, setData] = useState({
         id: '',
@@ -76,7 +78,7 @@ function Mod() {
 
     function ModFavoriters(props) {
         return (
-            <div className='Content' style={{minWidth: '600px'}}>
+            <div className='Content'>
                 <div className="Main">
                     <p> Mod Likers! </p>
                     <div className="CenteredFlex">
@@ -309,7 +311,9 @@ function Mod() {
                                 fontSize: '14px',
                                 color: '#ffffffcb'
                             }}>
-                                <Keywords keywords={data.keywords}></Keywords>
+                                <Keywords keywords={data.keywords} onClick={keyword => {
+                                    navigate('/mods?q=' + keyword);
+                                }}></Keywords>
                             </div>
                         </>}
 
@@ -395,7 +399,7 @@ function AddDownload(props) {
 
     if (submitted) {
          return (
-            <div className='Content' style={{minWidth: '600px'}}>
+            <div className='Content'>
                 <div className="Main">
                     Download submitted successfully! <br></br> 
                     (Refresh the page to view.)
@@ -405,7 +409,7 @@ function AddDownload(props) {
     }
 
     return (
-        <div className='Content' style={{minWidth: '600px'}}>
+        <div className='Content'>
             <div className="Main">
             <p> Submit a new download </p>
             <b> ID: </b> <input type="text" onChange={e => setID(e.target.value)} value={id.toUpperCase()} /> <br></br>
@@ -475,7 +479,7 @@ function EditDownload(props) {
 
     if (submitted) {
          return (
-            <div className='Content' style={{minWidth: '600px'}}>
+            <div className='Content'>
                 <div className="Main">
                     Links submitted successfully! <br></br> 
                     (Refresh the page to view.)
@@ -485,7 +489,7 @@ function EditDownload(props) {
     }
 
     return (
-        <div className='Content' style={{minWidth: '600px'}}>
+        <div className='Content'>
             <div className="Main">
             <b> URLs: </b>
             <br></br>
@@ -511,13 +515,12 @@ function EditDownload(props) {
 export function Keywords(props) {
     const originLength = props.keywords.length;
     const list = props.keywords.slice(0, props.take ?? props.keywords.length);
-    if (originLength > props.take) {
-        list.push('+' + (originLength - props.take));
-    }
 
     const keywords = [];
     for (const keyword of list) {
-        keywords.push(<div style={{
+        keywords.push(<div className={props.onClick ? "Hoverable" : ''} onClick={() => {
+            props.onClick(keyword);
+        }} style={{
             backgroundColor: '#ffffff27',
             padding: '8px',
             borderRadius: '20px'
@@ -525,6 +528,17 @@ export function Keywords(props) {
             {keyword}
         </div>);
     }
+
+    if (originLength > props.take) {
+        keywords.push(<div style={{
+            backgroundColor: '#ffffff27',
+            padding: '8px',
+            borderRadius: '20px'
+        }}>
+            {'+' + (originLength - props.take)}
+        </div>);
+    }
+
     return keywords;
 }
 

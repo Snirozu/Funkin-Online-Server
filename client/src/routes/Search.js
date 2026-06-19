@@ -39,7 +39,6 @@ function Search() {
                             <br></br>
                             <br></br>
                             <h2>Searching for: "{daQuery}"</h2>
-                            <ModSearchList query={daQuery}></ModSearchList>
                             <PlayerSearchList query={daQuery}></PlayerSearchList>
                             <SongSearchList query={daQuery}></SongSearchList>
                         </>
@@ -194,93 +193,6 @@ function PlayerSearchList(props) {
                     <h3> Found Players: </h3>
                     <div className="CenterFlex">
                         {daUsers}
-                    </div>
-                </>
-            )}
-        </>
-    );
-}
-
-function ModSearchList(props) {
-    const [data, setData] = useState([{
-        id: '',
-        images: [],
-        title: '',
-        keywords: []
-    }]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await axios.get(getHost() + '/api/search/mods?q=' + encodeURIComponent(props.query), { validateStatus: () => true });
-                if (response.status !== 200) {
-                    throw new Error(getResError(response));
-                }
-                const data = response.data;
-                setError(null);
-                setData(data);
-                setLoading(false);
-            } catch (error) {
-                setError(error.toString());
-                setLoading(false);
-            }
-        };
-
-        setLoading(true);
-        fetchData();
-    }, [props.query]);
-
-    let daMods = [];
-    if (!loading && !error) {
-        for (const mod of data) {
-            daMods.push(
-                <div className="RoundedContents" style={{
-                    background: '#000000c0',
-                    color: 'white',
-                    width: '220px',
-                }}>
-                    <a href={"/mod/" + encodeURIComponent(mod.id)}>
-                        <div className="ModImage" style={{
-                            backgroundImage: 'url(' + mod.images[0] + ')',
-                            minWidth: '220px',
-                            minHeight: '125px',
-                        }}> </div>
-                    </a>
-                    <div style={{
-                        padding: '5px 8px 8px 8px'
-                    }}>
-                        <a href={"/mod/" + encodeURIComponent(mod.id)} style={{
-                            lineHeight: '2',
-                            color: 'white'
-                        }}> {mod.title} </a>
-                        <div className="ModGenericFlex" style={{
-                            fontSize: '14px',
-                            color: '#ffffffcb',
-                            maxWidth: '100%'
-                        }}>
-                            <Keywords keywords={mod.keywords} take={5}></Keywords>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-    }
-
-    return (
-        <>
-            {loading ? (
-                <h3>Fetching...</h3>
-            ) : error ? (
-                <h3>{error}</h3>
-            ) : daMods.length < 1 ? (
-                <h3>No mods found!</h3>
-            ) : (
-                <>
-                    <h3> Found Mods: </h3>
-                    <div className="ModGenericFlex">
-                        {daMods}
                     </div>
                 </>
             )}
