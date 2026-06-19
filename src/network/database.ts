@@ -469,6 +469,10 @@ export async function submitDownloadForMod(id: string, urls: string[], forModId:
         throw { error_message: "ID needs a letter at least" }
     }
 
+    if (/[^a-z0-9_\-\.]/gmi.test(id)) {
+        throw { error_message: "ID Contains invalid characters" }
+    }
+
     if (await prisma.modDownload.count({
         where: {
             id: {
@@ -723,7 +727,7 @@ export async function submitMod(data: any) {
         throw { error_message: "ID needs 3 letters at least" }
     }
 
-    if (/[^a-z0-9_-]/gmi.test(data.id)) {
+    if (/[^a-z0-9_\-]/gmi.test(data.id)) {
         throw { error_message: "ID Contains invalid characters" }
     }
 

@@ -10,7 +10,7 @@ function ModSubmit() {
 
     const [id, _setID] = useState('');
     function setID(v) {
-        v = String(v).toLowerCase().replace(/[^a-z0-9_-]/gmi, "_").trim();
+        v = String(v).toLowerCase().replace(/[^a-z0-9_\-]/gmi, "_").trim();
         _setID(v);
     }
     const [title, setTitle] = useState('');
