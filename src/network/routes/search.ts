@@ -30,6 +30,7 @@ export class SearchRoute {
                 res.send(await searchMods(req.query.q as string, Number.parseInt(req.query.page as string ?? "0"), req.query.sort as string));
             }
             catch (exc: any) {
+                console.error(exc);
                 res.status(400).send(exc?.error_message ?? "None found...");
             }
         });

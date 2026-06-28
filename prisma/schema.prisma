@@ -190,7 +190,7 @@ model UserWarning {
   date    DateTime @default(now())
 
   onRe    User     @relation(fields: [on], references: [id])
-  on      String   @db.ObjectId @unique
+  on      String   @db.ObjectId
 
   by      String // @db.ObjectId of the moderator
 }
@@ -207,6 +207,8 @@ model Mod {
   downloads      ModDownload[]
   downloadHits   BigInt? @default(0)
   updated        DateTime? @updatedAt
+
+  @@index([title, keywords], map: "title_keywords_text_index")
 }
 
 model ModDownload {

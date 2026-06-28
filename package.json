@@ -18,6 +18,7 @@
     "haxify": "npx schema-codegen src/rooms/schema/* --haxe --output src/rooms/schema/",
     "servsetup": "npm install pm2 -g && npm install -g ts-node",
     "postinstall": "prisma generate",
+    "refreshprisma": "prisma generate && npx prisma db push",
     "installclient": "cd client && npm install && npm run build && cd ..",
     "restartclient": "cd client && npm run build && pm2 restart funkin-online --update-env && cd..",
     "setupservice": "pm2 save && pm2 startup"

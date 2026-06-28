@@ -2450,6 +2450,35 @@ export async function searchUsers(query: string, page: number = 0) {
     }
 }
 
+export async function searchSameIPUsersByUserID(userID: string) {
+    if (!process.env["DATABASE_URL"]) {
+        throw { error_message: "No database set on the server!" }
+    }
+
+    const user = await getPlayerByID(userID);
+    if (!user)
+        throw { error_message: "No user found with this ID!" }
+
+    const users = await prisma.user.findMany({
+        where: {
+            ips: {
+                hasSome: user.ips
+            }
+        },
+        select: {
+            id: true
+        }
+    });
+
+    const ids = [];
+    for (const user of users) {
+        if (user.id == userID)
+            continue;
+        ids.push(user.id);
+    }
+    return ids;
+}
+
 export async function searchMods(query: string, page: number = 0, sort: string) {
     if (!process.env["DATABASE_URL"]) {
         throw { error_message: "No database set on the server!" }
@@ -2465,6 +2494,57 @@ export async function searchMods(query: string, page: number = 0, sort: string) 
     if (['desc', 'asc'].includes(_sortDirection)) {
         sortDirection = _sortDirection;
     }
+
+    // brouuughhh how do you do theus 
+    // const splitQuery = query.split(' ');
+    // const res:any = await prisma.$runCommandRaw({
+    //     aggregate: 'Mod',
+    //     pipeline: [
+    //         // { $match : { "keywords": { "$in": splitQuery } } },
+    //         // { $unwind : "$keywords" },
+    //         // { $match : { "keywords": { "$in": splitQuery } } },
+    //         // { $group : { _id: "$title", numRelTags: { $sum:1 } } },
+    //         // { $sort : { numRelTags : -1 } }
+    //         // //  optionally
+    //         // , { $limit : 10 }
+    //         {
+    //             $match: { "title": { $in: splitQuery } } 
+    //         },
+    //         { 
+    //             $addFields: { score: { $meta: "textScore" } } 
+    //         },
+    //         { 
+    //             $sort: { score: { $meta: "textScore" } } 
+    //         }
+    //     ],
+    //     // pipeline: [
+    //     // {
+    //     //     $match: {
+    //     //         index: 'default', // The name of your Atlas Search Index
+    //     //         text: {
+    //     //             query: query,
+    //     //             path: ['title', 'keywords'] // Fields to search through
+    //     //         }
+    //     //     }
+    //     // },
+    //     // {
+    //     //     $project: {
+    //     //         _id: 1,
+    //     //         title: 1,
+    //     //         keywords: 1,
+    //     //         score: { $meta: 'searchScore' } 
+    //     //     }
+    //     // },
+    //     // {
+    //     //     $sort: {
+    //     //         score: -1 
+    //     //     }
+    //     // }
+    //     // ],
+    //     cursor: {}
+    // })
+    // console.log(res.cursor.firstBatch);
+    // return res;
 
     try {
         return (await prisma.mod.findMany({

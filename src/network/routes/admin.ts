@@ -2,7 +2,7 @@ import { matchMaker } from 'colyseus';
 import { Application, Express } from 'express';
 import { Data } from '../../data';
 import { NetworkRoom } from '../../rooms/NetworkRoom';
-import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma, warnUser, removeUserWarn, topScores, getScore, getReplayFile, getLookForWarned } from '../database';
+import { checkAccess, authPlayer, removeReport, removeScore, getPlayerByName, setEmail, deleteUser, deleteClub, updateClubPoints, setUserBanStatus, grantPlayerRole, getPriority, sendNotification, getPlayerIDByName, renamePlayer, getReport, listReports, getPlayerNameByID, endWeekly, updatePlayerStats, prisma, warnUser, removeUserWarn, topScores, getScore, getReplayFile, getLookForWarned, userIDsToNames, searchSameIPUsersByUserID } from '../database';
 import dotenv from 'dotenv';
 import { logActionOnRequest } from '../mods';
 import fs from 'fs';
@@ -11,6 +11,16 @@ import { NetNoteType, NetSong, Rating } from '../../chart_calc';
 
 export class AdminRoute {
     static init(app: Application) {
+        app.get("/api/admin/user/ips", checkAccess, logActionOnRequest, async (req, res) => {
+            try {
+                return res.send(await userIDsToNames(await searchSameIPUsersByUserID(await getPlayerIDByName(req.query.username as string))));
+            }
+            catch (exc) {
+                console.error(exc);
+                res.sendStatus(500);
+            }
+        });
+
         app.get("/api/admin/user/data", checkAccess, logActionOnRequest, async (req, res) => {
             try {
                 const reqPlayer = await authPlayer(req);

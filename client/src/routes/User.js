@@ -10,6 +10,7 @@ import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
 import Popup from 'reactjs-popup';
 import { ManiaSelect, TopCategorySelect, TopSortSelect } from '../components';
+import { renderPlayers } from './Network';
 
 function User() {
     let { name } = useParams();
@@ -598,7 +599,6 @@ function User() {
                                 </>
                             : <></>
                         }
-                        <br></br>
                         {data.isSelf ?
                             <>
                                 <button className='SvgButton' title={editBioMode ? "Save Profile" : "Profile Edit Mode"} onClick={toggleEditBio}>
@@ -645,9 +645,18 @@ function User() {
                         }
                         {
                             adminMode && hasAccess('/api/admin/user/warn') ? 
-                                <Popup trigger={<button className='SvgButton'> <Icon width={20} icon="material-symbols:warning-outline" /> </button>} modal>
+                                <Popup trigger={<button title="Warn User" className='SvgButton'> <Icon width={20} icon="material-symbols:warning-outline" /> </button>} modal>
                                     <div className='Content'> 
                                         <WarnPad></WarnPad>
+                                    </div>
+                                </Popup>
+                            : <></>
+                        }
+                        {
+                            adminMode && hasAccess('/api/admin/user/ips') ? 
+                                <Popup trigger={<button title="List Users with same IP" className='SvgButton'> <Icon width={20} icon="eos-icons:ip" /> </button>} modal>
+                                    <div className='Content'> 
+                                        <UserList name={name}></UserList>
                                     </div>
                                 </Popup>
                             : <></>
@@ -1084,5 +1093,48 @@ const BackgroundUpload = () => {
         </>
     );
 };
+
+function UserList(props) {
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const fetchData = async () => {
+        try {
+            const response = await axios.get(getHost() + '/api/admin/user/ips?username=' + encodeURIComponent(props.name), {
+                headers: {
+                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                }, responseType: 'json', transformResponse: (body) => {
+                    try { return JSON.parse(body) } catch (exc) { return body; }
+                }, validateStatus: () => true,
+            });
+            if (response.status !== 200) {
+                throw new Error(typeof response.data == "object" ? response.data.error : response.data);
+            }
+
+            setError(null);
+            setData(response.data);
+            setLoading(false);
+        } catch (error) {
+            setError(error.message);
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    return (
+        <div className='Content'>
+            <div className="Main">
+                <p> Found Users: </p>
+                <div className="CenteredFlex">
+                    { error ? <p> Error: {error} </p> : loading ? <p> Loading </p> : renderPlayers(data)}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default User;
