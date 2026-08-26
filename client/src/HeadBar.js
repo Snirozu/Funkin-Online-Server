@@ -153,8 +153,8 @@ function HeadBar() {
                                 {window.location.pathname !== '/notifications' && data.notifs > 0 ? <>
                                     <a id="NotificationsIcon" className='TabButton' href="/notifications"><Icon icon="ic:baseline-notifications-active" width="32" height="32" /></a>
                                 </> : <></>}
-                                <a className='TabButton' id='BarProfile' href={"/user/" + encodeURIComponent(data.name)}>
-                                    <AvatarImg className='SmallerAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(data.name)}/>
+                                <a className='TabButton' id='BarProfile' href={"/user/" + encodeURIComponent(loading ? Cookies.get('username') : data.name)}>
+                                    <AvatarImg className='SmallerAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(loading ? Cookies.get('username') : data.name)}/>
                                     <div className='BarProfileText'>
                                         <b>Welcome, {loading ? Cookies.get('username') : data.name}! </b> <br></br>
                                         Points: {loading ? '???' : formatNumber(data.points)}

@@ -313,7 +313,7 @@ a:hover {
 .HiddenChild {
   clip-path: rect(0px 0% 100% 0px);
   visibility: collapse;
-  transition: 0.1s;
+  transition: 0.2s;
 }
 
 .Bar a:hover {
