@@ -97,7 +97,7 @@ function ModSearchList(props) {
     if (!loading && !error) {
         for (const mod of data) {
             daMods.push(
-                <div className="RoundedContents" style={{
+                <div className="RoundedContents ModSearchItem" style={{
                     background: '#000000c0',
                     color: 'white',
                     width: '220px',
@@ -117,14 +117,31 @@ function ModSearchList(props) {
                             color: 'white'
                         }}> {mod.title} </a>
                         <div style={{
-                            marginBottom: '10px'
+                            marginBottom: '10px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            gap: '15px',
+                            marginBottom: '15px'
                         }}>
-                            <span className="SmallText">{mod.favoritedCount} Likes · {mod.downloadHits} Downloads </span>
+                            <span className="SmallText">{mod.favoritedCount} <img style={{
+                                    filter: '',
+                                    borderRadius: '0',
+                                    height: '14px',
+                                }} src='/images/fav-tiny.png' alt=''></img> 
+                            </span>
+
+                            <span className="SmallText"> {mod.downloadHits} <img style={{
+                                    filter: '',
+                                    borderRadius: '0',
+                                    height: '14px',
+                                }} src='/images/dl-tiny.png' alt=''></img> 
+                            </span>
                         </div>
                         <div className="ModGenericFlex" style={{
                             fontSize: '14px',
                             color: '#ffffffcb',
-                            maxWidth: '100%'
+                            maxWidth: '100%',
+                            justifyContent: 'center'
                         }}>
                             <Keywords keywords={mod.keywords} onClick={keyword => {
                                 const inputQuery = (searchParams.get("q") ?? '');

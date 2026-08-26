@@ -222,38 +222,71 @@ function Mod() {
                         <div className="ModGenericFlex" style={{
                             backdropFilter: 'blur(10px) brightness(50%)',
                             width: '100%',
-                            height: '45%',
+                            height: '60%',
                             justifyContent: 'center',
                             alignItems: 'center',
+                            flexFlow: 'column'
                         }}>
-                            <h1 style={{
-                                fontFamily: 'PhantomMuff',
-                                fontSize: '40px'
+                            <div>
+                                <h1 className="OutlineText" style={{
+                                    fontFamily: 'PhantomMuff',
+                                    fontSize: '40px',
+                                    lineHeight: '0'
+                                }}>
+                                    {editMode ? <>
+                                        <input className="SeamlessInput" defaultValue={data.title} onChange={e => {
+                                            data.title = e.target.value;
+                                            setData(data);
+                                        }}></input>
+                                    </> : <>
+                                        {data.title}
+                                    </>}
+                                </h1>
+                            </div>
+
+                            <div style={{
+                                display: 'flex',
+                                gap: '20px'
                             }}>
-                                {editMode ? <>
-                                    <input className="SeamlessInput" defaultValue={data.title} onChange={e => {
-                                        data.title = e.target.value;
-                                        setData(data);
-                                    }}></input>
-                                </> : <>
-                                    {data.title}
-                                </>}
-                            </h1>
+                                <Popup trigger={
+                                    <p className="Hoverable" style={{
+                                        borderRadius: '10px',
+                                        background: '#000000a9',
+                                        padding: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '1px',
+                                    }}> <img style={{
+                                        filter: 'saturate(0%)',
+                                        borderRadius: '0'
+                                    }} src='/images/fav.png' alt=''></img> &nbsp; {data.favorited.length} Likes </p>
+                                } modal>
+                                <ModFavoriters data={data}></ModFavoriters>
+                                </Popup>
+                                <p style={{
+                                    borderRadius: '10px',
+                                    background: '#000000a9',
+                                    padding: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '1px',
+                                }}> <img style={{
+                                        filter: 'saturate(0%)',
+                                        borderRadius: '0'
+                                    }} src='/images/dl.png' alt=''></img> &nbsp; {data.downloadsHits} Downloads </p>
+                            </div>
                         </div>
 
-                        <div className="ModGenericFlex" style={{
+                        {/* <div className="ModGenericFlex" style={{
                             height: '15%',
                             backdropFilter: 'blur(20px) brightness(20%)',
                             justifyContent: 'space-around',
                             alignItems: 'center',
-                        }}>
-                            <Popup trigger={
-                                <p className="Hoverable"> {data.favorited.length} Likes </p>
-                            } modal>
-                                    <ModFavoriters data={data}></ModFavoriters>
-                            </Popup>
-                            <p> {data.downloadsHits} Downloads </p>
-                        </div>
+                        }}> */}
+
+                        {/* </div> */}
 
                         <div className="ModGallery">
                             {editMode ? <>
