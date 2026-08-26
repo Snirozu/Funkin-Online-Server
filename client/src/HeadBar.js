@@ -29,15 +29,21 @@ function HeadBar() {
     const [error, setError] = useState(null);
     const [topTab, setTopTab] = useState(false);
 
+    function checkCompact() {
+        //element.scrollHeight > element.offsetHeight
+        return window.innerWidth < 1300;
+    }
     function checkMobile() {
         //element.scrollHeight > element.offsetHeight
-        return window.innerWidth < 1400;
+        return window.innerWidth < 1800;
     }
     const [isMobile, setMobile] = useState(checkMobile());
+    const [isCompact, setCompact] = useState(checkCompact());
     const [isMenuOpen, setMenuOpen] = useState(false);
 
     window.addEventListener("resize", () => {
         setMobile(checkMobile());
+        setCompact(checkCompact());
     });
 
     const fetchData = async () => {
@@ -76,20 +82,22 @@ function HeadBar() {
     //     </>);
     // }
 
+    let tabButtonTextClassName = isMobile ? 'HiddenChild' : '';
+
     let menuItems = (
         <>
             {
             !topTab ? <>
-                <a className='TabButton' href="/network">NETWORK</a>
-                <a className='TabButton' href="/stats">STATS</a>
-                <a className='TabButton' href="/rules">RULES</a>
-                <a className='TabButton' href="/search">SEARCH</a>
-                <a className='TabButton' href="/mods">MODS</a>
+                <a className='TabButton' href="/network"> <img src="/images/network.png"></img> <span className={tabButtonTextClassName}>NETWORK</span> </a>
+                <a className='TabButton' href="/stats"><img src="/images/stats.png"></img> <span className={tabButtonTextClassName}>STATS</span></a>
+                <a className='TabButton' href="/rules"><img src="/images/info.png"></img> <span className={tabButtonTextClassName}>RULES</span></a>
+                <a className='TabButton' href="/search"><img src="/images/search.png"></img> <span className={tabButtonTextClassName}>SEARCH</span></a>
+                <a className='TabButton' href="/mods"><img src="/images/mods.png"></img> <span className={tabButtonTextClassName}>MODS</span></a>
                 <a className='TabButton' href="##" onClick={() => {
                     setTopTab(true);
-                }}>TOP</a>
-                <a className='TabButton' href="/club">CLUB</a>
-                {Cookies.get('authid') ? <a className='TabButton' href="/friends">FRIENDS</a> : <></>}
+                }}><img src="/images/top.png"></img> <span className={tabButtonTextClassName}>TOP</span></a>
+                <a className='TabButton' href="/club"><img src="/images/club.png"></img> <span className={tabButtonTextClassName}>CLUB</span></a>
+                {Cookies.get('authid') ? <a className='TabButton' href="/friends"><img src="/images/friends.png"></img> <span className={tabButtonTextClassName}>FRIENDS</span></a> : <></>}
                 {hasAccess('/admin') ? <a className='TabButton' href="/admin" style={{ color: 'tomato' }}>ADMIN</a> : <></>}
             </> : 
             <>
@@ -121,39 +129,41 @@ function HeadBar() {
             <div id="bar" className="Bar" onMouseLeave={() => {
                 setTopTab(false);
             }}>
-                <a href="/" style={{ display: 'flex', height: '45px', width: '45px' }}><img alt="HOME" src='/images/locon.png'></img></a>
-                {
-                    !isMobile ? (
-                        menuItems
-                    ) : <>
-                        <a className='TabButton' onClick={() => setMenuOpen(true)}> ☰ MENU </a>
-                    </>
-                }
-                {loading ? (
-                    <></>
-                ) : error ? (
-                    <>
-                        <a className='TabButton' href="/login" style={{
-                            marginLeft: 'auto',
-                            marginRight: '10px'
-                        }}>LOGIN</a>
-                    </>
-                ) : (
-                    <>
-                        <div className='FlexRight'>
-                            {window.location.pathname !== '/notifications' && data.notifs > 0 ? <>
-                                <a id="NotificationsIcon" className='TabButton' href="/notifications"><Icon icon="ic:baseline-notifications-active" width="32" height="32" /></a>
-                            </> : <></>}
-                            <a className='TabButton' id='BarProfile' href={"/user/" + encodeURIComponent(data.name)}>
-                                <AvatarImg className='SmallerAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(data.name)}/>
-                                <div className='BarProfileText'>
-                                    <b>Welcome, {data.name}! </b> <br></br>
-                                    Points: {formatNumber(data.points)}
-                                </div>
-                            </a>
-                        </div>
-                    </>
-                )}
+                <div className='BarContent'>
+                    <a className='BarLogo' href="/"><img style={{height: '45px', width: '45px' }} alt="" src='/images/locon.png'></img></a>
+                    {
+                        !isCompact ? (
+                            <div className="BarMenuItems">
+                                 {menuItems}
+                            </div> 
+                        ) : <>
+                            <a className='TabButton' onClick={() => setMenuOpen(true)}> ☰ MENU </a>
+                        </>
+                    }
+                    {error ? (
+                        <>
+                            <a className='TabButton' href="/login" style={{
+                                marginLeft: 'auto',
+                                marginRight: '10px'
+                            }}>LOGIN</a>
+                        </>
+                    ) : (
+                        <>
+                            <div className='FlexRight'>
+                                {window.location.pathname !== '/notifications' && data.notifs > 0 ? <>
+                                    <a id="NotificationsIcon" className='TabButton' href="/notifications"><Icon icon="ic:baseline-notifications-active" width="32" height="32" /></a>
+                                </> : <></>}
+                                <a className='TabButton' id='BarProfile' href={"/user/" + encodeURIComponent(data.name)}>
+                                    <AvatarImg className='SmallerAvatar' src={getHost() + "/api/user/avatar/" + encodeURIComponent(data.name)}/>
+                                    <div className='BarProfileText'>
+                                        <b>Welcome, {loading ? Cookies.get('username') : data.name}! </b> <br></br>
+                                        Points: {loading ? '???' : formatNumber(data.points)}
+                                    </div>
+                                </a>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </>
     )

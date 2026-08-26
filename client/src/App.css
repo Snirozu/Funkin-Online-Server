@@ -225,18 +225,22 @@ a:hover {
   background-color: #141414;
   opacity: 0.95;
   z-index: 1000;
-  display: inline;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   font-size: 30px;
   line-height: 60px;
-}
-
-#TopBarMenu > *::after {
-  content: '\A';
-  white-space: pre;
+  width: min-content;
 }
 
 #TopBarMenu > * {
-  word-wrap: normal;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min-content;
+  height: 40px;
+  gap: 8px;
 }
 
 .Bar {
@@ -257,6 +261,16 @@ a:hover {
   position: fixed;
   z-index: 100;
   top: 0px;
+  justify-content: center; 
+  align-items: center;
+}
+
+.BarContent {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: min(1700px, 90vw);
 }
 
 .Bar:hover {
@@ -264,10 +278,14 @@ a:hover {
   height: 60px;
 }
 
-.Bar > * {
+.BarMenuItems > * {
   overflow-wrap: normal;
-  margin-left: 20px;
+  margin-left: 15px;
   transition: 0.1s;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
 }
 
 .TabButton {
@@ -276,10 +294,39 @@ a:hover {
   background-color: #363636;
   /* background-color: var(--tab-button-color); */
   border-radius: 10px;
+  height: 30px;
+  min-width: 30px;
+  width: fit-content;
+  overflow: hidden;
+}
+
+.TabButton img {
+  border-radius: 0;
+  min-width: 20px;
+}
+
+.TabButton:hover .HiddenChild, #TopBarMenu .HiddenChild {
+  clip-path: rect(0px 100% 100% 0px);
+  visibility: visible;
+}
+
+.HiddenChild {
+  clip-path: rect(0px 0% 100% 0px);
+  visibility: collapse;
+  transition: 0.1s;
 }
 
 .Bar a:hover {
   scale: 1.05;
+}
+
+.BarLogo {
+  margin-right: auto;
+}
+
+.BarMenuItems {
+  display: flex;
+  margin: auto;
 }
 
 .Bar #BarProfile {
@@ -305,7 +352,7 @@ a:hover {
 
 .FlexRight {
   margin-left: auto;
-  padding-left: 20px;
+  /* padding-left: 20px; */
   display: flex;
   align-items: center;
 }
