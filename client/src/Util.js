@@ -60,10 +60,10 @@ export function tabButtonColor(hue) {
 	return "hsl(" + hue + ",25%,25%)";
 }
 
-export function headProfileColor(hue, hue2) {
+export function headProfileColor(hue, hue2, onlyColor = false) {
 	if (hue === undefined || hue === null)
 		hue = 250;
-	if (hue2 || hue2 === 0)
+	if (!onlyColor && (hue2 || hue2 === 0))
 		return 'linear-gradient(0.2turn, hsl(' + hue + ',35%,30%), hsl(' + hue2 + ',40%,25%))';
 	return "hsl(" + hue + ",35%,30%)";
 }
@@ -87,12 +87,12 @@ export function clubProfileColor(hue) {
 }
 
 
-export function contentProfileColor(hue, hue2) {
+export function contentProfileColor(hue, hue2, onlyColor = false) {
 	if (hue < 0)
 		return "#282c34";
 	if (hue === undefined || hue === null)
 		hue = 250;
-	if (hue2 || hue2 === 0)
+	if (!onlyColor && (hue2 || hue2 === 0))
 		return 'linear-gradient(hsl(' + hue + ',35%,20%), hsl(' + hue2 + ',40%,15%))';
 	return "hsl(" + hue + ",35%,20%)"
 }
@@ -144,6 +144,16 @@ function matchWildcard(match, to) {
 export function returnDate(time) {
 	const date = new Date(time);
 	return date.getDate() + '/' + (date.getMonth() + 1) + "/" + (date.getFullYear() + "").substring(2);
+}
+
+const youtubeRegexer = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:\S*?[?&]t=([0-9]+)s?)?/i;
+export function parseYouTubeURL(url) {
+  const match = url.match(youtubeRegexer);
+  if (!match) return null;
+  return {
+    videoId: match[1],
+    timestamp: match[2] || null
+  };
 }
 
 export const allCountries = new Map([

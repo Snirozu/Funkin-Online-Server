@@ -1,4 +1,4 @@
-import { prisma } from "./network/database";
+import { prisma } from "./database/db";
 import { ServerInstance } from "./server"
 
 process.on('uncaughtException', function (exception) {

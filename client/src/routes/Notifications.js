@@ -52,7 +52,7 @@ function Notifications() {
             if (!notif)
                 continue;
             notifsBody.push(
-                <div className="Comment">
+                <div className="SongComment">
                     <img style={{ maxWidth: '60px', maxHeight: '60px' }} src={notif.image} alt=''></img>
                     <div>
                         <a href={notif.href}>{notif.title} <br></br>

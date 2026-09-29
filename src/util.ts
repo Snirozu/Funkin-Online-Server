@@ -1,11 +1,119 @@
 import { AuthContext } from "colyseus";
 import { Data } from "./data";
-import { getPlayerIDByName, getPlayerNameByID } from "./network/database";
 import { GameRoom } from "./rooms/GameRoom";
+import axios from "axios";
+import { JSDOM } from "jsdom";
+import { db } from "./database/db";
+
+export async function fetchSizeForURLs(urls:string[]):Promise<number> {
+    urls = sortDownloads(urls);
+    for (const url of urls) {
+        let head = await axios.head(url, {
+            maxRedirects: 5,
+            validateStatus: () => true,
+        })
+
+        const trueURL = await fetchTrueDownloadURL(head.config.url);
+        if (head.config.url != trueURL) {
+            head = await axios.head(trueURL, {
+                maxRedirects: 5,
+                validateStatus: () => true,
+            })
+        }
+
+        if (head.status == 200 && head.headers.getContentLength) {
+            return Number(head.headers["Content-Length"] ?? head.headers["content-length"]); // fine i guess
+        }
+    }
+    return -1;
+}
+
+export async function fetchTrueDownloadURL(url: string) {
+    if (url.startsWith('https://drive.google.com/file/d/')) {
+        const gdriveId = url.substring("https://drive.google.com/file/d/".length).split("/")[0];
+        return 'https://drive.usercontent.google.com/download?id=' + gdriveId + '&export=download&confirm=t';
+    }
+
+    if (url.startsWith('https://www.mediafire.com/file/')) {
+        const res = await axios.get(url, {
+            validateStatus: () => true
+        })
+        if (res.status != 200)
+            return;
+
+        const dom = new JSDOM(res.data);
+        const doc = dom.window.document;
+        const node = doc.querySelector('#downloadButton');
+        if (node) {
+            if (node.hasAttribute('data-scrambled-url'))
+                return atob(node.getAttribute('data-scrambled-url'));
+
+            if (node.hasAttribute('href'))
+                return node.getAttribute('href');
+        }
+        return;
+    }
+
+    return url;
+}
+
+export function sortDownloads(urls: string[]) {
+    urls = urls.concat();
+
+    function getDownloadPriority(url: string) {
+        if (url.startsWith('https://drive.google.com/file/d/')) {
+            return 3;
+        }
+        if (url.startsWith('https://www.mediafire.com/file/')) {
+            return 2;
+        }
+        if (url.startsWith('https://gamebanana.com/dl/')) {
+            return 1;
+        }
+        return 0;
+    }
+
+    urls.sort((a, b) => {
+        const pr1 = getDownloadPriority(a);
+        const pr2 = getDownloadPriority(b);
+        return pr1 == pr2 ? 0 : pr1 > pr2 ? -1 : 1;
+    });
+
+    return urls;
+}
+
+export function debugPrint(content: unknown) {
+    if (process.env["DEBUG_ENABLED"] != "true") {
+        return;
+    }
+
+    console.log(content);
+}
+
+export function validateEmail(email:string) {
+    const emailHost = email.split('@')[1].trim();
+    for (const v of Data.CONFIG.EMAIL_BLACKLIST) {
+        const domain = v.split(' ')[0].trim();
+        if (domain.trim().length > 0 && emailHost.endsWith(domain))
+            return false;
+    }
+    return true;
+}
+
+export function matchWildcard(match:string, to:string) {
+    let isNegative = false;
+    if (to.startsWith('!')) {
+        isNegative = true;
+        to.substring(1);
+    }
+    const w = match.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`^${w.replace(/\*/g, '.*').replace(/\?/g, '.')}$`, 'i');
+    return re.test(to) != isNegative;
+}
 
 export async function chunkifyArrayForCallback(array:any[], callback: (chunk: any[])=>void | Promise<void>, chunkSize:number = 100) {
     while (array.length > 0) {
-        const chunk = array.splice(0, 100);
+        const chunk = array.splice(0, chunkSize);
         // try {
         await callback(chunk);
         // }
@@ -55,11 +163,11 @@ export function ordinalNum(num:number) {
 
 export async function isUserNameInRoom(userName:string, room?:GameRoom) {
     if (!room) room = Data.INFO.MAP_USERNAME_PLAYINGROOM.get(userName);
-    return await isUserIDInRoom(await getPlayerIDByName(userName), room);
+    return await isUserIDInRoom(await db.users.getIDByName(userName), room);
 }
 
 export async function isUserIDInRoom(userID: string, room?: GameRoom) {
-    if (!room) room = Data.INFO.MAP_USERNAME_PLAYINGROOM.get(await getPlayerNameByID(userID));
+    if (!room) room = Data.INFO.MAP_USERNAME_PLAYINGROOM.get(await db.users.getNameByID(userID));
     return room && room.clients.length > 0 && findPlayerSIDByNID(room, userID);
 }
 
@@ -118,6 +226,27 @@ export function filterChatMessage(msg:string) {
         words.push(filter ?? word);
     }
     return words.join(' ');
+}
+
+export function isOnlyOneEmoji(s) {
+    const withEmojis = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
+    return withEmojis.test(s);
+}
+
+export function isObjectEmpty(obj: any) {
+    if (obj == null || obj == undefined || obj == "undefined" || obj == "null")
+        return true;
+
+    if (Object.prototype.toString.call(obj) === '[object Object]') {
+        for (const [_, value] of Object.entries(obj)) {
+            if (!isObjectEmpty(value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    return false;
 }
 
 export const validCountries = [

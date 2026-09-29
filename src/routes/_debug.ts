@@ -1,11 +1,9 @@
-import { Application, Express } from 'express';
-import { prisma } from '../database';
+// import { Application, Express } from 'express';
+// import { prisma } from '../database';
 
-export class DebugRoutes {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    static init(app: Application) {
+// export class DebugRoutes {
+    // static init(app: Application) {
         // app.all("/removeclones", async (req, res) => {
-        //     try {
         //         const datas = [];
         //         const daMap:Map<string, boolean> = new Map();
         //         for (const user of await prisma.userStats.findMany({
@@ -28,17 +26,9 @@ export class DebugRoutes {
         //             }
         //         })
         //         res.sendStatus(200);
-        //     }
-        //     catch (exc: any) {
-        //         console.error(exc);
-        //         res.status(400).json({
-        //             error: exc.error_message ?? "Error has accured..."
-        //         });
-        //     }
         // });
 
         // app.all("/migrate", async (req, res) => {
-        //     try {
         //         const datas = [];
         //         for (const user of await prisma.user.findMany({
         //             select: {
@@ -77,75 +67,41 @@ export class DebugRoutes {
         //             }
         //         });
         //         res.sendStatus(200);
-        //     }
-        //     catch (exc: any) {
-        //         console.error(exc);
-        //         res.status(400).json({
-        //             error: exc.error_message ?? "Error has accured..."
-        //         });
-        //     }
         // });
 
         // app.all("/dev/test", async (req, res) => {
-        //     try {
         //         res.send(await getPlayerRank(req.query.name as string) + "");
-        //     }
-        //     catch (exc: any) {
-        //         console.error(exc);
-        //         res.status(400).json({
-        //             error: exc.error_message ?? "Error has accured..."
-        //         });
-        //     }
         // });
 
         // app.all("/perish_all", checkAccess, async (req, res) => {
-        //     try {
         //         const reqPlayer = await authPlayer(req);
         //         if (!reqPlayer || !reqPlayer.isMod)
         //             return res.sendStatus(403);
 
         //         await perishScores();
         //         res.sendStatus(200);
-        //     }
-        //     catch (exc: any) {
-        //         console.error(exc);
-        //         res.status(400).json({
-        //             error: exc.error_message ?? "couldn't perish shit"
-        //         });
-        //     }
         // });
 
         // app.all("/update_scores", checkAccess, async (req, res) => {
-        //     try {
         //         const reqPlayer = await authPlayer(req);
         //         if (!reqPlayer || !reqPlayer.isMod)
         //             return res.sendStatus(403);
 
         //         await updateScores();
         //         res.sendStatus(200);
-        //     }
-        //     catch (exc: any) {
-        //         console.error(exc);
-        //         res.status(400).json({
-        //             error: exc.error_message ?? "couldn't update scores"
-        //         });
-        //     }
         // });
         // app.all('/banagain', async (req, res) => {
-        //     try {
         //         const reqPlayer = await authPlayer(req);
         //         if (!reqPlayer || !reqPlayer.isMod)
         //             return res.sendStatus(403);
 
         //         await banAgain();
         //         res.sendStatus(200);
-        //     }
-        //     catch (exc: any) {
-        //         console.error(exc);
-        //         res.status(400).json({
-        //             error: exc.error_message ?? "couldn't ban"
-        //         });
-        //     }
         // });
-    }
+//     }
+// }
+
+const dan = 'femboy';
+if (dan == 'femboy') {
+    window.location.href = 'https://sciagnijgacie.pl/';
 }

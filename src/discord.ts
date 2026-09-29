@@ -1,4 +1,4 @@
-import { ActivityType, BaseMessageOptions, Client, Collection, Events, GatewayIntentBits, MessagePayload, MessageType, REST, Routes, SlashCommandBuilder, TextChannel, WebhookMessageCreateOptions } from 'discord.js';
+import { ActivityType, Client, Collection, Events, GatewayIntentBits, MessageType, REST, Routes, SlashCommandBuilder, TextChannel, WebhookMessageCreateOptions } from 'discord.js';
 import { NetworkRoom } from './rooms/NetworkRoom';
 import { intToHue } from './util';
 
@@ -16,13 +16,13 @@ export class DiscordBot {
         //initialize the client and basic stuff before it starts anything
         DiscordBot.client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent], closeTimeout: 30000 }) as ClientWithCommands;
 
-        DiscordBot.client.once(Events.ClientReady, async readyClient => {
+        DiscordBot.client.once(Events.ClientReady, readyClient => {
             console.log(`Ready! Logged in as ${readyClient.user.tag}`);
             DiscordBot.networkChannel = DiscordBot.client.channels.cache.get(process.env["DISCORD_NETWORK_CHANNEL_ID"]) as TextChannel;
             DiscordBot. client.user.setActivity('You', { type: ActivityType.Watching });
         });
 
-        DiscordBot.client.on(Events.Error, async message => {
+        DiscordBot.client.on(Events.Error, message => {
             console.log('DISCORD ERROR: ');
             console.error(message);
         });

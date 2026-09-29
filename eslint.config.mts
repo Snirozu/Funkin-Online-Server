@@ -6,7 +6,7 @@ export default defineConfig([
     tseslint.configs.recommended,
     {
         files: ["**/*.{js,ts}"],
-        ignores: ["**/*.config.{js,ts}"],
+        ignores: ["**/*.config.{js,ts}", "swagger.ts"],
         languageOptions: {
             globals: globals.node,
             parserOptions: {
@@ -16,6 +16,7 @@ export default defineConfig([
         rules: {
             // force await so the execution order is made sure to be proper
             "@typescript-eslint/no-floating-promises": "error",
+            "@typescript-eslint/require-await": "error",
             // for global variables like NodeJS
             "no-undef": "off",
             // for network room, colyseus won't expose the instance when creating a room

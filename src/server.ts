@@ -1,12 +1,12 @@
 import { listen } from "@colyseus/tools";
 import app from "./colyseus.app";
 import dotenv from 'dotenv';
-import { initDatabaseCache } from "./network/database";
 import { DiscordBot } from "./discord";
 import { Data } from "./data";
 import ip from 'ip';
-import { saveAndCleanCooldownData, setCooldown } from "./cooldown";
+import { saveAndCleanCooldownData } from "./cooldown";
 import { Encoder } from "@colyseus/schema";
+import { db } from "./database/db";
 
 export class ServerInstance {
     static async init() {
@@ -38,7 +38,7 @@ export class ServerInstance {
             }
 
             if (process.env["DATABASE_URL"]) {
-                await initDatabaseCache();
+                await db.cache.init();
             }
         
             // if (process.env["GRANT_MODS"]) {

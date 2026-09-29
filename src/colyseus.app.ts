@@ -9,7 +9,7 @@ import { NetworkRoom } from "./rooms/NetworkRoom";
 import { setCooldown } from "./cooldown";
 
 function registerRooms() {
-    let rooms = {
+    const rooms = {
         room: defineRoom(GameRoom)
     };
     if (process.env["NETWORK_ENABLED"] == "true") {

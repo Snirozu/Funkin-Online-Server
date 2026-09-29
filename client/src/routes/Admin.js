@@ -125,7 +125,7 @@ function Admin() {
             }
 
             reportsBody.push(
-                <div className="Comment">
+                <div className="SongComment">
                     <img style={{ maxWidth: '60px', maxHeight: '60px' }} src={getHost() + '/api/user/avatar/' + report.by} alt=''></img>
                     <div>
                         <a href={getHost() + '/user/' + report.by}> By: {report.by} <br></br> </a>
@@ -163,7 +163,7 @@ function Admin() {
             }
 
             warnedBody.push(
-                <div className="Comment" warnDate={maxDate}>
+                <div className="SongComment" warnDate={maxDate}>
                     <img style={{ maxWidth: '60px', maxHeight: '60px' }} src={getHost() + '/api/user/avatar/' + player} alt=''></img>
                     <div>
                         <a href={'/user/' + player}> {player} <br></br> </a>

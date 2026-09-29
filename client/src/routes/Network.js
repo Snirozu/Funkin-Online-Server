@@ -71,7 +71,7 @@ function Network() {
                     )}
                 </div>
                 <h2> Last Global Messages </h2>
-                <div className="Comments">
+                <div className="SongComments">
                     {sezLoading ? (
                         <p>Loading...</p>
                     ) : sezError ? (
@@ -89,7 +89,7 @@ function renderSezs(msgs) {
     let render = [];
 
     for (const msg of msgs) {
-        render.push(<div className="Comment" style={{maxWidth: '70%'}}>
+        render.push(<div className="SongComment" style={{maxWidth: '70%'}}>
             <AvatarImg className="SmallerAvatar" src={getHost() + "/api/user/avatar/" + encodeURIComponent(msg.player)}></AvatarImg>
             <div>
                 <a href={"/user/" + msg.player}>{msg.player}</a> <br></br>

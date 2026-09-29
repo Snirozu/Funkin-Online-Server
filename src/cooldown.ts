@@ -1,6 +1,6 @@
-import { getIDToken } from "./network/database";
 // import { getRequestIP } from "./util";
 import fs from 'fs';
+import { getIDToken } from './database/db.util';
 
 export enum CooldownTime {
     MINUTE = 60,
@@ -43,8 +43,7 @@ export function cooldownReq(req: any, timerId?:string) {
 
     const [id, token] = getIDToken(req);
 
-    //return cooldown(timerId ?? req.path, getRequestIP(req)) && ((id && token) ? cooldown(timerId ?? req.path, id + '::' + token) : true);
-    return ((id && token) ? cooldown(id + '::' + token, timerId ?? req.path) : true);
+    return ((id && token) ? cooldown(id + '::' + token, timerId ?? (req.baseUrl + req.path)) : true);
 }
 
 export function cooldownRequest(req: any, res: any, next: any) {
@@ -81,7 +80,7 @@ export async function saveAndCleanCooldownData() {
     fs.writeFileSync("database/cooldowns.json", JSON.stringify(Object.fromEntries(cooldownMap)));
 }
 
-export async function clearUp() {
+export function clearUp() {
     cooldownMap.forEach(((v, k) => {
         if (v < secondsDateNow()) {
             cooldownMap.delete(k);

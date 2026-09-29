@@ -30,8 +30,8 @@ model User {
   profileHue2 Int?
   country String?
   ips String[]
-  ngUrl String?
-  ngId String?
+  ngUrl String? @unique
+  ngId String? @unique
 
   scores  Score[]
   songComments SongComment[]
@@ -40,6 +40,11 @@ model User {
   notifications Notification[]
   stats UserStats[]
   warnings UserWarning[]
+  writtenModComments ProfileComment[] @relation("WrittenComments")
+  receivedModComments ProfileComment[] @relation("ReceivedComments")
+  profileCommentReactions ProfileCommentReaction[]
+  modComments ModComment[]
+  modCommentReactions ModCommentReaction[]
 }
 
 model UserStats {
@@ -207,6 +212,7 @@ model Mod {
   downloads      ModDownload[]
   downloadHits   BigInt? @default(0)
   updated        DateTime? @updatedAt
+  modComments    ModComment[]
 
   @@index([title, keywords], map: "title_keywords_text_index")
 }
@@ -219,4 +225,51 @@ model ModDownload {
 
   modID String
   mod   Mod   @relation(fields: [modID], references: [id]) 
+}
+
+model ModComment {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  content   String
+  userRe    User   @relation(fields: [by], references: [id])
+  by        String @db.ObjectId
+  on String
+  mod   Mod   @relation(fields: [on], references: [id]) 
+  submitted DateTime? @default(now())
+  reactions ModCommentReaction[]
+}
+
+model ModCommentReaction {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  name String
+
+  usersIDs String[] @db.ObjectId
+  users   User   @relation(fields: [usersIDs], references: [id]) 
+
+  commentID String @db.ObjectId
+  comment   ModComment   @relation(fields: [commentID], references: [id]) 
+}
+
+model ProfileComment {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  content   String
+
+  byRe    User   @relation("WrittenComments", fields: [by], references: [id])
+  by    String @db.ObjectId
+
+  on    String @db.ObjectId
+  onRe    User   @relation("ReceivedComments", fields: [on], references: [id]) 
+
+  submitted DateTime? @default(now())
+  reactions ProfileCommentReaction[]
+}
+
+model ProfileCommentReaction {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma
+  name      String
+
+  usersIDs  String[] @db.ObjectId
+  users     User   @relation(fields: [usersIDs], references: [id]) 
+
+  commentID String @db.ObjectId
+  comment   ProfileComment   @relation(fields: [commentID], references: [id]) 
 }

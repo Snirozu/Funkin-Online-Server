@@ -2,11 +2,12 @@ import { Room, Client, AuthContext, CloseCode } from "@colyseus/core";
 import { RoomState } from "./schema/RoomState";
 import { ColorArray, Person, Player } from "./schema/Player";
 import { ServerError } from "colyseus";
-import { getPlayerByID, getUserStats, hasAccess, submitReport } from "../network/database";
 import jwt from "jsonwebtoken";
 import { filterChatMessage, filterUsername, formatLog, getRequestIP, removeFromArray } from "../util";
 import { Data } from "../data";
 import { cooldown, cooldownLeft } from "../cooldown";
+import { db } from "../database/db";
+import { hasAccess } from "../database/db.util";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -77,9 +78,8 @@ export class GameRoom extends Room {
     /**
      * used only for chat reporting
      */
-    loggedMessages: ChatMessageDetails[] = [];
+    logs: LogDetails[] = [];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async onCreate(options: any) {
         this.roomId = await this.generateRoomId();
         await this.setPrivate();
@@ -224,7 +224,7 @@ export class GameRoom extends Room {
                 if (!requester)
                     return;
 
-                this.broadcast("log", formatLog(requester.name + ' has picked song: "' + this.state.song + '"'));
+                this.broadcast("log", this.prepareLog(requester.name + ' has picked song: "' + this.state.song + '"'));
                 this.broadcast("checkChart", "", { afterNextPatch: true });
             }
             else {
@@ -250,7 +250,7 @@ export class GameRoom extends Room {
                 if (!requester)
                     return;
 
-                this.broadcast("log", formatLog(requester.name + ' has picked stage: "' + this.state.stageName + '"'));
+                this.broadcast("log", this.prepareLog(requester.name + ' has picked stage: "' + this.state.stageName + '"'));
                 this.broadcast("checkStage", "", { afterNextPatch: true });
             }
             else {
@@ -438,10 +438,10 @@ export class GameRoom extends Room {
             if (!requester)
                 return;
 
-            const detals = new ChatMessageDetails();
+            const detals = new LogDetails();
             detals.content = requester.name + ": " + message;
             detals.client_info = this.clientsInfo.get(client.sessionId);
-            this.loggedMessages.push(detals);
+            this.logs.push(detals);
 
             this.broadcast("log", formatLog(detals.content, detals.client_info.hue));
         });
@@ -645,9 +645,15 @@ export class GameRoom extends Room {
             if (!requester)
                 return;
             
-            const user = requester.verified && process.env["DATABASE_URL"] ? await getPlayerByID(this.clientsInfo.get(client.sessionId).networkId) : null;
-            if (user) {
-                const stats = await getUserStats(this.clientsInfo.get(client.sessionId).networkId);
+            const userRef = requester.verified && process.env["DATABASE_URL"] ? db.users.byID(this.clientsInfo.get(client.sessionId).networkId) : null;
+            if (userRef && await userRef.exists()) {
+                const user = await userRef.get({
+                    select: {
+                        name: true
+                    }
+                });
+
+                const stats = await userRef.getStats();
                 this.setPlayerPoints(requester, stats.points4k);
                 requester.name = user.name;
             }
@@ -752,26 +758,31 @@ export class GameRoom extends Room {
                     client.send("log", formatLog("> Kicked " + kickCount + " people"));
                     break;
                 case "report":
-                    switch (message[1]) {
-                        case 'chat': {
-                            const clientInfo = this.clientsInfo.get(client.sessionId);
-                            if (!cooldown(clientInfo.ip, 'command.report')) {
-                                client.send("log", formatLog("> Try again in " + cooldownLeft(['command.report', clientInfo.ip]) + "s!"));
-                                return;
-                            }
-
-                            await submitReport(clientInfo.networkId ?? clientInfo.ip, JSON.stringify({
-                                roomId: this.roomId,
-                                messages: this.loggedMessages
-                            }));
-                            this.loggedMessages = [];
-                            client.send("log", formatLog("> Report Submitted!"));
-                            break;
-                        }
-                        default: {
-                            client.send("log", formatLog("> Reports X to the moderation team.\nUse '/report chat' to report all messages from this room."));
-                        }
+                    const clientInfo = this.clientsInfo.get(client.sessionId);
+                    if (!cooldown(clientInfo.ip, 'command.report')) {
+                        client.send("log", formatLog("> Try again in " + cooldownLeft(['command.report', clientInfo.ip]) + "s!"));
+                        return;
                     }
+
+                    const roomState = this.state.clone(); 
+                    for (const [ssid, _] of this.clientsInfo) {
+                        const clientState = roomState.players.get(ssid);
+                        delete clientState.arrowColors;
+                        delete clientState.arrowColorsPixel;
+                        delete clientState.gameplaySettings;
+                    }
+
+                    const reasonCut = (message as Array<string>).concat();
+                    reasonCut.shift();
+
+                    await db.reports.submit(clientInfo.networkId ?? clientInfo.ip, JSON.stringify({
+                        roomId: this.roomId,
+                        logs: this.logs,
+                        state: roomState,
+                        reason: reasonCut.join(' ')
+                    }));
+                    this.logs = [];
+                    client.send("log", formatLog("> Report Submitted!"));
                     break;
                 case "addDummy":
                 case "addDummies":
@@ -794,11 +805,31 @@ export class GameRoom extends Room {
 
                     break;
                 case "help":
-                    client.send("log", formatLog("> Global Commands: /roll, /kick <name>, /report"));
+                    client.send("log", formatLog("> Global Commands: /roll, /kick <name>, /report <?reason>, /resize"));
+                    break;
+                case "resize":
+                    if (this.checkInvalid(message[1], VerifyTypes.NUMBER)) {
+                        client.send("log", formatLog("> Usage: /resize <new_player_cap>"));
+                        break;
+                    }
+                    await this.updateLobbySize(Number.parseInt(message[1]), client);
                     break;
                 default:
                     client.send("log", formatLog("> Unknown command; try /help to see the command list!"));
                     break;
+            }
+        });
+
+        this.onMessage("resize_lobby", async (client, message) => {
+            this.keepAliveClient(client);
+
+            if (this.checkInvalid(message, VerifyTypes.NUMBER)) return;
+
+            if (this.hasPerms(client)) {
+                await this.updateLobbySize(message, client);
+            }
+            else {
+                client.send('alert', 'You don\'t have a permission to do that.')
             }
         });
 
@@ -928,12 +959,15 @@ export class GameRoom extends Room {
         let isVerified = false;
         let player = null;
         let playerStats = null;
-        if (process.env["DATABASE_URL"]) {
-            player = await getPlayerByID(options.networkId);
-            playerStats = await getUserStats(options.networkId);
+        if (process.env["DATABASE_URL"] && options.networkId) {
+            const user = db.users.byID(options.networkId);
+            if (await user.exists()) {
+                player = await user.get();
+                playerStats = await user.getStats(options.networkId);
+            }
         }
         if (options.networkId && options.networkToken && player) {
-            if (!hasAccess(player, 'room.auth')) {
+            if (!hasAccess(player?.role, 'room.auth')) {
                 client.error(418, "get fucked lmao");
                 await this.removePlayer(client);
                 return;
@@ -1153,6 +1187,51 @@ export class GameRoom extends Room {
         }
     }
 
+    async updateLobbySize(v: number, client: Client) {
+        if (!v) {
+            client?.send("log", formatLog('> Invalid number.'));
+            return;
+        }
+        if (v < 1) {
+            client?.send("log", formatLog('> Just abandon the lobby or smth'));
+            return;
+        }
+        if (v > 8) {
+            client?.send("log", formatLog('> Up to 8 players is supported!'));
+            return;
+        }
+
+        if (v > 6) {
+            client?.send("log", formatLog('> [WARNING] The player cap is set to not fully supported size!', 55));
+        }
+
+        let indexOffset = 1;
+        while (this.clients.length > v) {
+            const kiclient = this.clients[this.clients.length - indexOffset];
+            if (kiclient) {
+                if (this.isOwner(kiclient))
+                    indexOffset++;
+                else
+                    await this.removePlayer(kiclient);
+            }
+            else {
+                break;
+            }
+        }
+
+        this.maxClients = v;
+
+        this.updateRoomMetaClients();
+        this.broadcast("log", formatLog('> The lobby size has been changed to: ' + this.maxClients));
+    }
+
+    prepareLog(content:string, hue:number = null, isPM:boolean = false):string {
+        this.logs.push({
+            content: content
+        });
+        return formatLog(content, hue, isPM);
+    }
+
     keepAliveClient(client: Client) {
         if (!this.clientsInfo.has(client.sessionId))
             return;
@@ -1304,6 +1383,10 @@ export class GameRoom extends Room {
         this.broadcast("gameStarted", "", { afterNextPatch: true });
     }
 
+    onUncaughtException (err: Error, methodName: string) {
+        console.error("An error occured in", methodName, ":", err);
+    }
+
     // 1. Get room IDs already registered with the Presence API.
     // 2. Generate room IDs until you generate one that is not already used.
     // 3. Register the new room ID with the Presence API.
@@ -1342,7 +1425,7 @@ enum VerifyTypes {
     BOOL,
 }
 
-class ChatMessageDetails {
+class LogDetails {
     public content: string = undefined;
-    public client_info: ClientInfo = undefined;
+    public client_info?: ClientInfo = undefined;
 }

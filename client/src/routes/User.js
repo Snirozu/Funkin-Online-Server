@@ -4,13 +4,15 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import AvatarImg from '../AvatarImg';
-import { allCountries, borderColor, contentProfileColor, getHost, hasAccess, headProfileColor, miniProfileColor, moneyFormatter, ordinalNum, profileBackgroundColor, returnDate, tabButtonColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
+import { allCountries, borderColor, contentProfileColor, getHost, hasAccess, headProfileColor, moneyFormatter, ordinalNum, profileBackgroundColor, returnDate, tabButtonColor, textProfileColor, textProfileRow, timeAgo } from '../Util';
 import { Icon } from '@iconify/react';
 import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
 import Popup from 'reactjs-popup';
 import { ManiaSelect, TopCategorySelect, TopSortSelect } from '../components';
 import { renderPlayers } from './Network';
+import { localData } from '../LocalData';
+import Comments from '../components/Comments';
 
 function User() {
     let { name } = useParams();
@@ -45,6 +47,35 @@ function User() {
     const [topSort, setTopSort] = useState(Cookies.get('user_topsort'));
     const [topMania, setTopMania] = useState(Cookies.get('user_topmania'));
 
+    let TABS = ['Profile'];
+    if (data?.isSelf) {
+        TABS.push('Settings');
+    }
+    if (hasAccess('/admin')) {
+        TABS.push('Admin');
+    }
+    if (editBioMode) {
+        TABS = ['Profile', 'Save'];
+    }
+    if (loading || TABS.length == 1)
+        TABS = [];
+
+    const [curTab, _setTab] = useState(localData.getString('last_tab', 'Profile'));
+    async function setTab(v) {
+        if (v === 'Save') {
+            await toggleEditBio();
+        }
+        else {
+            localData.setString('last_tab', v);
+        }
+        _setTab(v);
+    }
+    if (curTab != TABS[0] && !TABS.includes(curTab)) {
+        _setTab(TABS[0]);
+    }
+
+    const [hasChanges, setHasChanges] = useState(false);
+
     document.documentElement.style.setProperty('--background-image', 'url("' + getHost() + "/api/user/background/" + encodeURIComponent(name) + '")');
 
     function onChange(e) {
@@ -61,10 +92,12 @@ function User() {
             if (response.status !== 200) {
                 throw new Error('User not found.');
             }
-
+            
             setError(null);
             setData(response.data);
             setLoading(false);
+
+            setTab(localData.getString('last_tab', curTab));
         } catch (error) {
             setError(error.message);
             setLoading(false);
@@ -95,6 +128,9 @@ function User() {
                 console.error(error);
                 window.alert(error);
             }
+        }
+        else {
+            setTab('Profile');
         }
 
         setBioEditMode(!editBioMode);
@@ -188,11 +224,13 @@ function User() {
             return;
 
         document.documentElement.style.setProperty('--content-profile-color', contentProfileColor(color, color2));
+        document.documentElement.style.setProperty('--content-profile-static-color', contentProfileColor(color, color2, true));
         document.documentElement.style.setProperty('--text-profile-color', textProfileColor(color));
         document.documentElement.style.setProperty('--row-profile-color', textProfileRow(color));
         document.documentElement.style.setProperty('--row-profile-color-two', textProfileRow(color, true));
         if (data.isSelf) {
             document.documentElement.style.setProperty('--head-profile-color', headProfileColor(color, color2));
+            document.documentElement.style.setProperty('--head-profile-static-color', headProfileColor(color, color2, true));
             document.documentElement.style.setProperty('--tab-button-color', tabButtonColor(color));
         }
         if (color2 !== undefined && color2 != null)
@@ -216,6 +254,7 @@ function User() {
         }
         Cookies.set('admin', '1');
         setAdminMode('1');
+        setTab('Profile')
     }
 
     function clickedAvatar(e) {
@@ -458,7 +497,7 @@ function User() {
             if (!warn)
                 continue;
             warns.push(
-                <div className="Comment">
+                <div className="SongComment">
                     <div>
                         {warn.by ?
                             <>
@@ -488,14 +527,262 @@ function User() {
         return warns;
     }
 
-    return (
-        <div className='Content' id='ProfileContent'>
+    async function doRequest(path, data = undefined) {
+        try {
+            const response = data ?
+                await axios.post(getHost() + path, data, {
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                    }
+                })
+            : await axios.get(getHost() + path, {
+                headers: {
+                    'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
+                }
+            });
+            if (response.status !== 200) {
+                throw new Error('Failed.');
+            }
+            window.alert('Done!');
+        } catch (error) {
+            console.error(error);
+            window.alert(error);
+        }
+    }
+
+    var renderedTabs = [];
+    for (const TAB of TABS) {
+        renderedTabs.push(<button className='Content' style={{
+            background: 'var(--content-profile-static-color)',
+            width: 'min-content',
+            maxWidth: 'min-content',
+            minWidth: 'min-content',
+            height: '8px',
+            top: '13px',
+            position: 'relative',
+            paddingTop: '6px',
+            // zIndex: curTab == TAB ? '0' : '-1',
+            clipPath: curTab != TAB ? 'rect(0px 100% calc(100% - 3px) 0px)' : '',
+            borderBottomRightRadius: '0',
+            borderBottomLeftRadius: '0',
+            borderBottomColor: 'transparent',
+            pointerEvents: 'auto',
+            fontWeight: curTab == TAB ? 'bolder' : 'normal',
+            overflow: 'clip'
+        }} onClick={_ => {
+            setTab(TAB);
+        }}>
+            {TAB}
+        </button>);
+    }
+
+    let renderTab = null;
+    switch (curTab) {
+        case 'Settings':
+            renderTab = (<div>
+                <h2> Appearance </h2>
+                <input type="checkbox" id="upbar_icons" defaultChecked={localData.getBool('upbar_icons', true)} onClick={() => {
+                    localData.setBool('upbar_icons', !localData.getBool('upbar_icons', true));
+                    setHasChanges(true);
+                }} />
+                <label for="upbar_icons">Show Up-Bar Icons</label>
+                <span className='SmallText'> Some people don't like 'ose </span>
+                <br/>
+                {
+                    hasChanges ? <>
+                        <br></br>
+                        <div className='CenterFlex'>
+                            <button className='SvgButtonBig' title="Refresh" onClick={() => {
+                                window.location.reload();
+                            }}>
+                                <Icon width={20} icon="material-symbols:refresh" />
+                                Refresh Page
+                            </button>
+                        </div>
+                        <br></br> 
+                    </> : <></>
+                }
+                <br></br>
+                <h2> Actions </h2>
+                <button className='SvgButtonBig' title="Profile Edit Mode" onClick={toggleEditBio}>
+                    {editBioMode ? <Icon width={20} icon="material-symbols:save" /> : <Icon width={20} icon="mdi:paper-edit-outline" />}
+                    Profile Edit Mode
+                </button> <span className='SmallText'> Starts the customization of your profile! (Remember to save your changes) </span>
+                <br></br>
+                <br></br>
+                <a href="/login">
+                    <button style={{
+                            backgroundColor: 'red',
+                            color: 'white',
+                        }} className='SvgButtonBig'>
+                        <Icon width={20} icon="material-symbols:logout" />
+                        Logout
+                    </button>
+                </a> <span className='SmallText'> Logs you out of this browser. </span>
+                <br></br>
+                <br></br>
+                <a href="/api/account/resetsecret">
+                    <button style={{
+                            backgroundColor: 'darkred',
+                            color: 'white',
+                        }} className='SvgButtonBig'>
+                        <Icon width={20} icon="fluent:key-reset-24-regular" />
+                        Reset Login Credentials
+                    </button>
+                </a> <span className='SmallText'> This will log you out of every device, including this browser session! </span>
+            </div>);
+            break;
+        case 'Admin':
+            renderTab = (<div>
+                <h2> Actions </h2>
+                {hasAccess('/admin') ?
+                    <button className='SvgButtonBig' title={adminMode ? "User Mode" : "Admin Mode"} onClick={toggleAdmin}>
+                        {adminMode ? <Icon width={20} icon="mdi:user-box" /> : <Icon width={20} icon="eos-icons:admin" />}
+                        {adminMode ? "Stop Editing User Scores" : "Start Editing User Scores"}
+                    </button>
+                : <></>} <span className='SmallText'> Moderation tools will show up in the player scores. </span>
+                <br></br>
+                <br></br>
+                {
+                    hasAccess('/api/admin/user/ips') ? 
+                        <Popup trigger={<button title="Search for Users with Similiar IP" className='SvgButtonBig'> <Icon width={20} icon="eos-icons:ip" /> Search for Users with Similiar IP </button>} modal>
+                            <div className='Content'> 
+                                <UserList name={name}></UserList>
+                            </div>
+                        </Popup>
+                    : <></>
+                } <span className='SmallText'> Searches users that have at least one the same IP from the list of logged IP's that this User uses. </span>
+                <br></br>
+                <br></br>
+                {
+                    hasAccess('/api/admin/user/warn') ? 
+                        <Popup trigger={<button style={{
+                            backgroundColor: 'darkorange',
+                            color: 'black',
+                        }} title="Warn User" className='SvgButtonBig'> <Icon width={20} icon="material-symbols:warning-outline" /> Warn User </button>} modal>
+                            <div className='Content'> 
+                                <WarnPad></WarnPad>
+                            </div>
+                        </Popup>
+                    : <></>
+                } <span className='SmallText'> Warn this user with a reason. </span>
+                <br></br>
+                <br></br>
+                {
+                hasAccess('/api/admin/user/ban') ? 
+                    <a title='Ban' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
+                        const reason = window.prompt('Reason?');
+                        if (!reason)
+                            return;
+
+                        navigate("/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true") + "&reason=" + encodeURIComponent(reason));
+                        window.location.reload();
+                    }}>
+                        <button className='SvgButtonBig' style={{
+                            backgroundColor: 'darkred',
+                            color: 'white'
+                        }}>
+                            {(data.role === "Banned" ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
+                            Ban this User
+                        </button>
+                    </a>
+                : <></>
+                } <span className='SmallText'> Ban this user with a reason. THIS ACTION IS IRREVERSIBLE </span>
+                <h2> Advanced </h2>
+                {hasAccess('/api/admin/user/data') ?
+                    <button className='SvgButtonBig' onClick={() => {
+                        const info = window.confirm('Proceed?');
+                        if (!info)
+                            return;
+
+                        window.open(getHost() + '/api/admin/user/data?username=' + encodeURIComponent(name));
+                    }}>
+                        View User Data
+                    </button>
+                : <></>}
+                {hasAccess('/api/admin/user/set/email') ?
+                    <button className='SvgButtonBig' onClick={() => {
+                        const email = window.prompt('To what email?');
+                        if (!email)
+                            return;
+
+                        doRequest('/api/admin/user/set/email?username=' + encodeURIComponent(name) + '&email=' + encodeURIComponent(email));
+                    }}>
+                        Set User Email
+                    </button>
+                : <></>}
+                {hasAccess('/api/admin/user/delete') ?
+                    <button style={{
+                            backgroundColor: 'darkred',
+                            color: 'white'
+                        }} className='SvgButtonBig' onClick={() => {
+                        const info = window.confirm('ARE YOU SURE???');
+                        if (!info)
+                            return;
+
+                        doRequest('/api/admin/user/delete?username=' + encodeURIComponent(name));
+                    }}>
+                        Delete User
+                    </button>
+                : <></>}
+                {hasAccess('/api/admin/user/grant') ?
+                    <button className='SvgButtonBig' onClick={() => {
+                        const role = window.prompt('What role?');
+                        if (!role)
+                            return;
+
+                        doRequest('/api/admin/user/grant?username=' + encodeURIComponent(name) + '&role=' + encodeURIComponent(role));
+                    }}>
+                        Set User Role
+                    </button>
+                : <></>}
+                {hasAccess('/api/admin/user/notify') ?
+                    <button className='SvgButtonBig' onClick={() => {
+                        const title = window.prompt('Title?');
+                        if (!title)
+                            return;
+
+                        let content = window.prompt('Content? (Optional)');
+                        if (content)
+                            content = "&content=" + encodeURIComponent(content);
+
+                        let image = window.prompt('Thumbnail URL? (Optional)');
+                        if (image)
+                            image = "&image=" + encodeURIComponent(image);
+
+                        let href = window.prompt('Ref Link? (Optional)');
+                        if (href)
+                            href = "&href=" + encodeURIComponent(href);
+
+                        doRequest('/api/admin/user/notify?user=' + encodeURIComponent(name) + '&title=' + encodeURIComponent(title) + (content ?? '') + (image ?? '') + (href ?? ''));
+                    }}>
+                        Send a Notification to User
+                    </button>
+                : <></>}
+                {hasAccess('/api/admin/user/rename') ?
+                    <button className='SvgButtonBig' onClick={() => {
+                        const newName = window.prompt('To what username?');
+                        if (!newName)
+                            return;
+
+                        doRequest('/api/admin/user/rename?user=' + encodeURIComponent(name) + '&new=' + encodeURIComponent(newName));
+                        name = newName;
+                        fetchData();
+                    }}>
+                        Rename User
+                    </button>
+                : <></>}
+            </div>);
+            break;
+        default:
+            renderTab = (<>
             {loading ? (
                 <p>Loading...</p>
             ) : error ? (
                 <p>Error: {error}</p>
             ) : (
                 <>
+                <div className='ContentItems'>
                     <div className='Sidebar'>
                         {data.role === "Banned" ? (
                             <>
@@ -599,68 +886,27 @@ function User() {
                                 </>
                             : <></>
                         }
-                        {data.isSelf ?
-                            <>
-                                <button className='SvgButton' title={editBioMode ? "Save Profile" : "Profile Edit Mode"} onClick={toggleEditBio}>
-                                    {editBioMode ? <Icon width={20} icon="material-symbols:save" /> : <Icon width={20} icon="mdi:paper-edit-outline" />}
-                                </button>
-                                {editBioMode ? <>
-                                    <AvatarUpload id='avatarupload'></AvatarUpload>
-                                    {
-                                        data.points >= 1000 ? <BackgroundUpload id='backgroundupload'></BackgroundUpload> : <></>
-                                    }
-                                    <button className='SvgButton' title='Remove Images' onClick={removeImages}>
-                                        {<Icon width={20} icon="mdi:image-remove" />}
-                                    </button>
-                                </> : <></>}
-                            </>
-                         : 
-                            data.canFriend ? 
-                                <button className='SvgButton' title={data.friends.includes(Cookies.get('username')) ? "Remove Friend" : "Add Friend"} onClick={requestFriend}>
-                                    {data.friends.includes(Cookies.get('username')) ? <Icon width={20} icon="mdi:user-minus" /> : <Icon width={20} icon="mdi:user-add" />}
-                                </button>
+                        {!data.isSelf && data.canFriend ? 
+                            <button className='SvgButton' title={data.friends.includes(Cookies.get('username')) ? "Remove Friend" : "Add Friend"} onClick={requestFriend}>
+                                {data.friends.includes(Cookies.get('username')) ? <Icon width={20} icon="mdi:user-minus" /> : <Icon width={20} icon="mdi:user-add" />}
+                            </button>
                             :
                             <></>
                         }
-                        {hasAccess('/admin') ?
-                            <button className='SvgButton' title={adminMode ? "User Mode" : "Admin Mode"} onClick={toggleAdmin}>
-                                {adminMode ? <Icon width={20} icon="mdi:user-box" /> : <Icon width={20} icon="eos-icons:admin" />}
-                            </button>
-                        : <></>}
-                        {
-                            adminMode && hasAccess('/api/admin/user/ban') ? 
-                                <a title='Ban' rel='noreferrer' style={{ color: 'var(--text-profile-color)' }} onClick={() => {
-                                    const reason = window.prompt('Reason?');
-                                    if (!reason)
-                                        return;
+                        {editBioMode ? <>
+                            <AvatarUpload id='avatarupload'></AvatarUpload>
+                            {
+                                data.points >= 1000 ? <BackgroundUpload id='backgroundupload'></BackgroundUpload> : <></>
+                            }
 
-                                    navigate("/api/admin/user/ban?username=" + name + "&to=" + (data.role === "Banned" ? "false" : "true") + "&reason=" + encodeURIComponent(reason));
-                                    window.location.reload();
-                                }}>
-                                    <button className='SvgButton'>
-                                        {(data.role === "Banned" ? <Icon width={20} icon="mdi:hand-back-right" /> : <Icon width={20} icon="rivet-icons:ban" />)}
-                                    </button>
-                                </a>
-                            : <></>
-                        }
-                        {
-                            adminMode && hasAccess('/api/admin/user/warn') ? 
-                                <Popup trigger={<button title="Warn User" className='SvgButton'> <Icon width={20} icon="material-symbols:warning-outline" /> </button>} modal>
-                                    <div className='Content'> 
-                                        <WarnPad></WarnPad>
-                                    </div>
-                                </Popup>
-                            : <></>
-                        }
-                        {
-                            adminMode && hasAccess('/api/admin/user/ips') ? 
-                                <Popup trigger={<button title="List Users with same IP" className='SvgButton'> <Icon width={20} icon="eos-icons:ip" /> </button>} modal>
-                                    <div className='Content'> 
-                                        <UserList name={name}></UserList>
-                                    </div>
-                                </Popup>
-                            : <></>
-                        }
+                            <button style={{
+                                backgroundColor: 'darkred',
+                                color: 'white',
+                            }} className='SvgButtonBig' title='Remove Images' onClick={removeImages}>
+                                {<Icon width={20} icon="mdi:image-remove" />}
+                                Clear Images
+                            </button>
+                        </> : <></>}
                         {
                             editBioMode ? 
                                 <>
@@ -678,12 +924,6 @@ function User() {
                                     Country:
                                     <br></br>
                                     <CountrySelect country={data.country}/>
-                                    <br></br>
-                                    <br></br>
-                                    <a className='TabButton' href="/login">LOGOUT</a>
-                                    <br></br>
-                                    <br></br>
-                                    <a className='TabButton' href="/api/account/resetsecret">RESET SECRET</a>
                                 </>
                             :
                                 <></>
@@ -727,9 +967,31 @@ function User() {
                             </div>
                         </Popup>
                     </div>
+                </div>
+                <br></br>
+                <hr></hr>
+                <Comments id={name} type="user"/>
                 </>
             )}
+            </>);
+            break;
+    }
+
+    return (
+        <>
+        <div style={{
+            display: 'flex',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            width: 'min-content',
+            pointerEvents: 'none'
+        }}>
+            {renderedTabs}
         </div>
+        <div className='Content' id={curTab + 'Content'}>
+            {renderTab}
+        </div>
+        </>
     );
 }
 
@@ -777,12 +1039,12 @@ function WarnPad() {
                 }}></textarea>
             </label>
             <br></br>
-            <label>
+            {/* <label>
                 Report to Moderators Feed
                 <input type="checkbox" checked={warnReport} onChange={e => {
                     setWarnReport(e.target.checked);
                 }}></input>
-            </label>
+            </label> */}
             {/* <label>
                 Duration:&nbsp;
                 <DurationSelect onSelect={(duration) => {
@@ -1085,10 +1347,11 @@ const BackgroundUpload = () => {
     return (
         <>
             <input accept="image/png, image/jpeg" type="file" id="upload-background" hidden ref={actualBtnRef} onChange={upload} />
-            <button className='SvgButton' title='Upload Background (2145x1035)' onClick={() => {
+            <button className='SvgButtonBig' title='Upload Background (2145x1035)' onClick={() => {
                 document.getElementById('upload-background').click();
             }}>
                 <Icon width={20} icon="mdi:image-add" />
+                Upload BG
             </button>
         </>
     );

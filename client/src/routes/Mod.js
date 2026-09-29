@@ -1,11 +1,16 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { doRequestAndAlert, getHost, hasAccess, timeAgo } from "../Util";
+import { doRequestAndAlert, getHost, hasAccess, parseYouTubeURL, timeAgo } from "../Util";
 import Cookies from 'js-cookie';
 import { Icon } from "@iconify/react/dist/iconify.js";
 import Popup from "reactjs-popup";
 import { renderPlayers } from "./Network";
+import sanitize from "sanitize-html";
+import Linkify from "linkify-react";
+import { Popover } from 'react-tiny-popover'
+import { EmojiPicker } from "frimousse";
+import Comments from "../components/Comments";
 
 function Mod() {
     let { id } = useParams();
@@ -111,7 +116,10 @@ function Mod() {
 
     const imgs = [];
     for (const image of data.images) {
-        imgs.push(<img src={image} />);
+        imgs.push(<img src={image} onClick={(e) => {
+            document.getElementById('image-peek').style.visibility = 'visible';
+            document.getElementById('image-peek-img').src = image;
+        }} />);
     }
 
     // if (data.images.length > 1) {
@@ -215,6 +223,24 @@ function Mod() {
     ) : (
         <>
             <div className="CenteredFlex">
+                <div id="image-peek" style={{
+                    position: 'fixed',
+                    backgroundColor: '#0000008e',
+                    width: '100vw',
+                    height: '100vh',
+                    visibility: 'hidden',
+                    textAlign: 'center',
+                    zIndex: 999,
+                    left: 0,
+                    top: 0,
+                    display: 'flex',
+                    justifyContent: 'center'
+                }} onClick={() => {
+                    document.getElementById('image-peek').style.visibility = 'hidden';
+                }}>
+                    <img id="image-peek-img"></img>
+                </div>
+
                 <div className="RoundedContents">
                     <div className="ModContent" style={{
                         backgroundImage: 'url(' + data.images[0] + ')'
@@ -256,11 +282,11 @@ function Mod() {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '1px',
-                                    }}> <img style={{
-                                        filter: 'saturate(0%)',
+                                        gap: '10px',
+                                        color: '#FFFF6E'
+                                    }}> {data.favorited.length} <img style={{
                                         borderRadius: '0'
-                                    }} src='/images/fav.png' alt=''></img> &nbsp; {data.favorited.length} Likes </p>
+                                    }} src='/images/fav.png' alt=''></img> </p>
                                 } modal>
                                 <ModFavoriters data={data}></ModFavoriters>
                                 </Popup>
@@ -271,11 +297,12 @@ function Mod() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    gap: '1px',
-                                }}> <img style={{
-                                        filter: 'saturate(0%)',
+                                    gap: '10px',
+                                    color: '#6EFF82'
+                                }}> {Number.parseInt(data.downloadsHits).toLocaleString()} <img style={{
+                                        // filter: 'saturate(0%)',
                                         borderRadius: '0'
-                                    }} src='/images/dl.png' alt=''></img> &nbsp; {data.downloadsHits} Downloads </p>
+                                    }} src='/images/dl.png' alt=''></img> </p>
                             </div>
                         </div>
 
@@ -309,7 +336,7 @@ function Mod() {
                                     setData(data);
                                 }}></textarea>
                             </> : <>
-                                {data.description}
+                                <Linkify children={data.description}></Linkify>
                             </>} </p>
 
                         <hr style={{ lineHeight: '3.5' }}></hr>
@@ -353,11 +380,13 @@ function Mod() {
                                 }}></Keywords>
                             </div>
                         </>}
-
+                        
+                        <hr/>
+                        <Comments id={data.id} type="mod"/>
                         <br></br>
+
                         {/* forced regular date format so it never changes to unreadable american format */}
                         <span className="SmallText"> Submitted: {new Date(data.submitted).toLocaleString("en-GB")}</span>
-                        <br></br>
 
                         <br></br>
                         {

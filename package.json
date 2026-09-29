@@ -21,7 +21,8 @@
     "refreshprisma": "prisma generate && npx prisma db push",
     "installclient": "cd client && npm install && npm run build && cd ..",
     "restartclient": "cd client && npm run build && pm2 restart funkin-online --update-env && cd..",
-    "setupservice": "pm2 save && pm2 startup"
+    "setupservice": "pm2 save && pm2 startup",
+    "generate-docky": "ts-node ./swagger.ts"
   },
   "author": "Snirozu",
   "license": "Apache-2.0-NON-AI",
@@ -67,7 +68,7 @@
     "cross-spawn": "^7.0.6",
     "discord.js": "^14.21.0",
     "elliptic": "^6.6.1",
-    "express": "^4.21.0",
+    "express": "^5.2.1",
     "express-fileupload": "^1.5.1",
     "ip": "^2.0.1",
     "javascript-time-ago": "^2.5.10",
@@ -75,8 +76,9 @@
     "jsonwebtoken": "^9.0.2",
     "micromatch": "^4.0.8",
     "nodemailer": "^6.9.15",
-    "path-to-regexp": "^8.2.0",
+    "path-to-regexp": "^8.4.2",
     "sanitize-html": "^2.13.0",
+    "swagger-autogen": "^2.23.7",
     "toml": "^3.0.0",
     "ws": "^8.18.0"
   }

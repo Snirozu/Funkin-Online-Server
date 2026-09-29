@@ -1,10 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap');
+
 @font-face {
   font-family: "PhantomMuff";
   src: url('PhantomMuff_Full_Letters_1.1.5.ttf');
 }
 
 :root {
+  --background-image: url('bg.png');
+  --background-color: #0e0d0e;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+html {
+  background-color: var(--background-color) !important;
+  background-image: var(--background-image);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  /* 
+  background-size: 2145px auto;
+  background-position: center 0;
+  */
+}
+
+/* #root {
+  backdrop-filter: blur(8px);
+} */
+
+* {
+  scrollbar-width: thin;
+}
+
+:root {
   --head-profile-color: #282c34;
+  --head-profile-static-color: #282c34;
   --content-profile-color: #282c34;
   --tab-button-color: #475063;
   --text-profile-color: #ff7d7d;
@@ -17,7 +59,7 @@
 }
 
 .davefont {
-  font-family: 'PhantomMuff';
+  font-family: 'PhantomMuff', "Noto Color Emoji";
 }
 
 .CenteredFlex {
@@ -102,11 +144,16 @@ details {
 }
 
 hr {
-  margin: 20px;
+  margin: 2%;
+  width: 95%;
+} 
+
+button:hover {
+  text-decoration: underline;
 }
 
 p, span, a, .SeamlessInput, summary {
-  font-family: 'PhantomMuff';
+  font-family: 'PhantomMuff', "Noto Color Emoji";
   overflow-wrap: anywhere;
 }
 
@@ -148,7 +195,7 @@ h2::after, h3::after {
 }
 
 p, .SeamlessInput {
-  font-size: 20px;
+  font-size: 19px;
   margin-bottom: 15px;
   margin-top: 10px;
 }
@@ -306,13 +353,13 @@ a:hover {
 }
 
 .TabButton:hover .HiddenChild, #TopBarMenu .HiddenChild {
-  clip-path: rect(0px 100% 100% 0px);
-  visibility: visible;
+  /* clip-path: rect(0px 100% 100% 0px); */
+  display: inherit;
 }
 
 .HiddenChild {
-  clip-path: rect(0px 0% 100% 0px);
-  visibility: collapse;
+  /* clip-path: rect(0px 0% 100% 0px); */
+  display: none;
   transition: 0.2s;
 }
 
@@ -331,10 +378,11 @@ a:hover {
 
 .Bar #BarProfile {
   margin-right: 20px;
-  max-height: 40px;
+  height: 100%;
   display: flex;
   align-items: center;
-  background: var(--head-profile-color);
+  border-radius: 20px;
+  background: linear-gradient(to right, #00000000, var(--head-profile-static-color) 100%);
 }
 
 .BarProfileText {
@@ -456,7 +504,7 @@ a:hover {
 .SmallText {
   font-size: 14px;
   line-height: 10px;
-  color: #808899;
+  color: #868e9e;
 }
 
 .CumImage {
@@ -555,6 +603,17 @@ a:hover {
   margin-left: auto;
   margin-right: auto;
   margin-bottom: 10px;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ContentItems {
+  min-width: 100%;
+  max-width: 100%;
+  display: flex;
+  color: white;
+  /* padding-left: 15px; */
+  overflow: auto;
 }
 
 ul {
@@ -576,12 +635,12 @@ td > * {
   white-space: wrap;
 }
 
-.Comments {
+.SongComments {
   padding-top: 15px;
   text-align: left;
 }
 
-.Comment {
+.SongComment {
   background-color: #202329;
   max-width: 80%;
   display: flex;
@@ -597,15 +656,19 @@ td > * {
   overflow-wrap: anywhere;
 }
 
-.Comment > * {
+.SongComment > * {
   padding: 4px;
 }
 
-#ProfileContent > div { /* ">" only includes the first child */
+/* #ProfileContent > div { 
   width: calc(var(--content-width) - var(--profile-sidebar-width));
+} */
+
+.Content .Comments {
+  width: 80%;
 }
 
-.Content > div { /* ">" only includes the first child */
+.Content > div, .ContentItems > div { /* ">" only includes the first child */
   width: 100%;
 }
 
@@ -647,7 +710,7 @@ td > * {
 }
 
 .VerticalLine {
-  border-right: 3px solid #121418;
+  border-right: 3px solid #12141800;
   height: 100%;
   max-width: 1px;
 }
@@ -759,25 +822,37 @@ tbody tr:nth-child(even) {
     drop-shadow( 0px -4px 0px black);
 }
 
-.SvgButton {
+.SvgButtonBig, .SvgButton {
   border: none;
   border-radius: 10px;
-  width: 30px;
+  min-width: 30px;
   aspect-ratio: 1/1;
   background-color: rgb(218, 206, 206);
   margin-right: 5px;
   margin-top: 5px;
+  display: inline-block;
 }
 
-.SvgButton:hover {
+.SvgButtonBig:hover, .SvgButton:hover {
   background-color: white;
+}
+
+.SvgButtonBig {
+  display: inline-flex;
+  align-items: center;
+  aspect-ratio: inherit;
+  max-width: 250px;
+  gap: 10px;
+  min-width: 40px;
+  padding: 10px;
+  min-height: 40px;
 }
 
 .UserBio {
   max-height: 200px;
   max-width: 100%;
   overflow: auto;
-  font-family: 'PhantomMuff';
+  font-family: 'PhantomMuff', "Noto Color Emoji";
 }
 
 .SvgNoButton {
@@ -990,4 +1065,145 @@ select,
 .ModSearchItem:hover {
   scale: 1.08;
   transition: 0.2s;
+}
+
+[frimousse-root] {
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  height: 352px;
+  background: light-dark(#fff, #171717);
+  isolation: isolate;
+}
+
+[frimousse-search] {
+  position: relative;
+  z-index: 10;
+  appearance: none;
+  margin-block-start: 8px;
+  margin-inline: 8px;
+  padding: 8px 10px;
+  background: light-dark(#f5f5f5, #262626);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+[frimousse-viewport] {
+  position: relative;
+  flex: 1;
+  outline: none;
+}
+
+[frimousse-loading]
+[frimousse-empty] {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: light-dark(#a1a1a1, #737373);
+  font-size: 14px;
+}
+
+[frimousse-list] {
+  padding-block-end: 12px;
+  user-select: none;
+}
+
+[frimousse-category-header] {
+  padding: 0px 12px 0px 12px;
+  background: light-dark(#fff, #171717);
+  color: light-dark(#525252, #a1a1a1);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+[frimousse-row] {
+  padding-inline: 12px;
+  scroll-margin-block: 12px;
+}
+
+[frimousse-emoji] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 18px;
+
+  &[data-active] {
+    background: light-dark(#f5f5f5, #262626);
+  }
+}
+
+svg {
+  pointer-events: none;
+}
+
+.Reaction {
+  background: #ffffff34;
+  color: #b6b6b6;
+  display: flex;
+  width: min-content;
+  padding: 6px;
+  border-radius: 14px;
+  font-size: 16px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  white-space: pre;
+  color: #d8d8d8;
+}
+
+.CommentBox {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.CommentHeader {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 16px;
+}
+
+.TimeAgoText {
+  color: #747474;
+  font-size: 12px;
+}
+
+.SmallTextButton {
+  color: #747474; 
+  font-size: 12px; 
+  margin-left: auto;
+}
+
+.CommentContent {
+  margin: 7px 15px 7px 15px;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #ffffff31;
+  font-size: 16px;
+  white-space: preserve-breaks;
+  overflow: auto;
+  max-height: 400px;
+}
+
+.ReactionsBox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.AddReactionButton {
+  background: #ffffff27;
+  color: #a8a8a8;
+  border-style: none;
+  display: flex;
+  width: min-content;
+  padding: 6px;
+  border-radius: 14px;
 }

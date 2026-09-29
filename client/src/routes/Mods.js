@@ -130,7 +130,7 @@ function ModSearchList(props) {
                                 }} src='/images/fav-tiny.png' alt=''></img> 
                             </span>
 
-                            <span className="SmallText"> {mod.downloadHits} <img style={{
+                            <span className="SmallText"> {Number.parseInt(mod.downloadHits).toLocaleString()} <img style={{
                                     filter: '',
                                     borderRadius: '0',
                                     height: '14px',

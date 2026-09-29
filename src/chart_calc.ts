@@ -34,7 +34,7 @@ export class Rating
 		this.image = name;
 		this.hitWindow = 0;
 
-		var window:string = name + 'Window';
+		const window:string = name + 'Window';
         switch (window) {
             case "sickWindow": 
                 this.hitWindow = 45;
@@ -50,25 +50,25 @@ export class Rating
 
 	public static loadDefault():Rating[]
 	{
-		var ratingsData:Rating[] = [new Rating('sick')]; //highest rating goes first
+		const ratingsData:Rating[] = [new Rating('sick')]; //highest rating goes first
 
-		var rating:Rating = new Rating('good');
-		rating.ratingMod = 0.67;
-		rating.score = 200;
-		rating.noteSplash = false;
-		ratingsData.push(rating);
+		const rating1:Rating = new Rating('good');
+		rating1.ratingMod = 0.67;
+		rating1.score = 200;
+		rating1.noteSplash = false;
+		ratingsData.push(rating1);
 
-		var rating:Rating = new Rating('bad');
-		rating.ratingMod = 0.34;
-		rating.score = 100;
-		rating.noteSplash = false;
-		ratingsData.push(rating);
+		const rating2:Rating = new Rating('bad');
+		rating2.ratingMod = 0.34;
+		rating2.score = 100;
+		rating2.noteSplash = false;
+		ratingsData.push(rating2);
 
-		var rating:Rating = new Rating('shit');
-		rating.ratingMod = 0;
-		rating.score = 50;
-		rating.noteSplash = false;
-		ratingsData.push(rating);
+		const rating3:Rating = new Rating('shit');
+		rating3.ratingMod = 0;
+		rating3.score = 50;
+		rating3.noteSplash = false;
+		ratingsData.push(rating3);
 		return ratingsData;
 	}
 }

@@ -1,6 +1,7 @@
 import toml from 'toml';
 import fs from 'fs';
-import { grantPlayerRole } from './network/database';
+import { db } from './database/db';
+import { ResponseError } from './error';
 
 // server configuration
 // read-only data
@@ -43,7 +44,16 @@ export class ConfigData {
         }
 
         for (const user of props.users) {
-            await grantPlayerRole(user.name, user.role);
+            const userRef = db.users.byName(user.name);
+            try {
+                if (await userRef.exists())
+                    await userRef.grantRole(user.role);
+            }
+            catch (exc) {
+                if (exc instanceof ResponseError)
+                    return;
+                console.error(exc);
+            }
         }
 
         return this.ROLES;

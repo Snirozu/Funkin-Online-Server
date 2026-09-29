@@ -192,6 +192,7 @@ function RenderComments(props) {
         player: '',
         content: '',
         at: '',
+        submitted: ''
     }]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -225,10 +226,12 @@ function RenderComments(props) {
         if (seconds.length == 1)
             seconds = "0" + seconds;
         commentsBody.push(
-            <div className="Comment">
+            <div className="SongComment">
                 <AvatarImg className="SmallerAvatar" src={getHost() + "/api/user/avatar/" + encodeURIComponent(comment.player)}></AvatarImg>
                 <div>
-                    <a href={"/user/" + comment.player}>{comment.player}</a> <br></br>
+                    <a href={"/user/" + comment.player}>{comment.player}</a> &nbsp;
+                    <span style={{color: '#747474', fontSize: '12px'}}> {comment.submitted ? timeAgo.format(Date.parse(comment.submitted)) : ''} </span>
+                    <br></br>
                     <span>{comment.content}</span> <br></br>
                     <span className="SmallText"> at {isNeg ? '-' : ''}{minutes}:{seconds}</span>
                 </div>
@@ -237,7 +240,7 @@ function RenderComments(props) {
     }
 
     return (
-        <div className="Comments">
+        <div className="SongComments">
             <h3> Song Comments: </h3>
             {
                 loading ? <center> Loading... </center> :

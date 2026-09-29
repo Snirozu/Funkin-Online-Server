@@ -31,11 +31,15 @@ export class InfoData {
     public COUNTRY_PLAYERS: any = {};
     public ONLINE_PLAYERS: string[] = [];
     public MAP_USERNAME_PLAYINGROOM: Map<string, GameRoom> = new Map<string, GameRoom>();
+    public RAW_OPENAPI: string = null;
 
     load() {
         if (fs.existsSync("database/day_players.json"))
             this.DAY_PLAYERS = JSON.parse(fs.readFileSync("database/day_players.json", 'utf8'));
         if (fs.existsSync("database/country_players.json"))
             this.COUNTRY_PLAYERS = JSON.parse(fs.readFileSync("database/country_players.json", 'utf8'));
+        if (fs.existsSync("database/openapi.json")) {
+            this.RAW_OPENAPI = fs.readFileSync("database/openapi.json", 'utf8');
+        }
     }
 }

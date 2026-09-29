@@ -1,11 +1,12 @@
 import { Room, Client, AuthContext, CloseCode } from "@colyseus/core";
 import { ServerError } from "colyseus";
-import { authPlayer, getNotifications, getPlayerByID, getPlayerByName, getPlayerClubTag, getPlayerIDByName, hasAccess } from "../network/database";
 import { NetworkSchema } from "./schema/NetworkSchema";
 import { formatLog, isUserIDInRoom } from "../util";
 import { DiscordBot } from "../discord";
 import { Data } from "../data";
 import { cooldown, setCooldown } from "../cooldown";
+import { db } from "../database/db";
+import { authUser, hasAccess } from "../database/db.util";
 
 export class NetworkRoom extends Room {
     public static PROTOCOL_VERSION = 8;
@@ -22,7 +23,7 @@ export class NetworkRoom extends Room {
     nameToClient: Map<string, Client> = new Map<string, Client>();
     nameToHue: Map<string, number> = new Map<string, number>();
 
-    async onCreate(_options: any) {
+    onCreate(_options: any) {
         if (NetworkRoom.instance) {
             throw new ServerError(418);
         }
@@ -80,9 +81,12 @@ export class NetworkRoom extends Room {
                     client.send("log", formatLog('DM players with the following format >{user} {message}\nSee the online player list with /list!\nIf you want to receive notifications for all messages then type /notify!\nTo view someone\'s profile use /profile <user>'));
                 }
                 else if (message.startsWith('/announce')) {
-                    const playAdm = await getPlayerByID(this.SSIDtoID.get(client.sessionId) + '');
-
-                    if (playAdm && hasAccess(playAdm, 'command.announce')) {
+                    const playAdm = await db.users.byID(this.SSIDtoID.get(client.sessionId) + '').get({
+                        select: {
+                            role: true,
+                        }
+                    });
+                    if (playAdm && hasAccess(playAdm?.role, 'command.announce')) {
                         this.clients.forEach(client => {
                             client.send("notification", message.substring('/announce '.length));
                         });
@@ -95,11 +99,15 @@ export class NetworkRoom extends Room {
             }
 
             await NetworkRoom.logToAll(formatLog(sender + ": " + message, this.nameToHue.get(sender.toLowerCase())), true);
-            await NetworkRoom.discordChatMessage(sender, message);
+            await NetworkRoom.discordChatMessage(this.SSIDtoID.get(client.sessionId), message);
         });
 
         setCooldown('room.invite', 30);
         this.onMessage("inviteplayertoroom", async (client, message: string) => {
+            if (!message) {
+                return;
+            }
+
             if (!this.SSIDtoID.has(client.sessionId)) {
                 client.send("notification", 'Authorization Error');
                 this.removePlayer(client);
@@ -116,7 +124,12 @@ export class NetworkRoom extends Room {
                 return;
             }
 
-            if (!((await getPlayerByName(message)).friends.includes(this.SSIDtoID.get(client.sessionId)))) {
+            const target = await db.users.byName(message).get({
+                select: {
+                    friends: true,
+                }
+            });
+            if (!target.friends.includes(this.SSIDtoID.get(client.sessionId))) {
                 client.send("notification", 'You\'re not friends with ' + message + '!');
                 return;
             }
@@ -135,7 +148,7 @@ export class NetworkRoom extends Room {
             client.send("notification", 'Invite sent!');
         });
 
-        this.onMessage("loggedMessagesAfter", async (client, message: number) => {
+        this.onMessage("loggedMessagesAfter", (client, message: number) => {
             if (!message)
                 message = 0;
 
@@ -155,10 +168,11 @@ export class NetworkRoom extends Room {
             throw new ServerError(5003, "This client version is not supported on this server, please update!\n\nYour protocol version: '" + options.protocol + "' latest: '" + latestVersion + "'");
         }
 
-        const player = await authPlayer(options, false);
-        if (!player) {
+        const playerRef = await authUser(options, false);
+        if (!playerRef) {
             throw new ServerError(401, "Unauthorized to Network");
         }
+        const player = await playerRef.get();
         if (this.IDToName.has(player.id)) {
             this.removePlayer(this.IDtoClient.get(player.id));
         }
@@ -174,7 +188,7 @@ export class NetworkRoom extends Room {
     }
 
     async onJoin(client: Client, _: any) {
-        const player = await getPlayerByID(this.SSIDtoID.get(client.sessionId));
+        const player = await db.users.byID(this.SSIDtoID.get(client.sessionId)).get();
         if (!player)
             throw new ServerError(401, "Unauthorized to Network");
 
@@ -187,7 +201,7 @@ export class NetworkRoom extends Room {
             }
         }
 
-        const notifs = await getNotifications(player.id);
+        const notifs = await db.users.byID(player.id).getNotifications();
         if (notifs && notifs.length > 0) {
             NetworkRoom.notifyPlayer(player.id, 'You have ' + notifs.length + ' new notifications!')
         }
@@ -256,12 +270,15 @@ export class NetworkRoom extends Room {
         }
     }
 
-    public static async discordChatMessage(user: string, content: string) {
-        const tag = await getPlayerClubTag(await getPlayerIDByName(user))
+    public static async discordChatMessage(userID: string, content: string) {
+        const user = db.users.byID(userID);
+        const tag = await user.getClubTag();
+        const userName = await user.getName();
+
         await DiscordBot.sendWebhookMessage({
             content: content,
-            username: user + (tag ? ' [' + tag + ']' : ''),
-            avatarURL: "https://funkin.sniro.boo/api/user/avatar/" + user // maybe make a .env value for domain? because i hate this with a burning passion
+            username: userName + (tag ? ' [' + tag + ']' : ''),
+            avatarURL: "https://funkin.sniro.boo/api/user/avatar/" + userName // maybe make a .env value for domain? because i hate this with a burning passion
         });
     }
 }
