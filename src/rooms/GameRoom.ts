@@ -963,7 +963,7 @@ export class GameRoom extends Room {
             const user = db.users.byID(options.networkId);
             if (await user.exists()) {
                 player = await user.get();
-                playerStats = await user.getStats(options.networkId);
+                playerStats = await user.getStats();
             }
         }
         if (options.networkId && options.networkToken && player) {
