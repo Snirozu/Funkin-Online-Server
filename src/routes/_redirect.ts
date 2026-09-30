@@ -6,11 +6,13 @@ const redirectRouter = Router();
 // forward deprecated urls to new ones
 
 redirectRouter.get("/network/user*x", (req, res) => {
+    // #swagger.tags = ['Deprecated']
     // #swagger.deprecated = true
     res.redirect(req.url.substring("/network".length));
 });
 
 redirectRouter.get("/api/avatar*x", (req, res) => {
+    // #swagger.tags = ['Deprecated']
     // #swagger.deprecated = true
 
     // temporary, the client doesn't have http location header support for relative paths in the latest release
@@ -18,21 +20,25 @@ redirectRouter.get("/api/avatar*x", (req, res) => {
 });
 
 redirectRouter.get("/api/background*x", (req, res) => {
+    // #swagger.tags = ['Deprecated']
     // #swagger.deprecated = true
     res.redirect('/api/user' + req.url.substring("/api".length));
 });
 
 redirectRouter.get("/api/account/cookie", (req, res) => {
+    // #swagger.tags = ['Deprecated']
     // #swagger.deprecated = true
     res.redirect('/api/auth' + req.url.substring("/api/account".length));
 });
 
 redirectRouter.get("/api/account/logout", (req, res) => {
+    // #swagger.tags = ['Deprecated']
     // #swagger.deprecated = true
     res.redirect('/api/auth' + req.url.substring("/api/account".length));
 });
 
 redirectRouter.get("/mod/:mod_id/dl/:dl_id", async (req, res) => {
+    // #swagger.tags = ['Generic']
     const url = await db.mods.giveDownloadURLForID(req.params.mod_id + ':' + req.params.dl_id);
     if (!url)
         return res.sendStatus(404);

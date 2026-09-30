@@ -8,7 +8,7 @@ const doc = {
       "It's mostly an auto-doc, so information here can be incomplete",
       "",
       "### TERMS OF USAGE!!!!!",
-      "You're not allowed to use this project in ways that are malicious or giving disadvantage to the user.",
+      "You're not allowed to use this project in ways that are malicious or giving unfair advantage to the user.",
       "**This API should only be used in Psych Online related projects.**",
       "Other use is not permitted, unless given permission by API owners.",
     ].join('\n'),
