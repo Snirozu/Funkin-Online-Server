@@ -105,7 +105,7 @@ userRouter.get("/details", async (req, res) => {
         return res.sendStatus(400);
 
     const authRef = await authUser(req, false);
-    const auth = await authRef.get();
+    const auth = authRef != null ? await authRef.get() : undefined;
 
     const userRef = db.users.byName(req.query.name as string);
     const user = await userRef.get(); 

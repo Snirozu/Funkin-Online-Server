@@ -332,7 +332,7 @@ export function initExpress(app: Application) {
     });
 
     app.use(async function(err:Error, req, res, _) {
-        let showDetailed = false;
+        let showDetailed = process.env["FORCE_DEBUG_RESPONSE"] == "true";
         try {
             const [id, __] = getIDToken(req);
             if (!id) throw null;

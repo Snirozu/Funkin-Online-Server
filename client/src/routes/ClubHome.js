@@ -56,7 +56,7 @@ function ClubHome() {
                     'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
                 },
                 responseType: 'json', transformResponse: (body) => {
-                    try { return JSON.parse(body) } catch (exc) { return null; }
+                    try { return JSON.parse(body) } catch (exc) { return body; }
                 }, validateStatus: () => true
             });
 
@@ -67,7 +67,7 @@ function ClubHome() {
                 setMyClubTag(data);
             }
             else {
-                alert(response.data.error);
+                alert(response.data);
                 setError(404);
             }
         } catch (error) {

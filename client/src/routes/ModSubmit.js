@@ -50,7 +50,7 @@ function ModSubmit() {
             });
 
             if (response.status !== 200) {
-                throw new Error(typeof response.data == "object" ? response.data.error : response.data);
+                throw new Error(typeof response.data == "object" ? response.data : response.data);
             }
 
             alert('Mod submitted successfully!')

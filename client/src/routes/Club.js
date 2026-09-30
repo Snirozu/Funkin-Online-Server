@@ -140,7 +140,7 @@ function Club() {
                     'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken')),
                 },
                 responseType: 'json', transformResponse: (body) => {
-                    try { return JSON.parse(body) } catch (exc) { return null; }
+                    try { return JSON.parse(body) } catch (exc) { return body; }
                 }, validateStatus: () => true
             });
 
@@ -149,7 +149,7 @@ function Club() {
                 window.location.reload();
             }
             else {
-                alert(response.data.error);
+                alert(response.data);
             }
         } catch (error) {
             alert(error.message);

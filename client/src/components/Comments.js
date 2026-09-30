@@ -52,7 +52,7 @@ function Comments(params) {
                 }, validateStatus: () => true,
             });
             if (response.status !== 200) {
-                throw new Error(typeof response.data == "object" ? response.data.error : response.data);
+                throw new Error(typeof response.data == "object" ? response.data : response.data);
             }
 
             setCommentsError(null);
@@ -97,13 +97,13 @@ function Comments(params) {
                                             'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
                                         },
                                         responseType: 'json', transformResponse: (body) => {
-                                            try { return JSON.parse(body) } catch (exc) { return null; }
+                                            try { return JSON.parse(body) } catch (exc) { return body; }
                                         }, validateStatus: () => true
                                     });
 
                                     if (response.status !== 200) {
                                         setPostStatus(undefined);
-                                        throw response.data.error;
+                                        throw response.data;
                                     }
                                     setPostStatus('Posted!');
                                     window.location.reload();

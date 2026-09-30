@@ -23,7 +23,7 @@ function Login() {
                 email: email.trim()
             }, {
                 responseType: 'json', transformResponse: (body) => {
-                    try { return JSON.parse(body) } catch (exc) { return null; }
+                    try { return JSON.parse(body) } catch (exc) { return body; }
                 }, validateStatus: () => true,
             });
 
@@ -31,7 +31,7 @@ function Login() {
                 setInCode(true);
             }
             else {
-                setError(response.data.error);
+                setError(response.data);
             }
         } catch (error) {
             setError(error.message);
@@ -50,7 +50,7 @@ function Login() {
                 code: code.trim()
             }, {
                 responseType: 'json', transformResponse: (body) => {
-                    try { return JSON.parse(body) } catch (exc) { return null; }
+                    try { return JSON.parse(body) } catch (exc) { return body; }
                 }, validateStatus: () => true,
             });
 
@@ -67,7 +67,7 @@ function Login() {
                 navigate('/network');
             }
             else {
-                setError(response.data.error);
+                setError(response.data);
             }
         } catch (error) {
             setError(error.message);

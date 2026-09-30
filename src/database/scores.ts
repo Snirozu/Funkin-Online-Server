@@ -177,7 +177,7 @@ export class Scores {
         const newRank = await submitter.getRank(undefined, daKeyValue);
 
         if (daKeyValue == 4 ? newRank <= 30 && newRank < prevRank : newRank <= 10 && newRank < prevRank) {
-            await NetworkRoom.logToAll(formatLog(submitter.getName() + ' climbed to ' + ordinalNum(newRank) + ' place on the global ' + daKeyValue + 'k leaderboard!'))
+            await NetworkRoom.logToAll(formatLog((await submitter.getName()) + ' climbed to ' + ordinalNum(newRank) + ' place on the global ' + daKeyValue + 'k leaderboard!'))
         }
 
         const newStats = await submitter.getStats();

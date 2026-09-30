@@ -18,10 +18,10 @@ export async function doRequestAndAlert(method, path, body = undefined) {
 			}, validateStatus: () => true
 		};
 
-		const response = method.toLowerCase() == 'GET' ? await axios.get(getHost() + path, config) : await axios.post(getHost() + path, body, config);
+		const response = method.toLowerCase() === 'GET' ? await axios.get(getHost() + path, config) : await axios.post(getHost() + path, body, config);
 
 		if (response.status !== 200) {
-			throw new Error(typeof response.data == "object" ? response.data.error : response.data);
+			throw new Error(typeof response.data == "object" ? response.data : response.data);
 		}
 
 		return true;

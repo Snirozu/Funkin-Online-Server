@@ -327,7 +327,7 @@ export class Clubs {
 
         const submitterStats = await owner.getStats();
     
-        if (await owner.getClub())
+        if (await (await owner.getClub()).exists())
             throw new ResponseError("You're already in a club!");
     
         if (submitterStats["points4k"] < 250)

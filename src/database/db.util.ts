@@ -1,4 +1,4 @@
-import { debugPrint, matchWildcard } from "../util";
+import { debugPrint, isObjectEmpty, matchWildcard } from "../util";
 import jwt from "jsonwebtoken";
 import { Data } from "../data";
 import { cooldown } from "../cooldown";
@@ -329,9 +329,14 @@ export async function checkAccess(req: Request, res: any, next: any) {
     }
 
     const [id, token] = getIDToken(req);
+
+    if (token == null || isObjectEmpty(id)) {
+        return res.sendStatus(401)
+    }
+
     const player = await db.users.byID(id).getLoginState();
 
-    if (player == null || token == null || id == null) {
+    if (player == null) {
         return res.sendStatus(401)
     }
 
@@ -369,7 +374,7 @@ export async function checkAccess(req: Request, res: any, next: any) {
 export async function authUser(req: any, checkPerms:boolean = true) {
     const [id, token] = getIDToken(req);
 
-    if (!id)
+    if (isObjectEmpty(id))
         return;
 
     const self = db.users.byID(id);

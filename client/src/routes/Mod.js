@@ -65,7 +65,7 @@ function Mod() {
                 }, validateStatus: () => true,
             });
             if (response.status !== 200) {
-                throw new Error(typeof response.data == "object" ? response.data.error : response.data);
+                throw new Error(typeof response.data == "object" ? response.data : response.data);
             }
 
             setError(null);
@@ -451,7 +451,7 @@ function AddDownload(props) {
             });
 
             if (response.status !== 200) {
-                throw new Error(typeof response.data == "object" ? response.data.error : response.data);
+                throw new Error(typeof response.data == "object" ? response.data : response.data);
             }
 
             setSubmitted(true);
@@ -531,7 +531,7 @@ function EditDownload(props) {
             });
 
             if (response.status !== 200) {
-                throw new Error(typeof response.data == "object" ? response.data.error : response.data);
+                throw new Error(typeof response.data == "object" ? response.data : response.data);
             }
 
             setSubmitted(true);
