@@ -1000,10 +1000,10 @@ export class User {
         if (userID != profileID) {
             const profileRef = db.users.byID(profileID);
             await profileRef.sendNotification({
-                title: 'New Profile Comment!',
+                title: 'New Profile Comment',
                 content: userName + ' has posted a comment on your profile!',
                 image: '/api/user/avatar/' + encodeURIComponent(userName),
-                href: '/user/' + encodeURIComponent(userName)
+                href: '/user/' + encodeURIComponent(reqJson.id as string)
             });
         }
     
