@@ -997,7 +997,7 @@ export class User {
 
         const profileID = await db.users.getIDByName(reqJson.id as string);
 
-        if (userName != profileID) {
+        if (userID != profileID) {
             const profileRef = db.users.byID(profileID);
             await profileRef.sendNotification({
                 title: 'New Profile Comment!',
