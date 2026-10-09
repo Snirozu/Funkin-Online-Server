@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { fetchSizeForURLs, fetchTrueDownloadURL, isOnlyOneEmoji, sortDownloads } from '../util';
+import { escapeRegex, fetchSizeForURLs, fetchTrueDownloadURL, isOnlyOneEmoji, sortDownloads } from '../util';
 import { User } from './users';
 import { db, prisma } from './db';
 import { ResponseError } from '../error';
@@ -548,6 +548,8 @@ export class Mods {
         // })
         // console.log(res.cursor.firstBatch);
         // return res;
+
+        const escapedQuery = escapeRegex(query);
     
         return (await prisma.mod.findMany({
             where: {
@@ -559,13 +561,13 @@ export class Mods {
                     },
                     {
                         id: {
-                            contains: query,
+                            contains: escapedQuery,
                             mode: "insensitive"
                         }
                     },
                     {
                         title: {
-                            contains: query,
+                            contains: escapedQuery,
                             mode: "insensitive"
                         }
                     }

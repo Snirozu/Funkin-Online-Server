@@ -631,4 +631,11 @@ adminRouter.get("/nextweekreset", checkAccess, (_req, res) => {
     res.status(200).send(Data.PERSIST.props.NEXT_WEEKLY_DATE + '');
 });
 
+adminRouter.get("/user/create", checkAccess, async (req, res) => {
+    // #swagger.tags = ['Admin']
+
+    await db.users.create(req.query.username as string, req.query.email as string);
+    res.sendStatus(200);
+});
+
 export default adminRouter;

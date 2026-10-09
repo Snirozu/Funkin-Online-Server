@@ -147,7 +147,7 @@ export function initExpress(app: Application) {
         const WEEK_TIME_MS = 604800000;
 
         // every second
-        if (process.env["PRODUCTION_MODE"] == "true" || true) {
+        if (process.env["PRODUCTION_MODE"] == "true") {
             setInterval(async function () {
                 if (Date.now() >= Data.PERSIST.props.NEXT_WEEKLY_DATE) {
                     console.log('NEXT WEEK!');

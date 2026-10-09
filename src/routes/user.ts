@@ -45,6 +45,8 @@ userRouter.get("/avatar/:user", async (req, res) => {
         return res.sendStatus(400);
 
     const target = db.users.byName(req.params.user as string);
+    if (!target)
+        return res.sendStatus(404);
 
     const file = await target.getAvatar();
     if (!file)

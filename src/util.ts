@@ -249,6 +249,10 @@ export function isObjectEmpty(obj: any) {
     return false;
 }
 
+export function escapeRegex(text: string): string {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+}
+
 export const validCountries = [
     null,
     'AF',

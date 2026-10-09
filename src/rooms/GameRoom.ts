@@ -1322,9 +1322,7 @@ export class GameRoom extends Room {
                 }
             }
         }
-        catch (exc) {
-            console.error(exc);
-        }
+        catch (_) {}
     }
 
     updateGameplaySetting(client: Client, key: string, value: any) {

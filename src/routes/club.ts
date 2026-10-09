@@ -114,7 +114,7 @@ clubRouter.get("/accept", checkAccess, async (req, res) => {
         return res.sendStatus(400);
 
     const [id, _] = getIDToken(req);
-    const club = await db.clubs.byID(id).get({
+    const club = await db.clubs.byMemberID(id).get({
         select: {
             leaders: true,
             tag: true
@@ -134,7 +134,12 @@ clubRouter.get("/reject", checkAccess, async (req, res) => {
         return res.sendStatus(400);
 
     const [id, _] = getIDToken(req);
-    const club = await (await db.users.byID(id).getClub()).get();
+    const club = await db.clubs.byMemberID(id).get({
+        select: {
+            leaders: true,
+            tag: true
+        }
+    });
     if (!club.leaders.includes(id)) {
         throw new ResponseError('Only club leaders can do that!');
     }

@@ -598,6 +598,12 @@ export class User {
                 }
             }
         })
+
+        await prisma.notification.deleteMany({
+            where: {
+                to: userID
+            }
+        })
         
         const user = await prisma.user.delete({
             where: {
@@ -696,6 +702,22 @@ export class User {
                 }
             })) {
                 await db.mods.updateCommentReaction(userID, reaction.id, false);
+            }
+
+            await prisma.profileComment.deleteMany({
+                where: {
+                    by: userID
+                }
+            })
+    
+            for (const reaction of await prisma.profileCommentReaction.findMany({
+                where: {
+                    usersIDs: {
+                        has: userID
+                    }
+                }
+            })) {
+                await db.users.byID(userID).updateCommentReaction(reaction.id, false);
             }
     
             await prisma.report.deleteMany({
