@@ -986,12 +986,26 @@ export class User {
         const userID = await this.getID();
         if (!userID)
             throw new ResponseError("Cannot fetch user.");
+
+        const userName = await this.getName();
     
         if ((reqJson.content as string).length < 2)
             throw new ResponseError("Too short!");
     
         if ((reqJson.content as string).length > 2000)
             throw new ResponseError("Too long!");
+
+        const profileID = await db.users.getIDByName(reqJson.id as string);
+
+        if (userName != profileID) {
+            const profileRef = db.users.byID(profileID);
+            await profileRef.sendNotification({
+                title: 'New Profile Comment!',
+                content: userName + ' has posted a comment on your profile!',
+                image: '/api/user/avatar/' + encodeURIComponent(userName),
+                href: '/user/' + encodeURIComponent(userName)
+            });
+        }
     
         return await prisma.profileComment.create({
             data: {
@@ -1003,7 +1017,7 @@ export class User {
                 },
                 onRe: {
                     connect: {
-                        id: await db.users.getIDByName(reqJson.id as string)
+                        id: profileID
                     }
                 }
             }
