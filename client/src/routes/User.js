@@ -772,6 +772,18 @@ function User() {
                         Rename User
                     </button>
                 : <></>}
+                {hasAccess('/api/admin/user/removeimages') ?
+                    <button className='SvgButtonBig' onClick={() => {
+                        const info = window.alert('Proceed?');
+                        if (!info)
+                            return;
+
+                        doRequest('/api/admin/user/removeimages?username=' + encodeURIComponent(name));
+                        fetchData();
+                    }}>
+                        Delete All Images
+                    </button>
+                : <></>}
             </div>);
             break;
         default:

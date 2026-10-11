@@ -638,4 +638,15 @@ adminRouter.get("/user/create", checkAccess, async (req, res) => {
     res.sendStatus(200);
 });
 
+adminRouter.get("/user/removeimages", checkAccess, async (req, res) => {
+    // #swagger.tags = ['Admin']
+
+    const userRef = db.users.byName(req.query.username as string);
+
+    if (!await userRef.removeImages()) {
+        return res.sendStatus(500);
+    }
+    res.sendStatus(200);
+});
+
 export default adminRouter;
