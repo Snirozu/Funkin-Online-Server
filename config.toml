@@ -29,6 +29,7 @@ access = [
     '/api/admin/logs',
     '/api/admin/logs/process',
     '/api/admin/user/delete',
+    '/api/admin/user/removeimages',
     '/api/mod/delete',
     'command.announce',
     'admin.club.edit',
