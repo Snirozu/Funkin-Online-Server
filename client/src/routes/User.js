@@ -774,7 +774,7 @@ function User() {
                 : <></>}
                 {hasAccess('/api/admin/user/removeimages') ?
                     <button className='SvgButtonBig' onClick={() => {
-                        const info = window.alert('Proceed?');
+                        const info = window.confirm('Proceed?');
                         if (!info)
                             return;
 
