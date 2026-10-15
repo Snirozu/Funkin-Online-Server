@@ -808,7 +808,7 @@ export class GameRoom extends Room {
                     client.send("log", formatLog("> Global Commands: /roll, /kick <name>, /report <?reason>, /resize"));
                     break;
                 case "resize":
-                    if (this.checkInvalid(message[1], VerifyTypes.NUMBER)) {
+                    if (this.checkInvalid(Number.parseInt(message[1]), VerifyTypes.NUMBER)) {
                         client.send("log", formatLog("> Usage: /resize <new_player_cap>"));
                         break;
                     }
