@@ -287,6 +287,11 @@ export class Mods {
         }) > 0)
             throw new ResponseError("The ID for this download is already taken!");
 
+        const urlSize = await fetchSizeForURLs(urls);
+        if (!urlSize || Number.isNaN(urlSize)) {
+            throw new ResponseError("The Download URL should directly point to a file!");
+        }
+
         await prisma.mod.update({
             where: {
                 id: forModId,
@@ -297,7 +302,7 @@ export class Mods {
                         id: forModId + ':' + id,
                         urls: urls,
                         hits: 0,
-                        size: BigInt(await fetchSizeForURLs(urls))
+                        size: BigInt(urlSize)
                     }
                 }
             },

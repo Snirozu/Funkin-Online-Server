@@ -253,7 +253,7 @@ model ModDownload {
   size    BigInt
 
   modID String
-  mod   Mod   @relation(fields: [modID], references: [id]) 
+  mod   Mod   @relation(fields: [modID], references: [id], onDelete: Cascade) 
 }
 
 model ModComment {
@@ -262,7 +262,7 @@ model ModComment {
   userRe    User   @relation(fields: [by], references: [id])
   by        String @db.ObjectId
   on String
-  mod   Mod   @relation(fields: [on], references: [id]) 
+  mod   Mod   @relation(fields: [on], references: [id], onDelete: Cascade) 
   submitted DateTime? @default(now())
   reactions ModCommentReaction[]
 }
@@ -275,7 +275,7 @@ model ModCommentReaction {
   users   User   @relation(fields: [usersIDs], references: [id]) 
 
   commentID String @db.ObjectId
-  comment   ModComment   @relation(fields: [commentID], references: [id]) 
+  comment   ModComment   @relation(fields: [commentID], references: [id], onDelete: Cascade) 
 }
 
 model ProfileComment {
