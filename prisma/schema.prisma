@@ -203,7 +203,7 @@ model UserWarning {
 
 model Mod {
   id             String @id @default(nanoid(10)) @map("_id")
-  name           String? @unique
+  name           String?
 
   images         String[]
   keywords       String[]
