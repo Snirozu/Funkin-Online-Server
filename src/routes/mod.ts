@@ -19,7 +19,7 @@ modRouter.post("/dl/submit", checkAccess, logActionOnRequest, async (req, res) =
     // #swagger.tags = ['Mods']
 
     const [userid, _] = getIDToken(req);
-    if (!(await canManageMod(userid, req.body.id)))
+    if (!(await canManageMod(userid, req.body.mod_id as string)))
         return res.sendStatus(403)
 
     await db.mods.submitDownloadForID(req.body.id as string, req.body.urls as string[], req.body.mod_id as string);
@@ -30,7 +30,12 @@ modRouter.post("/dl/delete", checkAccess, logActionOnRequest, async (req, res) =
     // #swagger.tags = ['Mods']
 
     const [userid, _] = getIDToken(req);
-    if (!(await canManageMod(userid, req.body.id)))
+
+     if (!req.body.id.includes(':'))
+        throw new ResponseError("The ID is incomplete!");
+    const modId = req.body.id.split(':')[0];
+
+    if (!(await canManageMod(userid, modId)))
         return res.sendStatus(403)
 
     await db.mods.removeDownloadForID(req.body.id as string);
@@ -41,7 +46,12 @@ modRouter.post("/dl/edit", checkAccess, logActionOnRequest, async (req, res) => 
     // #swagger.tags = ['Mods']
 
     const [userid, _] = getIDToken(req);
-    if (!(await canManageMod(userid, req.body.id)))
+
+    const modDownload = await db.mods.getModDownload(req.body.id);
+    if (!modDownload)
+        throw new ResponseError("Non-existent Mod Download!");
+
+    if (!(await canManageMod(userid, modDownload.modID)))
         return res.sendStatus(403)
 
     await db.mods.editDownload(req.body);

@@ -5,6 +5,7 @@ import { cooldown } from "../cooldown";
 import { Request } from "express";
 import { db, KEYS_LIST, prisma } from "./db";
 import { Prisma } from "@prisma/client";
+import { logAction } from "../mods";
 
 export async function removeBloatReplays() {
     debugPrint('fetching');
@@ -268,21 +269,50 @@ export async function perishScores() {
 //     }
 // }
 
-export async function endWeekly() {
-    const scores = await prisma.score.findMany({
-        where: {
-            category: 'week'
-        },
-        select: {
-            id: true
-        }
-    })
-
-    const scoreIDs = [];
-    for (const score of scores) {
-        scoreIDs.push(score.id);
+export function getErrorMessage(exc: any) {
+    if (exc instanceof Error) {
+        return exc.message;
     }
-    await db.scores.removeByIDs(scoreIDs);
+
+    if (typeof exc === 'string') {
+        return exc;
+    }
+
+    if (exc !== null && typeof exc === 'object' && 'message' in exc && typeof exc.message === 'string') {
+        return exc.message;
+    }
+
+    try {
+        return JSON.stringify(exc);
+    } 
+    catch {
+        return String(exc);
+    }
+}
+
+export async function endWeekly() {
+    await logAction(undefined, 'Ending Weekly');
+    try {
+        const scores = await prisma.score.findMany({
+            where: {
+                category: 'week'
+            },
+            select: {
+                id: true
+            }
+        })
+
+        const scoreIDs = [];
+        for (const score of scores) {
+            scoreIDs.push(score.id);
+        }
+        await db.scores.removeByIDs(scoreIDs);
+        await logAction(undefined, 'Reseted Weekly!');
+    }
+    catch (exc) {
+        console.error(exc);
+        await logAction(undefined, getErrorMessage(exc));
+    }
 }
 
 export function getUserPriority<V extends Prisma.UserFindUniqueArgs>(user: Prisma.UserGetPayload<V> | null):number {

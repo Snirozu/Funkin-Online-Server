@@ -231,7 +231,7 @@ adminRouter.get("/cooldown/clear", checkAccess, async (_, res) => {
     res.sendStatus(200);
 });
 
-adminRouter.get("/endweekly", checkAccess, async (_, res) => {
+adminRouter.get("/endweekly", checkAccess, logActionOnRequest, async (_, res) => {
     // #swagger.tags = ['Admin']
 
     await endWeekly();

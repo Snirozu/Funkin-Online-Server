@@ -260,6 +260,14 @@ export class Mods {
         });
     }
 
+    async getModDownload(id:string) {
+        return await prisma.modDownload.findFirst({
+            where: {
+                id: id
+            }
+        })
+    }
+
     async submitDownloadForID(id: string, urls: string[], forModId:string) {
         if (id.trim().length < 1) {
             throw new ResponseError("The ID needs at least one letter");
