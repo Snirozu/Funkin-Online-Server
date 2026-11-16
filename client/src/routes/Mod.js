@@ -266,8 +266,8 @@ function Mod() {
             if (creditsData.user != null)
                 for (const rawCredit of creditsData.user) {
                     const credit = {
-                        url: '/user/' + data.submitter.name,
-                        icon: getHost() + '/api/user/avatar/' + data.submitter.name,
+                        url: '/user/' + rawCredit.name,
+                        icon: getHost() + '/api/user/avatar/' + rawCredit.name,
                         name: rawCredit.name ?? '',
                         description: rawCredit.description ?? null,
                         hue: rawCredit.hue ?? null,
