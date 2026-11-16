@@ -4,6 +4,7 @@ import { hasAccess } from "../Util";
 import axios from "axios";
 import { getHost } from "../Util";
 import Cookies from 'js-cookie';
+import { ModCategorySelect } from "../components";
 
 function ModSubmit() {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ function ModSubmit() {
     }
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
+    const [categoryID, setCategoryID] = useState('');
     const [keywords, setKeywords] = useState('');
     const [images, setImages] = useState('');
 
@@ -40,6 +42,7 @@ function ModSubmit() {
                 description: desc.trim(),
                 keywords: keywords.trim().split(' '),
                 images: images.trim().split('\n'),
+                categoryid: categoryID,
             }, {
                 headers: {
                     'Authorization': 'Basic ' + btoa(Cookies.get('authid') + ":" + Cookies.get('authtoken'))
@@ -64,51 +67,61 @@ function ModSubmit() {
     }
 
     return (
-        <div className='Content'>
-            <div className="Main">
-                <p> Submit a new Mod </p>
-                <b> ID: </b> <input type="text" onChange={e => setID(e.target.value)} value={id} /> <br></br>
-                The URL will look like: <br></br>
-                https://funkin.sniro.boo/mod/<b>{encodeURIComponent(id)}</b> <br></br>
-                <b style={{ color: 'red' }}> THE ID CANNOT BE CHANGED </b>
-                <br></br>
-                <br></br>
-                <b> Title: </b> <input type="text" onChange={e => setTitle(e.target.value)} value={title} /> <br></br>
-                <br></br>
-                <b> Description: </b> <br></br>
-                (Would be nice to have information about the mod and credits to the authors)
-                <br></br>
-                <textarea style={{ width: "500px", height: "200px", fontSize: '16px'}} className="SeamlessInput" value={desc} onChange={e => {
-                    setDesc(e.target.value);
-                }}></textarea>
-                <br></br>
-                <b> Keywords: </b> <input type="text" onChange={e => setKeywords(e.target.value)} value={keywords} /> <br></br>
-                (Search Keywords, separate with a space)
-                <br></br>
-                <br></br>
-                <b> Images: </b>
-                <br></br>
-                (Input Image URLs here, separate by a new line) <br></br>
-                (The first entry will be the thumbnail)
-                <br></br>
-                <textarea style={{ width: "500px", height: "100px", fontSize: '12px'}} className="SeamlessInput" value={images} onChange={e => {
-                    setImages(e.target.value);
-                }}></textarea>
-                <br></br>
-                (Downloads will be possible to add once the mod has been submitted.)
-                <br></br>
-                <br></br>
-                {
-                    loading ? <>
-                        Loading...
-                    </> : <>
-                        <button className="FunkinButton" onClick={e => {
-                            submitData();
-                        }}> Create </button>
-                    </>
-                }
+        <>
+            <div className='Content'>
+                <div className="Main">
+                    <p> Submit a new Mod </p>
+                    <b> ID: </b> <input type="text" onChange={e => setID(e.target.value)} value={id} /> <br></br>
+                    The URL will look like: <br></br>
+                    https://funkin.sniro.boo/mod/<b>{encodeURIComponent(id)}</b> <br></br>
+                    <b style={{ color: 'red' }}> THE ID CANNOT BE CHANGED </b>
+                    <br></br>
+                    <br></br>
+                    <b> Title: </b> <input type="text" onChange={e => setTitle(e.target.value)} value={title} /> <br></br>
+                    <br></br>
+                    <b>Category: </b> <ModCategorySelect v={categoryID} onSelect={sel => {
+                        setCategoryID(sel);
+                    }} />
+                    <br></br>
+                    <br></br>
+                    <b> Description: </b> <br></br>
+                    (Would be nice to have information about the mod and credits to the authors)
+                    <br></br>
+                    <textarea style={{ width: "500px", height: "200px", fontSize: '16px'}} className="SeamlessInput" value={desc} onChange={e => {
+                        setDesc(e.target.value);
+                    }}></textarea>
+                    <br></br>
+                    <b> Keywords: </b> <input type="text" onChange={e => setKeywords(e.target.value)} value={keywords} /> <br></br>
+                    (Search Keywords, separate with a space)
+                    <br></br>
+                    <br></br>
+                    <b> Images: </b>
+                    <br></br>
+                    (Input Image URLs here, separate by a new line) <br></br>
+                    (The first entry will be the thumbnail)
+                    <br></br>
+                    <textarea style={{ width: "500px", height: "100px", fontSize: '12px'}} className="SeamlessInput" value={images} onChange={e => {
+                        setImages(e.target.value);
+                    }}></textarea>
+                    <br></br>
+                    (Downloads will be possible to add once the mod has been submitted.)
+                    <br></br>
+                    <br></br>
+                    {
+                        loading ? <>
+                            Loading...
+                        </> : <>
+                            <button className="FunkinButton" onClick={e => {
+                                submitData();
+                            }}> Create </button>
+                        </>
+                    }
+                </div>
             </div>
-        </div>
+            {hasAccess('/api/mod/category/create') ? <div className="Content">
+                <a href="/mods/submitcategory">...or manage Mod Categories</a>
+            </div> : <></>}
+        </>
     )
 }
 

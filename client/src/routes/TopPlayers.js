@@ -146,7 +146,7 @@ function TopPlayers() {
                             <br></br>
                             <span style={{fontSize: '20px', color: 'gainsboro'}}> {moneyFormatter.format(player[sort])} FP </span>
                         </div>
-                        <div style={{ marginLeft: 'auto' }}>
+                        <div style={{ marginLeft: 'auto', paddingLeft: '20px' }}>
                             <img className='BiggerClubBanner' src={getHost() + '/api/club/banner/' + player.club} alt={player.club ?? ''} /> 
                         </div>
                     </a>

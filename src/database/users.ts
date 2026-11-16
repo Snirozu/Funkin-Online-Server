@@ -233,15 +233,15 @@ export class User {
     }
 
     async linkNewgrounds(ngId: string, ngUrl: string) {
-        const linkedPlayer = await db.users.byNewgroundsID(ngId).exists();
+        const linkedPlayer = await db.users.getIDFromNewgroundsID(ngId);
         if (linkedPlayer) {
             throw new ResponseError("Can't link the same Newgrounds profile for two accounts!");
         }
     
         return (await prisma.user.update({
             data: {
-                ngId: ngId,
-                ngUrl: ngUrl
+                ngId: (!ngId ? {unset: true} : {set: ngId}),
+                ngUrl: (!ngUrl ? {unset: true} : {set: ngUrl})
             },
             where: this.where
         }));
@@ -1120,9 +1120,20 @@ export class Users {
         return new User({ email: email });
     }
 
-    byNewgroundsID(ngID: string) {
-        if (!ngID) throw new ResponseError('Empty Identifier');
-        return new User({ ngId: ngID });
+    async getIDFromNewgroundsID(ngID: string) {
+        if (!ngID) return null;
+
+        const user = await prisma.user.findFirst({
+            where: {
+                ngId: { equals: ngID}
+            },
+            select: {
+                id: true
+            }
+        });
+
+        if (!user) return null;
+        return user.id;
     }
 
     async create(name: string, email: string) {
@@ -1159,19 +1170,23 @@ export class Users {
 
     async getNameByID(id: string) {
         if (!db.cache.cachedIDtoName.has(id)) {
-            const daName = (await prisma.user.findFirst({
-                where: {
-                    id: {
-                        equals: id
+            try {
+                const daName = (await prisma.user.findFirst({
+                    where: {
+                        id: {
+                            equals: id
+                        }
+                    },
+                    select: {
+                        name: true
                     }
-                },
-                select: {
-                    name: true
-                }
-            }))?.name;
-            if (!daName)
-                return daName;
-            db.cache.cacheUserUniques(id, daName);
+                }))?.name;
+                if (!daName)
+                    return daName;
+                db.cache.cacheUserUniques(id, daName);
+            } catch (_) {
+                return null;
+            }
         }
         
         return db.cache.cachedIDtoName.get(id);

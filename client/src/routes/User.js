@@ -9,7 +9,7 @@ import { Icon } from '@iconify/react';
 import Editor from 'react-simple-wysiwyg';
 import AvatarEditor from 'react-avatar-editor';
 import Popup from 'reactjs-popup';
-import { ManiaSelect, TopCategorySelect, TopSortSelect } from '../components';
+import { ManiaSelect, SmallBluds, TopCategorySelect, TopSortSelect } from '../components';
 import { renderPlayers } from './Network';
 import { localData } from '../LocalData';
 import Comments from '../components/Comments';
@@ -893,7 +893,7 @@ function User() {
                                 <>
                                     <center> <b>Friends</b> </center>
                                     <div className='FrenBox'>
-                                        <Friends data={data.friends}></Friends>
+                                        <SmallBluds data={data.friends}></SmallBluds>
                                     </div>
                                 </>
                             : <></>
@@ -990,7 +990,7 @@ function User() {
     }
 
     return (
-        <>
+        <div>
         <div style={{
             display: 'flex',
             marginLeft: 'auto',
@@ -1003,7 +1003,7 @@ function User() {
         <div className='Content' id={curTab + 'Content'}>
             {renderTab}
         </div>
-        </>
+        </div>
     );
 }
 
@@ -1254,50 +1254,6 @@ function uploadAvatarFile(file) {
         document.body.innerHTML = exc;
         console.error(exc);
     });
-}
-
-const Friends = (props) => {
-    const [more, setMore] = useState(false);
-
-    let children = [];
-    let other = [];
-
-    let pick = children;
-
-    let i = 0;
-    for (const friend of props.data) {
-        if (!more && i > 34) {
-            pick = other;
-        }
-        pick.push(
-            <a key={friend} href={"/user/" + encodeURIComponent(friend)}>
-                <AvatarImg className='FrenAvatar' title={friend} src={getHost() + "/api/user/avatar/" + encodeURIComponent(friend)}></AvatarImg>
-            </a>
-        );
-        i++;
-    }
-
-    if (other.length === 1) {
-        children.push(other.shift());
-    }
-
-    if (other.length > 1) {
-        children.push(
-            <a title="More" onClick={() => {
-                setMore(true);
-            }}>
-                <div className='FrenAvatar' style={{
-                    background: '#0000004d',
-                    display: 'inline-block',
-                    borderRadius: '30px',
-                    alignContent: 'center',
-                    overflow: 'hidden',
-                }}>+</div>
-            </a>
-        );
-    }
-
-    return children;
 }
 
 const AvatarUpload = () => {

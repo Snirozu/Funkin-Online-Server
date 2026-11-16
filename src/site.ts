@@ -25,6 +25,7 @@ import userRouter from './routes/user';
 import { ResponseError } from './error';
 import redirectRouter from './routes/_redirect';
 import apiRouter from './routes/api';
+import { logAction } from './mods';
 
 export function initExpress(app: Application) {
     // set this to true if you use a proxy like nginx
@@ -149,34 +150,60 @@ export function initExpress(app: Application) {
         // every second
         if (process.env["PRODUCTION_MODE"] == "true") {
             setInterval(async function () {
-                if (Date.now() >= Data.PERSIST.props.NEXT_WEEKLY_DATE) {
-                    console.log('NEXT WEEK!');
+                try {
+                    if (Date.now() >= Data.PERSIST.props.NEXT_WEEKLY_DATE) {
+                        console.log('NEXT WEEK!');
 
-                    Data.PERSIST.props.NEXT_WEEKLY_DATE += WEEK_TIME_MS;
-                    while (Date.now() >= Data.PERSIST.props.NEXT_WEEKLY_DATE) {
-                        Data.PERSIST.props.NEXT_WEEKLY_DATE += WEEK_TIME_MS;
-                        console.log('skipping week ahead!');
+                        if (Date.now() >= Data.PERSIST.props.NEXT_WEEKLY_DATE) {
+                            Data.PERSIST.props.NEXT_WEEKLY_DATE += WEEK_TIME_MS;
+                            while (Date.now() >= Data.PERSIST.props.NEXT_WEEKLY_DATE) {
+                                Data.PERSIST.props.NEXT_WEEKLY_DATE += WEEK_TIME_MS;
+                                console.log('skipping week ahead!');
+                            }
+                            Data.PERSIST.save();
+                        }
+
+                        async function getPlaceMessage(stats: any) {
+                            const club = await db.users.byID(stats.userRe.id).getClub();
+                            const clubTag = await club.exists() ? await club.getTag() : undefined;
+
+                            return stats.userRe.name + (clubTag ? ' [' + clubTag + ']' : '') + ' with ' + stats.points4k + 'FP!';
+                        }
+
+                        let _top = await db.users.top(0, undefined, "week");
+
+                        let leadersMessage = '• Weekly 4k Leaderboard Finals! •';
+                        leadersMessage = leadersMessage + '\n1st. ' + await getPlaceMessage(_top[0]);
+                        leadersMessage = leadersMessage + '\n2nd. ' + await getPlaceMessage(_top[1]);
+                        leadersMessage = leadersMessage + '\n3rd. ' + await getPlaceMessage(_top[2]);
+                        leadersMessage = leadersMessage + '\n4th. ' + await getPlaceMessage(_top[3]);
+                        leadersMessage = leadersMessage + '\n5th. ' + await getPlaceMessage(_top[4]);
+
+                        _top = await db.users.top(0, undefined, "week", 'points5k');
+                        leadersMessage = leadersMessage + '\nWeekly 5k Leader: ' + await getPlaceMessage(_top[0]);
+
+                        _top = await db.users.top(0, undefined, "week", 'points6k');
+                        leadersMessage = leadersMessage + '\nWeekly 6k Leader: ' + await getPlaceMessage(_top[0]);
+
+                        _top = await db.users.top(0, undefined, "week", 'points7k');
+                        leadersMessage = leadersMessage + '\nWeekly 7k Leader: ' + await getPlaceMessage(_top[0]);
+
+                        _top = await db.users.top(0, undefined, "week", 'points8k');
+                        leadersMessage = leadersMessage + '\nWeekly 8k Leader: ' + await getPlaceMessage(_top[0]);
+
+                        _top = await db.users.top(0, undefined, "week", 'points9k');
+                        leadersMessage = leadersMessage + '\nWeekly 9k Leader: ' + await getPlaceMessage(_top[0]);
+
+                        await NetworkRoom.logToAll(formatLog(leadersMessage))
+
+                        await endWeekly();
+
+                        await NetworkRoom.logToAll(formatLog('[!] The weekly leaderboard has been reset!'))
                     }
-                    Data.PERSIST.save();
-
-                    async function getPlaceMessage(stats: any) {
-                        const clubTag = await (await db.users.byID(stats.userRe.id).getClub()).getTag();
-                        return stats.userRe.name + (clubTag ? ' [' + clubTag + ']' : '') + ' with ' + stats.points4k + 'FP!';
-                    }
-
-                    const _top = await db.users.top(0, undefined, "week");
-                    let leadersMessage = '• Weekly 4k Leaderboard Finals! •';
-                    leadersMessage = leadersMessage + '\n1st. ' + await getPlaceMessage(_top[0]);
-                    leadersMessage = leadersMessage + '\n2nd. ' + await getPlaceMessage(_top[1]);
-                    leadersMessage = leadersMessage + '\n3rd. ' + await getPlaceMessage(_top[2]);
-                    leadersMessage = leadersMessage + '\n4th. ' + await getPlaceMessage(_top[3]);
-                    leadersMessage = leadersMessage + '\n5th. ' + await getPlaceMessage(_top[4]);
-                    await NetworkRoom.logToAll(formatLog(leadersMessage))
-
-                    //FIXME
-                    await endWeekly();
-
-                    await NetworkRoom.logToAll(formatLog('[!] The weekly leaderboard has been reset!'))
+                }
+                catch (exc) {
+                    console.error(exc);
+                    await logAction(undefined, String(exc));
                 }
             }, 1000);
         }
@@ -218,104 +245,106 @@ export function initExpress(app: Application) {
             let title = "Psych Online";
             let description = "A FNF Multiplayer mod based on Psych Engine!";
             let image = "https://" + req.hostname + "/images/transwag.png";
-            const params = req.path.substring(1).split('/');
-            for (const [i, param] of params.entries()) {
-                params[i] = decodeURIComponent(param);
-            }
-            switch (params[0]) {
-                case "mod": {
-                    if (!params[1])
-                        break;
-                    const mod = await db.mods.getByID(params[1]);
-                    if (!mod)
-                        break;
-                    title = mod.title + ' · Mod';
-                    description = mod.favorited.length + ' Likes · ' + mod.downloadsHits + ' Downloads' + '\n\n' + mod.description;
-                    image = mod.images[0];
-                    break;
+            if (req.path.length > 1) {
+                const params = req.path.substring(1).split('/');
+                for (const [i, param] of params.entries()) {
+                    params[i] = decodeURIComponent(param);
                 }
-                case "user": {
-                    if (!params[1])
+                switch (params[0]) {
+                    case "mod": {
+                        if (!params[1])
+                            break;
+                        const mod = await db.mods.getByID(params[1]);
+                        if (!mod)
+                            break;
+                        title = mod.title + ' · Mod';
+                        description = mod.favorited.length + ' Likes · ' + mod.downloadHits + ' Downloads' + '\n\n' + mod.description;
+                        image = mod.images[0];
                         break;
-                    const user = db.users.byName(params[1]);
-                    if (!user)
+                    }
+                    case "user": {
+                        if (!params[1])
+                            break;
+                        const user = db.users.byName(params[1]);
+                        if (!user)
+                            break;
+                        const player = await user.get({
+                            select: {
+                                country: true,
+                                name: true,
+                                role: true,
+                                id: true,
+                            }
+                        });
+                        if (!player)
+                            break;
+                        const stats = await user.getStats();
+                        title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '') + '· Profile';
+                        description = (player.role ?? Data.CONFIG.DEFAULT_ROLE) + " | " + moneyFormatter.format(stats.points4k) + " FP" + "\nAvg. Accuracy: " + (stats.avgAcc4k * 100).toFixed(2) + '%';
+                        if (await user.hasAvatar())
+                            image = "https://" + req.hostname + "/api/user/avatar/" + encodeURIComponent(player.name);
+                        else
+                            image = "https://" + req.hostname + "/images/bf1.png";
+                        //image = 'https://kickstarter.funkin.me/static/assets/img/stickers/bf1.png';
                         break;
-                    const player = await user.get({
-                        select: {
-                            country: true,
-                            name: true,
-                            role: true,
-                            id: true,
-                        }
-                    });
-                    if (!player)
-                        break;
-                    const stats = await user.getStats();
-                    title = player.name + " " + (player.country ? getFlagEmoji(player.country) + ' ' : '') + '· Profile';
-                    description = (player.role ?? Data.CONFIG.DEFAULT_ROLE) + " | " + moneyFormatter.format(stats.points4k) + " FP" + "\nAvg. Accuracy: " + (stats.avgAcc4k * 100).toFixed(2) + '%';
-                    if (await user.hasAvatar())
-                        image = "https://" + req.hostname + "/api/user/avatar/" + encodeURIComponent(player.name);
-                    else
-                        image = "https://" + req.hostname + "/images/bf1.png";
-                    //image = 'https://kickstarter.funkin.me/static/assets/img/stickers/bf1.png';
-                    break;
-                }
-                case "song": {
-                    if (!params[1])
-                        break;
-                    const daSong = await db.songs.getByID(params[1]);
-                    if (!daSong)
-                        break;
+                    }
+                    case "song": {
+                        if (!params[1])
+                            break;
+                        const daSong = await db.songs.getByID(params[1]);
+                        if (!daSong)
+                            break;
 
-                    const song = params[1].split('-');
-                    title = song[0] + " [" + song[1] + "]";
-                    if (daSong) {
-                        description = 'FP Record: ' + moneyFormatter.format(daSong.maxPoints) + "\n" + daSong._count.scores + ' Score(s) | ' + daSong._count.comments + ' Comment(s)';
-                    }
-                    break;
-                }
-                case "club": {
-                    if (!params[1])
-                        break;
-                    const club = await db.clubs.byTag(params[1]).get({
-                        select: {
-                            tag: true,
-                            name: true,
-                            points: true,
-                            members: true,
+                        const song = params[1].split('-');
+                        title = song[0] + " [" + song[1] + "]";
+                        if (daSong) {
+                            description = 'FP Record: ' + moneyFormatter.format(daSong.maxPoints) + "\n" + daSong._count.scores + ' Score(s) | ' + daSong._count.comments + ' Comment(s)';
                         }
-                    });
-                    if (!club)
                         break;
-                    title = club.name + ' [' + club.tag + '] · Club';
-                    description = moneyFormatter.format(club.points) + 'FP\n' + club.members.length + " Member(s)";
-                    image = "https://" + req.hostname + "/api/club/banner/" + encodeURIComponent(club.tag);
-                    break;
-                }
-                case "top":
-                    if (!params[1])
-                        break;
-                    switch (params[1]) {
-                        case 'players':
-                            title = 'FP Leaderboard' + (req.query.country ? ' in ' + getFlagEmoji(req.query.country as string) : '');
-                            break;
-                        case 'clubs':
-                            title = 'Clubs Leaderboard';
-                            break;
                     }
-                    break;
-                case "friends":
-                    title = 'Friend List';
-                    break;
-                case "search":
-                    title = 'Search' + (req.query.q ? ' for "' + req.query.q + '"' : '');
-                    break;
-                case "stats":
-                    title = 'Statistics';
-                    break;
-                case "network":
-                    title = 'Psych Online Network';
-                    break;
+                    case "club": {
+                        if (!params[1])
+                            break;
+                        const club = await db.clubs.byTag(params[1]).get({
+                            select: {
+                                tag: true,
+                                name: true,
+                                points: true,
+                                members: true,
+                            }
+                        });
+                        if (!club)
+                            break;
+                        title = club.name + ' [' + club.tag + '] · Club';
+                        description = moneyFormatter.format(club.points) + 'FP\n' + club.members.length + " Member(s)";
+                        image = "https://" + req.hostname + "/api/club/banner/" + encodeURIComponent(club.tag);
+                        break;
+                    }
+                    case "top":
+                        if (!params[1])
+                            break;
+                        switch (params[1]) {
+                            case 'players':
+                                title = 'FP Leaderboard' + (req.query.country ? ' in ' + getFlagEmoji(req.query.country as string) : '');
+                                break;
+                            case 'clubs':
+                                title = 'Clubs Leaderboard';
+                                break;
+                        }
+                        break;
+                    case "friends":
+                        title = 'Friend List';
+                        break;
+                    case "search":
+                        title = 'Search' + (req.query.q ? ' for "' + req.query.q + '"' : '');
+                        break;
+                    case "stats":
+                        title = 'Statistics';
+                        break;
+                    case "network":
+                        title = 'Psych Online Network';
+                        break;
+                }
             }
             response = response.replaceAll('%___OG_TITLE___%', title);
             response = response.replace('%___OG_DESC___%', description);

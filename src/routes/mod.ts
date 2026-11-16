@@ -3,11 +3,24 @@ import { logActionOnRequest } from '../mods';
 import { checkAccess, getIDToken, hasAccess, userIDsToNames } from '../database/db.util';
 import { db } from '../database/db';
 import { ResponseError } from '../error';
+import { UploadedFile } from 'express-fileupload';
+import { Image } from 'canvas';
+
+async function canManageMod(userid: string, modid:string) {
+    const userRef = db.users.byID(userid);
+    const user = await userRef.getLoginState();
+    const mod = await db.mods.getByID(modid);
+    return hasAccess(user.role, 'admin.mods.manage') || mod.submitterid == user.id;
+}
 
 const modRouter = Router();
 
 modRouter.post("/dl/submit", checkAccess, logActionOnRequest, async (req, res) => {
     // #swagger.tags = ['Mods']
+
+    const [userid, _] = getIDToken(req);
+    if (!(await canManageMod(userid, req.body.id)))
+        return res.sendStatus(403)
 
     await db.mods.submitDownloadForID(req.body.id as string, req.body.urls as string[], req.body.mod_id as string);
     res.sendStatus(200);
@@ -16,12 +29,20 @@ modRouter.post("/dl/submit", checkAccess, logActionOnRequest, async (req, res) =
 modRouter.post("/dl/delete", checkAccess, logActionOnRequest, async (req, res) => {
     // #swagger.tags = ['Mods']
 
+    const [userid, _] = getIDToken(req);
+    if (!(await canManageMod(userid, req.body.id)))
+        return res.sendStatus(403)
+
     await db.mods.removeDownloadForID(req.body.id as string);
     res.sendStatus(200);
 });
 
 modRouter.post("/dl/edit", checkAccess, logActionOnRequest, async (req, res) => {
     // #swagger.tags = ['Mods']
+
+    const [userid, _] = getIDToken(req);
+    if (!(await canManageMod(userid, req.body.id)))
+        return res.sendStatus(403)
 
     await db.mods.editDownload(req.body);
     res.sendStatus(200);
@@ -38,27 +59,40 @@ modRouter.post("/fav", checkAccess, async (req, res) => {
 modRouter.get("/details/:mod_id", async (req, res) => {
     // #swagger.tags = ['Mods']
 
-    const mod = await db.mods.getByID(req.params.mod_id);
+    const mod:any = await db.mods.getByID(req.params.mod_id);
     if (!mod)
         return res.sendStatus(404);
     mod.favorited = await userIDsToNames(mod.favorited);
+    if (mod.submitter != null) {
+        mod.submitter.clubTag = await db.users.byID(mod.submitterid).getClubTag();
+    }
+    mod.submitterid = undefined;
     res.status(200).send(mod);
 });
 
-modRouter.post("/submit", checkAccess, logActionOnRequest, async (req, res) => {
+modRouter.post("/submit", checkAccess, async (req, res) => {
     // #swagger.tags = ['Mods']
 
-    res.send(await db.mods.submit(req.body));
+    const [userid, _] = getIDToken(req);
+    res.send(await db.mods.submit(userid, req.body));
 });
 
 modRouter.post("/edit", checkAccess, logActionOnRequest, async (req, res) => {
     // #swagger.tags = ['Mods']
+
+    const [userid, _] = getIDToken(req);
+    if (!(await canManageMod(userid, req.body.id)))
+        return res.sendStatus(403)
 
     res.send(await db.mods.edit(req.body));
 });
 
 modRouter.post("/delete", checkAccess, logActionOnRequest, async (req, res) => {
     // #swagger.tags = ['Mods']
+
+    const [userid, _] = getIDToken(req);
+    if (!(await canManageMod(userid, req.body.id)))
+        return res.sendStatus(403)
 
     res.send(await db.mods.delete(req.body));
 });
@@ -109,6 +143,83 @@ modRouter.get("/comments/:id", async (req, res) => {
         }
     }
     res.status(200).send(comments);
+});
+
+modRouter.post("/category/create", checkAccess, async (req, res) => {
+    // #swagger.tags = ['Mods']
+
+    res.status(200).send(await db.mods.createModCategory(req.body.name, req.body.description));
+});
+
+modRouter.post("/category/update", checkAccess, async (req, res) => {
+    // #swagger.tags = ['Mods']
+
+    res.status(200).send(await db.mods.updateModCategory(req.body.id, req.body));
+});
+
+modRouter.get("/categories/:id", async (req, res) => {
+    // #swagger.tags = ['Mods']
+
+    res.status(200).send(await db.mods.getModCategoryByID(req.params.id));
+});
+
+modRouter.get("/categories", async (_, res) => {
+    // #swagger.tags = ['Mods']
+
+    res.status(200).send(await db.mods.getModCategories());
+});
+
+modRouter.post("/category/icon", checkAccess, async (req, res) => {
+    // #swagger.tags = ['Mods']
+
+    const modCategory = await db.mods.getModCategoryByID(req.query.id as string);
+
+    const file = req.files.file as UploadedFile;
+    if (file.size > 1024 * 350) {
+        return res.sendStatus(413);
+    }
+
+    if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg' && file.mimetype != 'image/gif') {
+        return res.sendStatus(415);
+    }
+
+    const img = new Image();
+    img.onload = async function () {
+        if (img.width != 64 && img.height != 64) {
+            return res.status(400).json({
+                error: 'Image must be in size of 64x64px!'
+            });
+        }
+
+        if (!await db.mods.uploadCategoryIcon(modCategory.id, file.data)) {
+            return res.sendStatus(500);
+        }
+        res.sendStatus(200);
+    }
+    img.onerror = function () {
+        res.status(500).json({
+            error: 'Server failed to read the image.'
+        });
+    }
+    img.src = "data:" + file.mimetype + ";base64," + file.data.toString("base64");
+});
+
+modRouter.get("/category/icon/:id", async (req, res) => {
+    // #swagger.tags = ['Mods']
+
+    const file = await db.mods.getCategoryIcon(req.params.id);
+    if (!file)
+        return res.sendStatus(404);
+
+    res.send(file.data);
+});
+
+modRouter.post("/verify", checkAccess, async (req, res) => {
+    // #swagger.tags = ['Mods']
+
+    await db.mods.verifyForID(req.body.id);
+
+    res.sendStatus(200);
 });
 
 export default modRouter;

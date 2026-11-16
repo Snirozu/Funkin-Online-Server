@@ -100,6 +100,8 @@ export class DiscordBot {
 
     static async sendNetworkMessage(content:string) {
         content = DiscordBot.filterText(content);
+        if (!process.env["DISCORD_TOKEN"])
+            return;
         await DiscordBot.networkChannel.send(content);
     }
 

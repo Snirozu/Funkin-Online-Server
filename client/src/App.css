@@ -73,7 +73,7 @@ html {
 
 .RoundedContents {
   background: var(--content-profile-color);
-  display: table;
+  display: block;
   border-radius: 30px;
   max-width: var(--content-width);
   min-width: 200px;
@@ -98,7 +98,7 @@ html {
 
 .ModContent {
   height: 400px;
-  width: min(900px, 100vw);
+  width: min(800px, 100vw);
 }
 
 .ModDownloadButton {
@@ -152,7 +152,7 @@ button:hover {
   text-decoration: underline;
 }
 
-p, span, a, .SeamlessInput, summary {
+p, span, a, .SeamlessInput, summary, li {
   font-family: 'PhantomMuff', "Noto Color Emoji";
   overflow-wrap: anywhere;
 }
@@ -476,6 +476,19 @@ a:hover {
   scale: 1.3;
 }
 
+.FrenerAvatar {
+  width: 40px;
+  max-width: 40px;
+
+  height: 40px;
+  max-height: 40px;
+  transition: 0.2s;
+}
+
+.FrenerAvatar:hover {
+  scale: 1.3;
+}
+
 .FrenBox {
   width: 95%;
   max-width: 95%;
@@ -582,9 +595,14 @@ a:hover {
   min-height: 100vh;
   color:white;
   justify-content: center;
+  align-items: flex-end;
+  align-content: flex-end;
   margin: auto;
   width: 100%;
   padding-top: 90px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap-reverse;
 }
 
 .Content {
@@ -600,8 +618,8 @@ a:hover {
   border-color: var(--border-color);
   border-width: 3px;
   overflow: auto;
-  margin-left: auto;
-  margin-right: auto;
+  /* margin-left: auto;
+  margin-right: auto; */
   margin-bottom: 10px;
   flex-direction: column;
   align-items: center;
@@ -658,6 +676,10 @@ td > * {
 
 .SongComment > * {
   padding: 4px;
+}
+
+.App .Content {
+  width: min(800px, 85vw);
 }
 
 /* #ProfileContent > div { 
@@ -965,6 +987,10 @@ select {
 .Hoverable:hover {
   text-decoration: underline;
   cursor: pointer;
+}
+
+.Unhoverable:hover {
+  text-decoration: none;
 }
 
 .FunkinButton {

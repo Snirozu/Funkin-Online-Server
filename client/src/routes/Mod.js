@@ -11,6 +11,8 @@ import Linkify from "linkify-react";
 import { Popover } from 'react-tiny-popover'
 import { EmojiPicker } from "frimousse";
 import Comments from "../components/Comments";
+import { ModCategorySelect, SmallBluds } from "../components";
+import toml from "toml";
 
 function Mod() {
     let { id } = useParams();
@@ -27,7 +29,16 @@ function Mod() {
         title: '',
         description: '',
         downloads: [],
-        downloadsHits: 0
+        downloadHits: 0,
+        categoryid: '',
+        category: { name: '', hue: 0 },
+        submitter: { 
+            name: '', 
+            profileHue: 0, 
+            clubTag: ''
+        },
+        credits: '',
+        verified: false,
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -158,7 +169,7 @@ function Mod() {
 
             {
                 editMode && hasAccess('/api/mod/dl/delete') ? <>
-                    <button className='SvgButton' title={'Delete Mod Download'}> <Icon width={20} icon="mdi:trash-outline" onClick={async () => {
+                    <button className='SvgButton' title={'Delete Mod Download'} onClick={async () => {
                         if (!window.confirm('Are you sure?'))
                             return;
                         
@@ -166,7 +177,7 @@ function Mod() {
                             id: download.id,
                         }))
                             alert('Download deleted! (Page refresh needed)')
-                    }} /> </button>
+                    }}> <Icon width={20} icon="mdi:trash-outline" /> </button>
                 </> : <></>
             }
         </>);
@@ -212,6 +223,81 @@ function Mod() {
         </>)
     }
 
+    const credits = [];
+
+    /**
+     * credit = {name, hue, icon, url, description }
+     */
+    function renderCredit(credit) {
+        return (<a className={ !credit.url ? 'Unhoverable' : "Hoverable"} style={{
+            marginTop: '5px',
+            background: !credit.hue ? 'rgb(50, 50, 50)' : `hsl(${credit.hue}, 40%, 20%)`,
+            padding: '12px',
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center',
+            textAlign: 'left',
+            borderRadius: '22px',
+            color: 'white'
+        }} href={credit.url}>
+            {credit.icon ? <img width={32} src={(String(credit.icon).startsWith('/') ? getHost() : '') + credit.icon} alt=""></img> : <></>}
+            <div>
+                {credit.name ? <>
+                    <span style={{
+                        fontSize: '18px'
+                    }}>{credit.name}</span> <br></br>
+                </> : <></>}
+                {credit.description ? <span style={{
+                    fontSize: '12px',
+                    color: '#ffffff88'
+                }}>{credit.description}</span> : <></>}
+            </div>
+        </a>);
+    }
+
+    if (!editMode && data.credits != null) {
+        let creditsData = undefined;
+        try {
+            creditsData = toml.parse(data.credits);
+        }
+        catch (exc) {}
+
+        if (creditsData != null) {
+            if (creditsData.user != null)
+                for (const rawCredit of creditsData.user) {
+                    const credit = {
+                        url: '/user/' + data.submitter.name,
+                        icon: getHost() + '/api/user/avatar/' + data.submitter.name,
+                        name: rawCredit.name ?? '',
+                        description: rawCredit.description ?? null,
+                        hue: rawCredit.hue ?? null,
+                    };
+
+                    credits.push(renderCredit(credit));
+                }
+
+            if (creditsData.credit != null)
+                for (const rawCredit of creditsData.credit) {
+                    if (String(rawCredit.icon).toLowerCase() === 'gamebanana' || String(rawCredit.url).startsWith('https://gamebanana.com/')) {
+                        rawCredit.icon = 'https://images.gamebanana.com/static/img/banana.png';
+                        if (rawCredit.hue === undefined) {
+                            rawCredit.hue = 50;
+                        }
+                    }
+
+                    const credit = {
+                        hue: rawCredit.hue ?? null,
+                        icon: rawCredit.icon ?? null,
+                        name: rawCredit.name ?? '',
+                        description: rawCredit.description ?? null,
+                        url: rawCredit.url ?? null,
+                    };
+
+                    credits.push(renderCredit(credit));
+                }
+        }
+    }
+
     return loading ? (
         <div className="CenteredFlex">
             <p>Loading...</p>
@@ -234,14 +320,153 @@ function Mod() {
                     left: 0,
                     top: 0,
                     display: 'flex',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                 }} onClick={() => {
                     document.getElementById('image-peek').style.visibility = 'hidden';
                 }}>
                     <img id="image-peek-img"></img>
                 </div>
 
-                <div className="RoundedContents">
+                <div style={{
+                    display: 'flex',
+                    alignContent: 'flex-end',
+                    flexWrap: 'wrap-reverse',
+                    justifyContent: 'center',
+                    rowGap: '20px',
+                }}>
+                <div className="RoundedContents" style={{
+                    width: '300px',
+                    backgroundColor: '#161616ef',
+                    padding: '5px',
+                    textAlign: 'center',
+                }}>
+                    {editMode || credits.length > 0 ? <h3 style={{
+                        margin: '20px',
+                    }}> 
+                        Credits 
+                    </h3> : <></>}
+                    {editMode ? <>
+                        <textarea style={{ width: "95%", minHeight: '200px', fontSize: '18px', fontFamily: 'Arial'}} className="SeamlessInput" defaultValue={data.credits} onChange={e => {
+                            data.credits = e.target.value;
+                            setData(data);
+                        }}></textarea>
+                    </> : credits}
+
+                    {data.submitter != null ? <>
+                        <h3 style={{
+                            margin: '20px',
+                        }}> 
+                            Submitter 
+                        </h3>
+                        {renderCredit({
+                            name: data.submitter.name,
+                            hue: data.submitter.profileHue,
+                            url: '/user/' + data.submitter.name,
+                            icon: getHost() + '/api/user/avatar/' + data.submitter.name,
+                        })}
+                    </> : <></>}
+
+                    <h3 style={{
+                        margin: '20px',
+                    }}> 
+                        Category 
+                    </h3>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center'
+                    }}>
+                        {editMode ? <>
+                            Category: <ModCategorySelect v={data.categoryid} onSelect={sel => {
+                                data.categoryid = sel;
+                                setData(data);
+                            }} />
+                        </> : <span className="Hoverable" style={{
+                            marginTop: '5px',
+                            borderRadius: '20px',
+                            background: `hsl(${data.category.hue}, 40%, 25%)`,
+                            padding: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px',
+                            color: `hsl(${data.category.hue}, 100%, 98%)`,
+                        }} onClick={() => {
+                            navigate('/mods?category=' + data.categoryid);
+                        }}> 
+                        <img width={32} src={getHost() + '/api/mod/category/icon/' + data.categoryid} alt=''></img> {data.category.name} </span>}
+                    </div>
+
+                    <h3 style={{
+                        margin: '20px',
+                    }}> 
+                        Keywords 
+                    </h3>
+
+                    {editMode ? <>
+                        <textarea style={{ width: "100%", fontSize: '14px'}} className="SeamlessInput" defaultValue={data.keywords.join(' ')} onChange={e => {
+                            data.keywords = e.target.value.trim().split(' ');
+                            setData(data);
+                        }}></textarea>
+                    </> : <>
+                        <div className="ModGenericFlex" style={{
+                            fontSize: '14px',
+                            color: '#ffffffcb',
+                            justifyContent: 'center'
+                        }}>
+                            <Keywords keywords={data.keywords} onClick={keyword => {
+                                navigate('/mods?q=' + keyword);
+                            }}></Keywords>
+                        </div>
+                    </>}
+
+                    <h3 style={{
+                        margin: '20px',
+                    }}> 
+                        Likers 
+                    </h3>
+
+                    {!data.favorited || data.favorited.length <= 0 ? <>
+                        <span className="SmallText"> (Nobody here but us letters!) </span>
+                        <br></br>
+                    </> : <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        flexWrap: 'wrap'
+                    }}>
+                        <SmallBluds imgClass="FrenerAvatar" data={data.favorited}></SmallBluds>
+                    </div>}
+
+                    {
+                        (Cookies.get('authid') && hasAccess('/api/mod/fav') ? <>
+                            <br></br>
+                            <button className='FunkinButton' onClick={async event => {
+                                // event.target.style.display = 'none';
+                                await doRequestAndAlert('POST', '/api/mod/fav', {
+                                    id: data.id,
+                                })
+                                fetchData();
+                            }} style={{
+                                fontFamily: 'PhantomMuff',
+                                fontSize: '15px',
+                                // color: '#ffa8c2',
+                                padding: '10px'
+                            }}> 
+                                {data.favorited.includes(Cookies.get('username')) ? 'Remove from Liked' : 'Like this Mod!'}
+                            </button>
+                            <br></br>
+                        </> : <></>)
+                    }
+
+                    <br></br>
+
+                    {/* forced regular date format so it never changes to unreadable american format */}
+                    <span className="SmallText"> Submitted: {new Date(data.submitted).toLocaleString("en-GB")}</span>
+                    <br></br>
+                </div>
+                <div className="RoundedContents" style={{
+                    maxWidth: '800px',
+                }}>
                     <div className="ModContent" style={{
                         backgroundImage: 'url(' + data.images[0] + ')'
                     }}>
@@ -253,11 +478,16 @@ function Mod() {
                             alignItems: 'center',
                             flexFlow: 'column'
                         }}>
-                            <div>
-                                <h1 className="OutlineText" style={{
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                flexDirection: 'column',
+                                marginTop: '20px',
+                                maxWidth: '90%',
+                            }}>
+                                <span className="OutlineText" style={{
                                     fontFamily: 'PhantomMuff',
                                     fontSize: '40px',
-                                    lineHeight: '0'
                                 }}>
                                     {editMode ? <>
                                         <input className="SeamlessInput" defaultValue={data.title} onChange={e => {
@@ -267,7 +497,7 @@ function Mod() {
                                     </> : <>
                                         {data.title}
                                     </>}
-                                </h1>
+                                </span>
                             </div>
 
                             <div style={{
@@ -299,10 +529,10 @@ function Mod() {
                                     justifyContent: 'center',
                                     gap: '10px',
                                     color: '#6EFF82'
-                                }}> {Number.parseInt(data.downloadsHits).toLocaleString()} <img style={{
-                                        // filter: 'saturate(0%)',
-                                        borderRadius: '0'
-                                    }} src='/images/dl.png' alt=''></img> </p>
+                                }}> {Number.parseInt(data.downloadHits).toLocaleString()} <img style={{
+                                    // filter: 'saturate(0%)',
+                                    borderRadius: '0'
+                                }} src='/images/dl.png' alt=''></img> </p>
                             </div>
                         </div>
 
@@ -362,31 +592,10 @@ function Mod() {
                                 </Popup>
                             </> : <></>
                         }
-
-                        <p> Keywords </p>
-
-                        {editMode ? <>
-                            <textarea style={{ width: "100%", fontSize: '14px'}} className="SeamlessInput" defaultValue={data.keywords.join(' ')} onChange={e => {
-                                data.keywords = e.target.value.trim().split(' ');
-                                setData(data);
-                            }}></textarea>
-                        </> : <>
-                            <div className="ModGenericFlex" style={{
-                                fontSize: '14px',
-                                color: '#ffffffcb'
-                            }}>
-                                <Keywords keywords={data.keywords} onClick={keyword => {
-                                    navigate('/mods?q=' + keyword);
-                                }}></Keywords>
-                            </div>
-                        </>}
                         
                         <hr/>
                         <Comments id={data.id} type="mod"/>
                         <br></br>
-
-                        {/* forced regular date format so it never changes to unreadable american format */}
-                        <span className="SmallText"> Submitted: {new Date(data.submitted).toLocaleString("en-GB")}</span>
 
                         <br></br>
                         {
@@ -398,7 +607,7 @@ function Mod() {
                         }
                         {
                             editMode && hasAccess('/api/mod/delete') ? <>
-                                <button className='SvgButton' title={'Delete Mod'}> <Icon width={20} icon="mdi:trash-outline" onClick={async () => {
+                                <button className='SvgButton' title={'Delete Mod'} onClick={async () => {
                                     if (!window.confirm('THIS WILL DELETE THE MOD PERMAMENTLY'))
                                         return;
                                     
@@ -408,12 +617,38 @@ function Mod() {
                                         alert('Mod deleted!')
                                         window.location.reload();
                                     }
-                                }} /> </button>
+                                }}> <Icon width={20} icon="mdi:trash-outline" /> </button>
                             </> : <></>
                         }
                     </div>
                 </div>
+                </div>
             </div>
+            {!data.verified ? <>
+                <div className="CenteredFlex" style={{
+                    flexBasis: '100%',
+                }}>
+                    <div className="Content" style={{
+                        background: '#5a410b'
+                    }}>
+                        <span> ⚠ This mod hasn't been approved by the moderators! ⚠ </span>
+                        {hasAccess('/api/mod/verify') ?
+                            <button className='SvgButtonBig' onClick={async () => {
+                                const role = window.confirm('Verify?');
+                                if (!role)
+                                    return;
+        
+                                await doRequestAndAlert('POST', '/api/mod/verify', {
+                                    id: data.id
+                                });
+                                window.location.reload();
+                            }}>
+                                Verify
+                            </button>
+                        : <></>}
+                    </div>
+                </div>
+            </> : <></>}
         </>
     )
 }

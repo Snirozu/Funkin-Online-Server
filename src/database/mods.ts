@@ -4,28 +4,41 @@ import { User } from './users';
 import { db, prisma } from './db';
 import { ResponseError } from '../error';
 
+interface UpdateModCategory {
+    name?: string,
+    description?: string,
+    icon?: string
+}
+
 export class Mods {
     async getByID(id: string) {
-        const mod:any = await prisma.mod.findFirst({
+        const mod = await prisma.mod.findFirst({
             where: {
                 id: {
                     equals: id
                 }
             },
             include: {
-                downloads: true
+                downloads: true,
+                category: {
+                    select: {
+                        name: true,
+                        hue: true
+                    }
+                },
+                submitter: {
+                    select: {
+                        name: true,
+                        profileHue: true
+                    }
+                }
             },
         });
 
-        if (!mod)
-            throw new ResponseError("Mod not found.");
-
-        const downloadHits = await this.getDownloadHitsForID(id);
-        mod.downloadsHits = downloadHits;
         return mod;
     }
 
-    async submit(data: any) {
+    async submit(submitterid:string, data: any) {
         if (data.id.trim().length < 3) {
             throw new ResponseError("ID needs 3 letters at least");
         }
@@ -47,6 +60,10 @@ export class Mods {
             }
         }) > 0)
             throw new ResponseError("The ID for this mod is already taken!");
+
+        if (!(await this.getModCategoryByID(data.categoryid))) {
+            throw new ResponseError("Such category doesn't exist!");
+        }
     
         return (await prisma.mod.create({
             data: {
@@ -54,7 +71,17 @@ export class Mods {
                 keywords: data.keywords,
                 images: data.images,
                 id: data.id,
-                title: data.title
+                title: data.title,
+                submitter: {
+                    connect: {
+                        id: submitterid
+                    }
+                },
+                category: {
+                    connect: {
+                        id: data.categoryid
+                    }
+                }
             },
         }));
     }
@@ -73,6 +100,8 @@ export class Mods {
                 description: data.description,
                 keywords: data.keywords,
                 images: data.images,
+                categoryid: data.categoryid,
+                credits: data.credits
             },
         }));
     }
@@ -135,6 +164,100 @@ export class Mods {
         }));
     
         return mods;
+    }
+
+    async getModCategories() {
+        return await prisma.modCategory.findMany({
+            include: {
+                _count: {
+                    select: {
+                        mods: true
+                    }
+                }
+            }
+        });
+    }
+
+    async getModCategoryByName(name: string) {
+        return await prisma.modCategory.findFirst({
+            where: {
+                name: name
+            }
+        });
+    }
+
+    async getModCategoryByID(id: string) {
+        return await prisma.modCategory.findFirst({
+            where: {
+                id: id
+            }
+        });
+    }
+
+    async createModCategory(name: string, description?: string) {
+        if (name.length > 20) {
+            throw new ResponseError("Name is too long!");
+        }
+
+        if (description && description.length > 2000) {
+            throw new ResponseError("Description is too long!");
+        }
+
+        return await prisma.modCategory.create({
+            data: {
+                name: name,
+                description: description
+            }
+        });
+    }
+
+    async updateModCategory(id: string, body: UpdateModCategory) {
+        body = body as UpdateModCategory;
+        delete (body as any).id;
+
+        if (body.name && body.name.length > 20) {
+            throw new ResponseError("Name is too long!");
+        }
+
+        if (body.description && body.description.length > 2000) {
+            throw new ResponseError("Description is too long!");
+        }
+
+        if (body.icon && body.icon.length > 200) {
+            throw new ResponseError("Icon is too long!");
+        }
+
+        await prisma.modCategory.update({
+            data: {
+                ...body
+            },
+            where: {
+                id: id,
+            }
+        })
+    }
+
+    async uploadCategoryIcon(id: string, data: Buffer) {
+        await prisma.fileModCategoryIcon.deleteMany({
+            where: {
+                id: id
+            }
+        })
+        return await prisma.fileModCategoryIcon.create({
+            data: {
+                data: data,
+                size: data.byteLength,
+                id: id
+            }
+        });
+    }
+
+    async getCategoryIcon(id: string) {
+        return await prisma.fileModCategoryIcon.findFirst({
+            where: {
+                id: id
+            }
+        });
     }
 
     async submitDownloadForID(id: string, urls: string[], forModId:string) {
@@ -486,7 +609,7 @@ export class Mods {
         });
     }
 
-    async search(query: string, page: number = 0, sort: string) {
+    async search(query: string, page: number = 0, sort: string, category: string, verified: boolean) {
         const [_sortBy, _sortDirection] = (sort ?? '').split(':');
     
         let sortBy = 'submitted';
@@ -571,7 +694,9 @@ export class Mods {
                             mode: "insensitive"
                         }
                     }
-                ]
+                ],
+                categoryid: category,
+                verified: verified
             },
             orderBy: {
                 [sortBy]: sortDirection,
@@ -584,10 +709,28 @@ export class Mods {
                 downloadHits: true,
                 favoritedCount: true,
                 submitted: true,
+                category: {
+                    select: {
+                        name: true,
+                        id: true
+                    }
+                },
+                verified: true
             },
             take: 15,
             skip: 15 * page
         }))
+    }
+
+    async verifyForID(id: string) {
+        await prisma.mod.update({
+            where: {
+                id: id
+            },
+            data: {
+                verified: true
+            }
+        })
     }
 }
 

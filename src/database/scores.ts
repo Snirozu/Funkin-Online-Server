@@ -227,21 +227,27 @@ export class Scores {
         const keys = [];
     
         debugPrint('fetching scores');
-    
-        const fetchedScores = await prisma.score.findMany({
-            where: {
-                id: {
-                    in: scoreIds
+        
+        const fetchedScores = [];
+
+        await chunkifyArrayForCallback(scoreIds, async chunk => {
+            for (const score of await prisma.score.findMany({
+                where: {
+                    id: {
+                        in: chunk
+                    }
+                },
+                select: {
+                    songId: true,
+                    player: true,
+                    replayFileId: true,
+                    points: true,
+                    keys: true
                 }
-            },
-            select: {
-                songId: true,
-                player: true,
-                replayFileId: true,
-                points: true,
-                keys: true
+            })) {
+                fetchedScores.push(score);
             }
-        })
+        }, 1000);
     
         for (const score of fetchedScores) {
             if (!players.includes(score.player))

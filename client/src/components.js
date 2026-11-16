@@ -1,5 +1,52 @@
 //TODO move every here
 
+import axios from "axios";
+import { getHost, getResError } from "./Util";
+import { useEffect, useState } from "react";
+import AvatarImg from "./AvatarImg";
+
+export function ModCategorySelect(props) {
+    const options = [];
+
+    const [response, setResponse] = useState(null);
+    useEffect(() => {
+        (async () => {
+            try {
+                setResponse(await axios.get(getHost() + '/api/mod/categories'));
+                if (response.status !== 200) {
+                    throw new Error(getResError(response));
+                }
+            } catch (error) {
+                console.error(error.toString());
+                return (<></>);
+            }
+        })();
+    }, []);
+
+    if (!response) {
+        return <select></select>;
+    }
+
+    const categoryMap = new Map([
+        ['All', undefined]
+    ]);
+
+    for (const category of response.data) {
+        categoryMap.set(category.name, category.id);
+    }
+
+    categoryMap.forEach((v, k) => {
+        if (props.v == v)
+            options.push(<option v={v} selected>{k}</option>);
+        else
+            options.push(<option v={v}>{k}</option>);
+    });
+
+    return (<select id='category' onChange={props.onSelect ? (e) => {
+        props.onSelect(e.target.options[e.target.selectedIndex].getAttribute('v'));
+    } : undefined}> {options} </select>);
+}
+
 export function TopCategorySelect(props) {
     const options = [];
     const categoryMap = new Map([
@@ -32,6 +79,26 @@ export function TopSortSelect(props) {
         ['Score (Ascending)', 'score:asc'],
         ['Misses (Descending)', 'misses:desc'],
         ['Oldest', 'submitted:asc'],
+    ]);
+
+    categoryMap.forEach((v, k) => {
+        if ((props.v ?? props.default) === v)
+            options.push(<option v={v} selected>{k}</option>);
+        else
+            options.push(<option v={v}>{k}</option>);
+    });
+
+    return (<select id='category' onChange={props.onSelect ? (e) => {
+        props.onSelect(e.target.options[e.target.selectedIndex].getAttribute('v'));
+    } : undefined}> {options} </select>);
+}
+
+export function VerifiedSelect(props) {
+    const options = [];
+    const categoryMap = new Map([
+        ['Verified', '1'],
+        ['Not Verified', '0'],
+        ['All', undefined],
     ]);
 
     categoryMap.forEach((v, k) => {
@@ -115,4 +182,48 @@ export function ModsSortSelect(props) {
     return (<select id='category' onChange={props.onSelect ? (e) => {
         props.onSelect(e.target.options[e.target.selectedIndex].getAttribute('v'));
     } : undefined}> {options} </select>);
+}
+
+export function SmallBluds(props) {
+    const [more, setMore] = useState(false);
+
+    let children = [];
+    let other = [];
+
+    let pick = children;
+
+    let i = 0;
+    for (const friend of props.data) {
+        if (!more && i > 34) {
+            pick = other;
+        }
+        pick.push(
+            <a key={friend} href={"/user/" + encodeURIComponent(friend)}>
+                <AvatarImg className={props.imgClass ? props.imgClass : 'FrenAvatar'} title={friend} src={getHost() + "/api/user/avatar/" + encodeURIComponent(friend)}></AvatarImg>
+            </a>
+        );
+        i++;
+    }
+
+    if (other.length === 1) {
+        children.push(other.shift());
+    }
+
+    if (other.length > 1) {
+        children.push(
+            <a title="More" onClick={() => {
+                setMore(true);
+            }}>
+                <div className='FrenAvatar' style={{
+                    background: '#0000004d',
+                    display: 'inline-block',
+                    borderRadius: '30px',
+                    alignContent: 'center',
+                    overflow: 'hidden',
+                }}>+</div>
+            </a>
+        );
+    }
+
+    return children;
 }

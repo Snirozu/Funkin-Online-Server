@@ -20,6 +20,7 @@ import Rules from './routes/Rules';
 import Mod from './routes/Mod';
 import ModSubmit from './routes/ModSubmit';
 import Mods from './routes/Mods';
+import ModCategorySubmit from './routes/ModCategorySubmit';
 
 const App = () => {
   return (
@@ -44,6 +45,7 @@ const App = () => {
         <Route path="/rules" element={<Rules />} />
         <Route path="/mod/:id" element={<Mod />} />
         <Route path="/mods/submit" element={<ModSubmit />} />
+        <Route path="/mods/submitcategory" element={<ModCategorySubmit />} />
         <Route path="/mods" element={<Mods />} />
         <Route status={404} path='*' element={<NotFound />} />
       </Routes>

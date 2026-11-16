@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { getHost, getResError, hasAccess } from "../Util";
 import { Keywords } from "./Mod";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import { ModsSortSelect } from "../components";
+import { ModCategorySelect, ModsSortSelect, VerifiedSelect } from "../components";
 
 function Mods() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -14,15 +14,62 @@ function Mods() {
             redirectSearch();
         }
     }
-
+    const verified = searchParams.get('verified') === '1';
     const inputQuery = searchParams.get("q") ?? '';
     const [query, setQuery] = useState(searchParams.get("q") ?? '');
     function redirectSearch() {
         setQuery(inputQuery);
     }
 
+    const [dataCategories, setDataCategories] = useState([{
+        id: '',
+        name: '',
+        description: '',
+        icon: '',
+        _count: {
+            mods: 0
+        }
+    }]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
+    const [errorCategories, setErrorCategories] = useState(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await axios.get(getHost() + '/api/mod/categories');
+                if (response.status !== 200) {
+                    throw new Error(getResError(response));
+                }
+                const data = response.data;
+                setErrorCategories(null);
+                setDataCategories(data);
+                setLoadingCategories(false);
+            } catch (error) {
+                setDataCategories(error.toString());
+                setLoadingCategories(false);
+            }
+        };
+
+        setLoadingCategories(true);
+        fetchData();
+    }, []);
+
+    const categoryList = [];
+
+    for (const category of dataCategories) {
+        categoryList.push(<li> {category.name} ({category._count.mods}) </li>);
+    }
+
     return (
         <>
+            {/* <div className="Content">
+                <div className="Main">
+                    <h3>Category</h3>
+                    <ul>
+                        {categoryList}
+                    </ul>
+                </div>
+            </div> */}
             <div className="Content">
                 <div className="Main">
                     <h3> Mods </h3>
@@ -41,12 +88,28 @@ function Mods() {
                     }}> Search </button>
                     <br></br>
                     <center>
-                    Sort: <ModsSortSelect v={searchParams.get('sort')} onSelect={(sel) => {
+                    <b>Sort: </b><ModsSortSelect v={searchParams.get('sort')} onSelect={(sel) => {
                         searchParams.set('sort', sel);
                         if (!sel)
                             searchParams.delete('sort');
                         setSearchParams(searchParams);
                     }} />
+                    &nbsp;
+                    &nbsp;
+                    <b>Category: </b> <ModCategorySelect v={searchParams.get('category')} onSelect={sel => {
+                        searchParams.set('category', sel);
+                        if (!sel)
+                            searchParams.delete('category');
+                        setSearchParams(searchParams);
+                    }} />
+                    <br></br>
+                    <b>Status: </b>
+                    <VerifiedSelect v={searchParams.get('verified')} onSelect={v => {
+                        searchParams.set('verified', v);
+                        if (!v)
+                            searchParams.delete('verified');
+                        setSearchParams(searchParams);
+                    }}></VerifiedSelect>
                     </center>
                     <br></br>
                     <ModSearchList query={query}></ModSearchList>
@@ -65,17 +128,24 @@ function ModSearchList(props) {
         keywords: [],
         downloadHits: 0,
         favoritedCount: 0,
+        category: {
+            name: '',
+            id: ''
+        },
+        verified: false,
     }]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const page = Number.parseInt(searchParams.get('page') ?? '0');
     const sort = searchParams.get('sort');
+    const category = searchParams.get('category');
+    const verified = searchParams.get('verified') === '1';
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(getHost() + '/api/search/mods?q=' + encodeURIComponent(props.query) + "&page=" + page + (searchParams.has('sort') ? '&sort=' + sort : ''), { validateStatus: () => true });
+                const response = await axios.get(getHost() + '/api/search/mods?q=' + encodeURIComponent(props.query) + "&page=" + page + (searchParams.has('sort') ? '&sort=' + sort : '') + (searchParams.has('category') ? '&category=' + category : '') + (verified ? '&verified=1' : ''), { validateStatus: () => true });
                 if (response.status !== 200) {
                     throw new Error(getResError(response));
                 }
@@ -91,7 +161,7 @@ function ModSearchList(props) {
 
         setLoading(true);
         fetchData();
-    }, [props.query, page, sort]);
+    }, [props.query, page, sort, category, verified]);
 
     let daMods = [];
     if (!loading && !error) {
@@ -105,9 +175,30 @@ function ModSearchList(props) {
                     <a href={"/mod/" + encodeURIComponent(mod.id)}>
                         <div className="ModImage" style={{
                             backgroundImage: 'url(' + mod.images[0] + ')',
-                            minWidth: '220px',
-                            minHeight: '125px',
-                        }}> </div>
+                            width: '220px',
+                            height: '125px',
+                            justifyContent: 'center',
+                            alignContent: 'center',
+                        }}>
+                            {!mod.verified ? <>
+                                <div style={{
+                                    display: 'flex',
+                                    backdropFilter: 'blur(10px)',
+                                    height: '100%',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}>
+                                    <div style={{
+                                        background: '#5a410b',
+                                        padding: '10px',
+                                        borderRadius: '10px',
+                                        color: 'white'
+                                    }}>
+                                        <span> ⚠ Not Verified! ⚠ </span>
+                                    </div>
+                                </div>
+                            </> : <></>}
+                        </div>
                     </a>
                     <div style={{
                         padding: '5px 8px 8px 8px'
@@ -116,6 +207,25 @@ function ModSearchList(props) {
                             lineHeight: '2',
                             color: 'white'
                         }}> {mod.title} </a>
+                        <div className="Hoverable" style={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                            width: 'fit-content',
+                            margin: 'auto',
+                            marginBottom: '8px',
+                            padding: '8px',
+                            borderRadius: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px'
+                        }} onClick={() => {
+                            searchParams.set('category', mod.category.id);
+                            if (!mod.category.id)
+                                searchParams.delete('category');
+                            setSearchParams(searchParams);
+                        }} >
+                            <img width={24} src={getHost() + '/api/mod/category/icon/' + mod.category.id} alt=""></img>
+                            <span className="SmallText"> {mod.category.name} </span>
+                        </div>
                         <div style={{
                             marginBottom: '10px',
                             display: 'flex',

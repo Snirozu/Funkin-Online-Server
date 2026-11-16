@@ -1,11 +1,26 @@
+import { useState } from "react";
+
 function Home() {
+    const [clickedDomit, setClicked] = useState(0);
+
+    let downloadTitle = 'Downloads';
+    if (clickedDomit > 0) {
+        downloadTitle = 'Down';
+        let i = clickedDomit;
+        while (i > 0) {
+            downloadTitle += 'loa';
+            i--;
+        }
+        downloadTitle += 'd Now';
+    }
+
     return (
         <div className='Content'>
             <div className="Main">
                 <img className="CumImage" alt='Psych Online' src='/images/transwag.png'></img> <br />
                 <p>Psych Online is a Friday Night Funkin' Multiplayer mod based on Psych Engine!</p>
                 <img className="CumBigImage" alt='' src='/images/onlinePreview.gif'></img> <br />
-                <h2 >Downloads</h2> <br/>
+                <h2> {downloadTitle} </h2> <br/>
                 <div className="Downloads">
                     <a href='https://github.com/Snirozu/Funkin-Psych-Online/releases/latest/download/windowsBuild.zip'>
                         <img alt="Windows" width={150} src='/images/windows_logo.png'></img>
@@ -39,6 +54,9 @@ function Home() {
                 <a href="https://gamebanana.com/mods/479714"><img className="CumBigImage" alt='' src="https://gamebanana.com/mods/embeddables/479714?type=sd_image" /></a>
                 <br></br>
                 <h5> Psych Online is a fan project not affiliated with the Psych Engine Team or Funkin' Crew  </h5>
+                <button className="FunkinButton" onClick={(e) => {
+                    setClicked(clickedDomit + 1);
+                }}> Domit </button>
             </div>
         </div>
     );

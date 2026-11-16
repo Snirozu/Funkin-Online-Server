@@ -625,12 +625,6 @@ adminRouter.get("/auth/login", checkAccess, async (req, res) => {
     res.sendStatus(200);
 });
 
-adminRouter.get("/nextweekreset", checkAccess, (_req, res) => {
-    // #swagger.tags = ['Admin']
-
-    res.status(200).send(Data.PERSIST.props.NEXT_WEEKLY_DATE + '');
-});
-
 adminRouter.get("/user/create", checkAccess, async (req, res) => {
     // #swagger.tags = ['Admin']
 

@@ -30,8 +30,8 @@ model User {
   profileHue2 Int?
   country String?
   ips String[]
-  ngUrl String? @unique
-  ngId String? @unique
+  ngUrl String? // should be unique but prisma hates when two records don't have a property set
+  ngId String?
 
   scores  Score[]
   songComments SongComment[]
@@ -45,6 +45,7 @@ model User {
   profileCommentReactions ProfileCommentReaction[]
   modComments ModComment[]
   modCommentReactions ModCommentReaction[]
+  submittedMods Mod[]
 }
 
 model UserStats {
@@ -201,10 +202,14 @@ model UserWarning {
 }
 
 model Mod {
-  id             String @id @map("_id") // filled by prisma (if empty)
+  id             String @id @default(nanoid(10)) @map("_id")
+  name           String? @unique
+
   images         String[]
   keywords       String[]
   submitted      DateTime @default(now())
+  submitterid    String? @db.ObjectId
+  submitter      User? @relation(fields: [submitterid], references: [id])
   favorited      String[]
   favoritedCount BigInt? @default(0)
   title          String
@@ -213,8 +218,32 @@ model Mod {
   downloadHits   BigInt? @default(0)
   updated        DateTime? @updatedAt
   modComments    ModComment[]
+  category       ModCategory @relation(fields: [categoryid], references: [id], onUpdate: NoAction)
+  categoryid     String @db.ObjectId
+  credits        String?
+  verified       Boolean? @default(false)
 
   @@index([title, keywords], map: "title_keywords_text_index")
+}
+
+model ModCategory {
+  id String @id @default(auto()) @map("_id") @db.ObjectId // filled by prisma (if empty)
+  name String
+  description String?
+  hue Int?
+
+  mods Mod[]
+
+  parentId  String? @db.ObjectId
+  parent    ModCategory?   @relation("CategoryChildren", fields: [parentId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  children  ModCategory[]  @relation("CategoryChildren")
+}
+
+model FileModCategoryIcon {
+  id      String @id @map("_id") @db.ObjectId 
+  data    Bytes
+  size    BigInt
+  date    DateTime @default(now())
 }
 
 model ModDownload {

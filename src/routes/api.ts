@@ -94,4 +94,10 @@ apiRouter.post("/sez", checkAccess, (req, res) => {
         res.sendStatus(413);
 });
 
+apiRouter.get("/nextweekreset", (_req, res) => {
+    // #swagger.tags = ['Generic']
+
+    res.status(200).send(Data.PERSIST.props.NEXT_WEEKLY_DATE + '');
+});
+
 export default apiRouter;

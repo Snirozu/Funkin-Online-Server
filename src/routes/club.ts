@@ -160,7 +160,11 @@ clubRouter.get("/kick", checkAccess, async (req, res) => {
         throw new ResponseError('You cannot kick yourself!');
     }
     const reqUser = db.users.byID(reqID);
-    const clubReq = await reqUser.get();
+    const clubReq = await (await reqUser.getClub()).get({
+        select: {
+            id: true
+        }
+    });
     if (!club.leaders.includes(id)) {
         throw new ResponseError('Only club leaders can do that!');
     }

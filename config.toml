@@ -32,6 +32,7 @@ access = [
     '/api/admin/user/removeimages',
     '/api/mod/delete',
     'command.announce',
+    'admin.mods.manage',
     'admin.club.edit',
     'mod.warns'
 ]
@@ -73,6 +74,10 @@ access = [
     '/api/club/*',
     '/api/mod/fav',
     '/api/mod/comment*',
+    '/api/mod/submit',
+    '/api/mod/edit',
+    '/api/mod/delete',
+    '/api/mod/dl/*',
     'room.auth',
 ]
 

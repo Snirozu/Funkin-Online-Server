@@ -22,7 +22,13 @@ setCooldown("/api/search/mods", 1);
 searchRouter.get("/mods", async (req, res) => {
     // #swagger.tags = ['Search']
 
-    res.send(await db.mods.search(req.query.q as string, Number.parseInt(req.query.page as string ?? "0"), req.query.sort as string));
+    res.send(await db.mods.search(
+        req.query.q as string, 
+        Number.parseInt(req.query.page as string ?? "0"), 
+        req.query.sort as string, 
+        req.query.category as string,
+        (req.query.verified ? ((req.query.verified as string) === '1') : undefined)
+    ));
 });
 
 export default searchRouter;

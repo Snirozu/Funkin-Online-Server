@@ -378,7 +378,7 @@ accountRouter.get("/unlink/newgrounds", checkAccess, async (req, res) => {
     const userRef = db.users.byID(id);
 
     ngSessions.delete(id);
-    await userRef.linkNewgrounds(null, null);
+    await userRef.linkNewgrounds(undefined, undefined);
 
     res.sendStatus(200);
 });
