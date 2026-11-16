@@ -54,6 +54,7 @@ access = [
     '/api/mod/dl/*',
     '/api/mod/submit',
     '/api/mod/edit',
+    '/api/mod/verify',
     '/admin',
     'admin.mod.comment.remove',
     'admin.user.comment.remove'

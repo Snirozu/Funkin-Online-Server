@@ -140,12 +140,12 @@ function ModSearchList(props) {
     const page = Number.parseInt(searchParams.get('page') ?? '0');
     const sort = searchParams.get('sort');
     const category = searchParams.get('category');
-    const verified = searchParams.get('verified') === '1';
+    const verified = searchParams.get('verified');
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get(getHost() + '/api/search/mods?q=' + encodeURIComponent(props.query) + "&page=" + page + (searchParams.has('sort') ? '&sort=' + sort : '') + (searchParams.has('category') ? '&category=' + category : '') + (verified ? '&verified=1' : ''), { validateStatus: () => true });
+                const response = await axios.get(getHost() + '/api/search/mods?q=' + encodeURIComponent(props.query) + "&page=" + page + (searchParams.has('sort') ? '&sort=' + sort : '') + (searchParams.has('category') ? '&category=' + category : '') + (verified ? '&verified=' + verified : ''), { validateStatus: () => true });
                 if (response.status !== 200) {
                     throw new Error(getResError(response));
                 }
