@@ -238,6 +238,24 @@ adminRouter.get("/endweekly", checkAccess, logActionOnRequest, async (_, res) =>
     res.sendStatus(200);
 });
 
+adminRouter.get("/updateplayerstats", checkAccess, async (_, res) => {
+    // #swagger.tags = ['Admin']
+
+    const users = await prisma.user.findMany({
+        select: {
+            id: true
+        }
+    })
+    let i = 0;
+    for (const user of users) {
+        i++;
+        console.log('updating user stats' + i + '/' + users.length);
+        await db.users.byID(user.id).updateStats();
+    }
+    console.log('finished');
+    res.sendStatus(200);
+});
+
 adminRouter.get("/updateweekly", checkAccess, async (_, res) => {
     // #swagger.tags = ['Admin']
 
@@ -281,9 +299,13 @@ adminRouter.get("/updateweekly", checkAccess, async (_, res) => {
             ]
         }
     })
+    let i = 0;
     for (const stat of stats) {
+        i++;
+        console.log('updating user stats' + i + '/' + stats.length);
         await db.users.byID(stat.user).updateStats();
     }
+    console.log('finished');
     res.sendStatus(200);
 });
 

@@ -230,7 +230,7 @@ export class Scores {
         
         const fetchedScores = [];
 
-        await chunkifyArrayForCallback(scoreIds, async chunk => {
+        await chunkifyArrayForCallback(scoreIds.concat(), async chunk => {
             for (const score of await prisma.score.findMany({
                 where: {
                     id: {

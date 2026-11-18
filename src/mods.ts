@@ -20,4 +20,6 @@ export async function logAction(uid: string, content: string) {
 
     Data.PERSIST.props.LOGGED_MOD_ACTIONS.unshift(`[${date}]: ${uid ? (await db.users.getNameByID(uid)) : 'SERVER'}: ${content}`);
     Data.PERSIST.save();
+
+    console.log(content);
 }

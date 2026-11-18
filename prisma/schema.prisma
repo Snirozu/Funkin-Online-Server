@@ -69,6 +69,8 @@ model UserStats {
   avgAcc9k Float?
 
   userRe User? @relation(fields: [user], references: [id])
+
+  @@index([user, type])
 }
 
 // recommended to have `maxPoints` descending index set
@@ -110,6 +112,8 @@ model Score {
 
   replayFileRe FileReplay? @relation(fields: [replayFileId], references: [id])
   replayFileId String? @db.ObjectId @unique // id of File that stores the replay contents
+
+  @@index([player, category, keys, songId])
 }
 
 model Report {

@@ -96,20 +96,24 @@ class Club {
         });
         if (!club)
             return;
-    
-        let points = 0;
-    
-        for (const pid of club.members) {
-            const player = await db.users.byID(pid).getStats();
-            points += player["points4k"];
-        }
-    
+
+        const aggPoints = await prisma.userStats.aggregate({
+            where: {
+                user: {
+                    in: club.members
+                }
+            },
+            _sum: {
+                points4k: true
+            }
+        });
+
         await prisma.club.update({
             where: {
                 id: club.id
             },
             data: {
-                points: BigInt(points)
+                points: BigInt(aggPoints._sum.points4k)
             },
             select: {
                 id: true

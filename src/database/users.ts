@@ -124,7 +124,6 @@ export class User {
         return await this._getStats();
     }
 
-    //TODO VERY RESOURCE HEAVY
     async updateStats(keys?: Array<number> | number) {
         if (!keys) {
             keys = KEYS_LIST;
@@ -148,9 +147,26 @@ export class User {
                 if (!KEYS_LIST.includes(kys)) {
                     continue;
                 }
-    
-                statsData["points" + kys + "k"] = await this.getPoints(category, kys);
-                statsData["avgAcc" + kys + "k"] = await db.scores.getAverageAccuracyForID(userId, category, kys) / 100;
+
+                const scoreData = await prisma.score.aggregate({
+                    where: {
+                        player: userId,
+                        category: {
+                            isSet: category !== undefined,
+                            equals: category
+                        },
+                        keys: !kys || kys === 4 ? { isSet: false } : { equals: kys }
+                    },
+                    _sum: {
+                        points: true
+                    },
+                    _avg: {
+                        accuracy: true
+                    }
+                });
+
+                statsData["points" + kys + "k"] = scoreData._sum.points ?? 0;
+                statsData["avgAcc" + kys + "k"] = (scoreData._avg.accuracy ?? 0) / 100;
             }
     
             await prisma.userStats.updateMany({
@@ -166,7 +182,7 @@ export class User {
             })
         }
 
-        const club = await this.getClub();
+        const club = db.clubs.byMemberID(userId);
         if (await club.exists())
             await club.updatePoints();
     }

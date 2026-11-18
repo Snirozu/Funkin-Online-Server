@@ -301,7 +301,6 @@ export async function endWeekly() {
                 id: true
             }
         })
-
         const scoreIDs = [];
         for (const score of scores) {
             scoreIDs.push(score.id);
