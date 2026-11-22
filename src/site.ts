@@ -163,36 +163,36 @@ export function initExpress(app: Application) {
                             Data.PERSIST.save();
                         }
 
-                        async function getPlaceMessage(stats: any) {
+                        async function getPlaceMessage(stats: any, pointsField: string) {
                             const club = await db.users.byID(stats.userRe.id).getClub();
                             const clubTag = await club.exists() ? await club.getTag() : undefined;
 
-                            return stats.userRe.name + (clubTag ? ' [' + clubTag + ']' : '') + ' with ' + stats.points4k + 'FP!';
+                            return stats.userRe.name + (clubTag ? ' [' + clubTag + ']' : '') + ' with ' + stats[pointsField] + 'FP!';
                         }
 
                         let _top = await db.users.top(0, undefined, "week");
 
                         let leadersMessage = '• Weekly 4k Leaderboard Finals! •';
-                        leadersMessage = leadersMessage + '\n1st. ' + await getPlaceMessage(_top[0]);
-                        leadersMessage = leadersMessage + '\n2nd. ' + await getPlaceMessage(_top[1]);
-                        leadersMessage = leadersMessage + '\n3rd. ' + await getPlaceMessage(_top[2]);
-                        leadersMessage = leadersMessage + '\n4th. ' + await getPlaceMessage(_top[3]);
-                        leadersMessage = leadersMessage + '\n5th. ' + await getPlaceMessage(_top[4]);
+                        leadersMessage = leadersMessage + '\n1st. ' + await getPlaceMessage(_top[0], 'points4k');
+                        leadersMessage = leadersMessage + '\n2nd. ' + await getPlaceMessage(_top[1], 'points4k');
+                        leadersMessage = leadersMessage + '\n3rd. ' + await getPlaceMessage(_top[2], 'points4k');
+                        leadersMessage = leadersMessage + '\n4th. ' + await getPlaceMessage(_top[3], 'points4k');
+                        leadersMessage = leadersMessage + '\n5th. ' + await getPlaceMessage(_top[4], 'points4k');
 
                         _top = await db.users.top(0, undefined, "week", 'points5k');
-                        leadersMessage = leadersMessage + '\nWeekly 5k Leader: ' + await getPlaceMessage(_top[0]);
+                        leadersMessage = leadersMessage + '\nWeekly 5k Leader: ' + await getPlaceMessage(_top[0], 'points5k');
 
                         _top = await db.users.top(0, undefined, "week", 'points6k');
-                        leadersMessage = leadersMessage + '\nWeekly 6k Leader: ' + await getPlaceMessage(_top[0]);
+                        leadersMessage = leadersMessage + '\nWeekly 6k Leader: ' + await getPlaceMessage(_top[0], 'points6k');
 
                         _top = await db.users.top(0, undefined, "week", 'points7k');
-                        leadersMessage = leadersMessage + '\nWeekly 7k Leader: ' + await getPlaceMessage(_top[0]);
+                        leadersMessage = leadersMessage + '\nWeekly 7k Leader: ' + await getPlaceMessage(_top[0], 'points7k');
 
                         _top = await db.users.top(0, undefined, "week", 'points8k');
-                        leadersMessage = leadersMessage + '\nWeekly 8k Leader: ' + await getPlaceMessage(_top[0]);
+                        leadersMessage = leadersMessage + '\nWeekly 8k Leader: ' + await getPlaceMessage(_top[0], 'points8k');
 
                         _top = await db.users.top(0, undefined, "week", 'points9k');
-                        leadersMessage = leadersMessage + '\nWeekly 9k Leader: ' + await getPlaceMessage(_top[0]);
+                        leadersMessage = leadersMessage + '\nWeekly 9k Leader: ' + await getPlaceMessage(_top[0], 'points9k');
 
                         await NetworkRoom.logToAll(formatLog(leadersMessage))
 
